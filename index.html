@@ -170,6 +170,7 @@
         };
 
         // --- COMPONENTES ---
+        // O LoginScreen é opcional se a lógica estiver no App, mas mantivemos como fallback.
         const LoginScreen = ({ onLoginSuccess }) => {
             const [user, setUser] = useState(null);
             const [pin, setPin] = useState('');
@@ -231,7 +232,7 @@
                         <button onClick={() => handlePin(pin + '0')} className="h-16 rounded-2xl bg-white/5 text-xl font-bold active:scale-95 hover:bg-white/10 transition-colors">0</button>
                         <button onClick={() => setPin(pin.slice(0, -1))} className="h-16 rounded-2xl flex items-center justify-center active:scale-95 hover:bg-white/10 transition-colors"><X /></button>
                     </div>
-                    <button onClick={submit} disabled={pin.length !== 4} className={`w-64 mt-6 py-4 rounded-2xl font-bold transition-all duration-300 ${pin.length === 4 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-800 text-slate-500'}`}>Entrar</button>
+                    <button onClick={submit} disabled={pin.length !== 4} className={`w-64 mt-6 py-4 rounded-2xl font-bold transition-all duration-300 ${pin.length === 4 ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-800 text-slate-500'}`}>Entrar</button>
                 </div>
             );
         };
@@ -246,6 +247,9 @@
             const [tab, setTab] = useState('home');
             const [isOnline, setIsOnline] = useState(navigator.onLine);
             const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+            
+            // --- ESTADO PIN CORRIGIDO ---
+            const [pin, setPin] = useState('');
 
             // UI States
             const [menuOpen, setMenuOpen] = useState(false);
@@ -269,7 +273,12 @@
 
             useEffect(() => {
                 const localProfile = localStorage.getItem('fincontrol_profile');
-                if (localProfile) setProfile(localProfile);
+                if (localProfile && USER_CONFIG[localProfile]) {
+                    setProfile(localProfile);
+                } else {
+                    localStorage.removeItem('fincontrol_profile');
+                    setProfile(null);
+                }
 
                 auth.signInAnonymously().catch(console.error);
                 auth.onAuthStateChanged(setUser);
@@ -370,13 +379,10 @@
                 setMenuOpen(false);
 
                 try {
-                    // Converter para Base64
                     const reader = new FileReader();
                     reader.readAsDataURL(file);
                     reader.onloadend = async () => {
                         const base64Data = reader.result.split(',')[1];
-                        
-                        // Chamar Gemini
                         const genAI = new GoogleGenerativeAI(apiKey);
                         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
@@ -389,7 +395,6 @@
                         ]);
                         
                         const text = result.response.text();
-                        // Limpar Markdown do JSON se houver
                         const cleanJson = text.replace(/```json|```/g, '').trim();
                         const data = JSON.parse(cleanJson);
 
@@ -398,7 +403,7 @@
                             setFTitle(data.title || '');
                             setFType('expense');
                             setFCat(data.category || 'Outros');
-                            setFShared(true); // Assumir compartilhado por padrão em recibos
+                            setFShared(true); 
                             setModalOpen(true);
                         } else {
                             alert("Não consegui ler os dados da imagem. Tente novamente.");
@@ -455,6 +460,12 @@
                 setImportModal(false); setMenuOpen(false);
             };
 
+            // --- FUNÇÃO HANDLE PIN CORRIGIDA ---
+            const handlePin = (val) => {
+                if (val.length > 4) return;
+                setPin(val);
+            };
+
             const handleLogin = () => {
                 if (pin === USER_CONFIG[profile].defaultPin) {
                     localStorage.setItem('fincontrol_profile', profile);
@@ -506,7 +517,9 @@
             };
 
             // UI
-            if (!profile || (profile && localStorage.getItem('fincontrol_profile') !== profile)) {
+            const userConfig = profile ? USER_CONFIG[profile] : null;
+
+            if (!profile || !userConfig || (profile && localStorage.getItem('fincontrol_profile') !== profile)) {
                 return (
                     <div className="h-full flex flex-col items-center justify-center p-6 bg-slate-900 text-white animate-fade-in">
                         {!profile ? (
@@ -528,7 +541,7 @@
                             <>
                                 <button onClick={() => setProfile(null)} className="absolute top-6 left-6 p-2 bg-slate-800 rounded-full"><ChevronLeft /></button>
                                 <div className={`w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-6 ${USER_CONFIG[profile].color} border-4 border-slate-800 shadow-xl`}>{USER_CONFIG[profile].avatar}</div>
-                                <h2 className="text-xl font-bold mb-8">Olá, {USER_CONFIG[user].name}</h2>
+                                <h2 className="text-xl font-bold mb-8">Olá, {USER_CONFIG[profile].name}</h2>
                                 <div className="flex gap-4 mb-8">{[0,1,2,3].map(i => <div key={i} className={`w-3 h-3 rounded-full ${pin.length > i ? 'bg-emerald-400' : 'bg-slate-700'}`} />)}</div>
                                 <div className="grid grid-cols-3 gap-4 w-64">
                                     {[1,2,3,4,5,6,7,8,9].map(n => <button key={n} onClick={() => handlePin(pin + n)} className="h-16 rounded-xl bg-slate-800 text-xl font-bold active:scale-95 hover:bg-white/10 transition-colors">{n}</button>)}
