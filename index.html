@@ -80,13 +80,20 @@
             CheckSquare: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>,
             Square: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="18" height="18" x="3" y="3" rx="2"/></svg>,
             Trash2: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>,
+            ChevronDown: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m6 9 6 6 6-6"/></svg>,
+            ChevronUp: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m18 15-6-6-6 6"/></svg>,
+            ShoppingCart: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>,
+            Search: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
+            TrendingDown: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>,
         };
 
         const { useState, useEffect, useMemo, useRef } = React;
         const { 
             Plus, Wallet, X, Users, ArrowRightLeft, User, PiggyBank, Target, 
             PieChart, ListIcon, BarChart3, Home, WifiOff, Settings, LogOut, 
-            Moon, Sun, Sunrise, ChevronLeft, Heart, Check, FileText, Camera, Upload, Sparkles, Key, CheckSquare, Square, Trash2
+            Moon, Sun, Sunrise, ChevronLeft, Heart, Check, FileText, Camera, Upload, 
+            Sparkles, Key, CheckSquare, Square, Trash2, ChevronDown, ChevronUp,
+            ShoppingCart, Search, TrendingDown
         } = Icons;
 
         // --- FIREBASE CONFIG ---
@@ -233,6 +240,138 @@
             );
         };
 
+        // --- COMPONENTE MARKET (NOVO) ---
+        const MarketView = ({ data }) => {
+            const [searchTerm, setSearchTerm] = useState('');
+            const [shoppingList, setShoppingList] = useState([]);
+            
+            // INTELIGÊNCIA DE PREÇOS
+            const productIntelligence = useMemo(() => {
+                const map = {};
+                data.list.forEach(tx => {
+                    if (tx.items && tx.items.length > 0) {
+                        tx.items.forEach(item => {
+                            const normalizedName = item.name.toLowerCase().trim();
+                            if (!map[normalizedName]) map[normalizedName] = { name: item.name, history: [] };
+                            map[normalizedName].history.push({ 
+                                price: item.value, 
+                                market: tx.title, 
+                                date: tx.date 
+                            });
+                        });
+                    }
+                });
+                
+                return Object.values(map).map(p => {
+                    p.history.sort((a,b) => a.price - b.price);
+                    const best = p.history[0];
+                    p.bestPrice = best.price;
+                    p.bestMarket = best.market;
+                    
+                    const sum = p.history.reduce((a, b) => a + b.price, 0);
+                    p.avgPrice = sum / p.history.length;
+                    
+                    return p;
+                }).sort((a,b) => a.name.localeCompare(b.name));
+            }, [data.list]);
+
+            const filteredProducts = productIntelligence.filter(p => 
+                p.name.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+            const addToCart = (product) => {
+                const newItem = {
+                    id: Date.now(),
+                    name: product.name,
+                    price: product.bestPrice,
+                    market: product.bestMarket,
+                    checked: false
+                };
+                setShoppingList([...shoppingList, newItem]);
+                setSearchTerm('');
+            };
+
+            const toggleCartItem = (id) => {
+                setShoppingList(shoppingList.map(i => i.id === id ? {...i, checked: !i.checked} : i));
+            };
+
+            const removeCartItem = (id) => {
+                setShoppingList(shoppingList.filter(i => i.id !== id));
+            };
+
+            const totalCart = shoppingList.reduce((acc, item) => acc + (item.checked ? 0 : item.price), 0);
+
+            return (
+                <div className="space-y-6 pb-24">
+                     {/* LISTA DE COMPRAS ATIVA */}
+                     <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
+                        <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><ShoppingCart className="text-indigo-600"/> Lista de Compras</h3>
+                        
+                        {shoppingList.length === 0 ? (
+                            <p className="text-sm text-gray-400 text-center py-4">Sua lista está vazia.</p>
+                        ) : (
+                            <div className="space-y-3">
+                                {shoppingList.map(item => (
+                                    <div key={item.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${item.checked ? 'bg-gray-50 border-gray-100 opacity-50' : 'bg-white border-indigo-100'}`}>
+                                        <button onClick={() => toggleCartItem(item.id)} className={`w-5 h-5 rounded border-2 flex items-center justify-center ${item.checked ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300'}`}>
+                                            {item.checked && <Check size={12} className="text-white"/>}
+                                        </button>
+                                        <div className="flex-1">
+                                            <p className={`font-bold text-sm ${item.checked ? 'line-through' : ''}`}>{item.name}</p>
+                                            <p className="text-[10px] text-gray-500 flex items-center gap-1"><TrendingDown size={10} className="text-emerald-500"/> Melhor em: {item.market}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-bold text-sm text-indigo-600">{formatCurrency(item.price)}</p>
+                                            <button onClick={() => removeCartItem(item.id)}><X size={14} className="text-gray-300"/></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        
+                        <div className="mt-4 pt-4 border-t flex justify-between items-center">
+                            <span className="text-xs font-bold uppercase text-gray-400">Estimativa</span>
+                            <span className="text-xl font-bold text-slate-800">{formatCurrency(totalCart)}</span>
+                        </div>
+                     </div>
+
+                     {/* BUSCA DE PRODUTOS */}
+                     <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
+                        <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Target className="text-emerald-600"/> Histórico de Preços</h3>
+                        <div className="relative mb-4">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
+                            <input 
+                                type="text" 
+                                placeholder="Buscar item (ex: Leite)..." 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full bg-gray-50 pl-10 pr-4 py-3 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-100"
+                            />
+                        </div>
+
+                        <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-hide">
+                            {filteredProducts.slice(0, 10).map((prod, idx) => (
+                                <div key={idx} className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-xl cursor-pointer group" onClick={() => addToCart(prod)}>
+                                    <div>
+                                        <p className="font-bold text-sm text-slate-700">{prod.name}</p>
+                                        <p className="text-[10px] text-gray-400">Média: {formatCurrency(prod.avgPrice)}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-bold text-sm text-emerald-600">{formatCurrency(prod.bestPrice)}</p>
+                                        <p className="text-[10px] text-gray-400 truncate w-20 text-right">{prod.bestMarket}</p>
+                                    </div>
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-indigo-100 p-1 rounded-lg">
+                                        <Plus size={14} className="text-indigo-600"/>
+                                    </div>
+                                </div>
+                            ))}
+                            {filteredProducts.length === 0 && <p className="text-center text-xs text-gray-400 py-4">Nenhum produto encontrado no histórico.</p>}
+                        </div>
+                     </div>
+                </div>
+            );
+        };
+
         // --- APP ---
         function App() {
             const [user, setUser] = useState(null);
@@ -250,11 +389,13 @@
             const [settingsModal, setSettingsModal] = useState(false);
             const [isProcessingAI, setIsProcessingAI] = useState(false);
 
-            // Novos estados para Revisão e Seleção
+            // Novos estados para Revisão, Seleção e Expansão
             const [reviewData, setReviewData] = useState([]);
             const [isReviewOpen, setIsReviewOpen] = useState(false);
             const [selectionMode, setSelectionMode] = useState(false);
             const [selectedIds, setSelectedIds] = useState(new Set());
+            const [expandedReviewId, setExpandedReviewId] = useState(null);
+            const [expandedTxId, setExpandedTxId] = useState(null);
 
             const [fTitle, setFTitle] = useState('');
             const [fAmount, setFAmount] = useState('');
@@ -344,7 +485,7 @@
                 return { list, bal: inc - exp - inv, inc, exp, inv, coupleBal: credit - debt, planning, charts, investGoal: 3000 };
             }, [txs, profile, viewMode, budgets]);
 
-            // --- UNIVERSAL IA HANDLER (COM AUTO-REPARO) ---
+            // --- UNIVERSAL IA HANDLER ---
             const askGemini = async (prompt, inlineData) => {
                 if(!apiKey) { alert("Chave API não configurada! Vá em Configurações."); return null; }
                 
@@ -356,13 +497,11 @@
                 };
 
                 try {
-                    // Tenta o modelo 2.5 Flash primeiro (mais recente)
                     console.log("Tentando gemini-2.5-flash-preview-09-2025...");
                     const text = await tryModel("gemini-2.5-flash-preview-09-2025");
                     return JSON.parse(text.replace(/```json|```/g, '').trim());
                 } catch (e) {
                     console.warn("Falha no 2.5 Flash, tentando 1.5 Flash...", e);
-                    // Se falhar (ex: 404), tenta o modelo padrão robusto
                     try {
                         const text = await tryModel("gemini-1.5-flash");
                         return JSON.parse(text.replace(/```json|```/g, '').trim());
@@ -387,13 +526,13 @@
                 const currentMonthName = months[currentMonthIndex];
 
                 const promptBase = `
-                    ATENÇÃO: Você é um assistente financeiro contábil.
+                    ATENÇÃO: Você é um assistente financeiro contábil experiente.
                     Sua missão: Ler este arquivo e encontrar despesas/receitas REAIS do mês de ${currentMonthName}.
                     
                     REGRAS CRÍTICAS:
-                    1. Se for uma PLANILHA MATRIZ (meses nas colunas): IGNORE colunas de outros meses. Foque APENAS na coluna referente a ${currentMonthName} (ou mês atual).
-                    2. IGNORE linhas de "Total", "Saldo", "Cartão de Crédito" (se for o pagamento da fatura, ok, mas evite duplicidade).
-                    3. Se for PDF/Imagem: Extraia data, local e valor.
+                    1. Se houver detalhamento de itens (ex: lista de produtos no mercado, pratos no restaurante), extraia-os no campo 'items'. Formato: items: [{name: 'Arroz', value: 20.00}, ...]. Se não houver, array vazio.
+                    2. Se for uma PLANILHA MATRIZ (meses nas colunas): IGNORE colunas de outros meses. Foque APENAS na coluna referente a ${currentMonthName} (ou mês atual).
+                    3. IGNORE linhas de "Total", "Saldo", "Cartão de Crédito" (se for o pagamento da fatura, ok, mas evite duplicidade).
                     
                     SAÍDA OBRIGATÓRIA (JSON puro sem markdown):
                     {
@@ -403,7 +542,8 @@
                                 "title": "Nome da despesa", 
                                 "amount": 0.00 (valor positivo float), 
                                 "type": "expense" (ou "income"), 
-                                "category": "Alimentação" (ou Transporte, Moradia, Lazer, Saúde, Outros) 
+                                "category": "Alimentação" (ou Transporte, Moradia, Lazer, Saúde, Outros),
+                                "items": [ {"name": "Item A", "value": 10.00} ] 
                             }
                         ]
                     }
@@ -412,7 +552,6 @@
                 try {
                     let inlineData = null;
 
-                    // 1. IMAGEM
                     if (file.type.startsWith('image/')) {
                         const reader = new FileReader();
                         reader.readAsDataURL(file);
@@ -421,10 +560,8 @@
                             const data = await askGemini(promptBase, { inlineData: { data: base64, mimeType: file.type }});
                             processAIResponse(data);
                         };
-                        return; // Async flow continues in onload
+                        return;
                     } 
-                    
-                    // 2. PDF
                     else if (file.type === 'application/pdf') {
                         const arrayBuffer = await file.arrayBuffer();
                         const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
@@ -435,26 +572,20 @@
                             const textContent = await page.getTextContent();
                             fullText += textContent.items.map(item => item.str).join(' ') + '\n';
                         }
-                        // Mandar como texto simples (inlineData é null aqui, prompt leva o texto)
                         const data = await askGemini(promptBase + "\n\nCONTEÚDO TEXTO:\n" + fullText, "");
                         processAIResponse(data);
                         return;
                     }
-
-                    // 3. EXCEL/CSV
                     else {
                         const reader = new FileReader();
                         reader.onload = async (evt) => {
                             const bstr = evt.target.result;
                             const wb = XLSX.read(bstr, { type: 'binary' });
-                            // Pega todas as abas para garantir
                             let allText = "";
                             wb.SheetNames.forEach(name => {
                                 const ws = wb.Sheets[name];
                                 allText += `\n--- ABA: ${name} ---\n` + XLSX.utils.sheet_to_csv(ws);
                             });
-                            
-                            // Truncar para caber no prompt (aprox 30k chars é seguro)
                             const data = await askGemini(promptBase + "\n\nDADOS CSV:\n" + allText.substring(0, 30000), "");
                             processAIResponse(data);
                         };
@@ -470,23 +601,24 @@
 
             const processAIResponse = (data) => {
                 if (data && data.transactions && data.transactions.length > 0) {
-                   // Em vez de salvar, abre revisão
-                   const prepared = data.transactions.map(t => ({
+                   const prepared = data.transactions.map((t, idx) => ({
                        ...t,
-                       isShared: false, // Default
+                       id: idx,
+                       isShared: false,
                        amount: Number(t.amount),
-                       date: t.date || new Date().toISOString().split('T')[0]
+                       date: t.date || new Date().toISOString().split('T')[0],
+                       items: t.items || []
                    }));
                    setReviewData(prepared);
                    setIsReviewOpen(true);
                    setIsProcessingAI(false);
                 } else {
-                    alert("A IA analisou mas não encontrou transações claras. Tente simplificar o arquivo.");
+                    alert("A IA analisou mas não encontrou transações claras.");
                     setIsProcessingAI(false);
                 }
             };
 
-            // --- AÇÕES DE SELEÇÃO E EXCLUSÃO ---
+            // --- SELECTION & REVIEW ---
             const toggleSelection = (id) => {
                 const newSet = new Set(selectedIds);
                 if (newSet.has(id)) newSet.delete(id);
@@ -496,31 +628,38 @@
 
             const deleteSelected = async () => {
                 if (!confirm(`Excluir ${selectedIds.size} itens?`)) return;
-                
-                // Simples iteração para compatibilidade
                 const batch = db.batch();
                 selectedIds.forEach(id => {
                    const ref = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc(id);
                    batch.delete(ref);
                 });
                 await batch.commit();
-                
                 setSelectedIds(new Set());
                 setSelectionMode(false);
             };
 
-            // --- SAVE FINAL IMPORT ---
+             const addReviewItem = (txIndex) => {
+                const title = prompt("Nome do item:");
+                const val = parseFloat(prompt("Valor:"));
+                if (title && !isNaN(val)) {
+                    const newData = [...reviewData];
+                    newData[txIndex].items.push({name: title, value: val});
+                    newData[txIndex].amount += val;
+                    setReviewData(newData);
+                }
+            };
+
             const confirmImport = async () => {
                  const batch = db.batch();
                  reviewData.forEach(t => {
                      const ref = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc();
+                     const { id, ...dataToSave } = t;
                      batch.set(ref, {
+                        ...dataToSave,
                         title: t.title || "Importado",
                         amount: Number(t.amount),
                         type: t.type || 'expense',
                         category: t.category || 'Outros',
-                        date: t.date,
-                        isShared: t.isShared,
                         payer: 'me',
                         ownerId: profile,
                         createdAt: new Date().toISOString(),
@@ -534,13 +673,13 @@
                  alert("Importação concluída!");
             };
 
-            // --- OUTRAS AÇÕES ---
+            // --- ACTIONS ---
             const saveTx = async (e) => {
                 e.preventDefault();
                 await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').add({
                     title: fTitle, amount: Number(fAmount), type: fType, category: fCat,
                     date: new Date().toISOString().split('T')[0], isShared: fShared, payer: formPayer,
-                    ownerId: profile, createdAt: new Date().toISOString(), userId: user.uid, isSettlement: false
+                    ownerId: profile, createdAt: new Date().toISOString(), userId: user.uid, isSettlement: false, items: []
                 });
                 setModalOpen(false); setFTitle(''); setFAmount('');
             };
@@ -597,12 +736,12 @@
                             <div className="w-20 h-20 bg-indigo-500 rounded-full flex items-center justify-center mb-6 animate-pulse-ring">
                                 <Sparkles size={40} className="animate-spin-slow" />
                             </div>
-                            <h3 className="text-2xl font-bold mb-2">Analisando Arquivo...</h3>
-                            <p className="text-slate-400">A Inteligência Artificial está lendo sua planilha/documento e procurando transações do mês atual.</p>
+                            <h3 className="text-2xl font-bold mb-2">Analisando...</h3>
+                            <p className="text-slate-400">Extraindo dados e itens da compra.</p>
                         </div>
                     )}
 
-                    {/* MODAL REVISÃO IMPORTAÇÃO */}
+                    {/* MODAL REVISÃO */}
                     {isReviewOpen && (
                         <div className="fixed inset-0 z-[70] bg-slate-900/95 backdrop-blur-sm flex flex-col animate-fade-in">
                             <div className="bg-white rounded-t-3xl mt-10 flex-1 flex flex-col overflow-hidden">
@@ -619,27 +758,50 @@
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
                                     {reviewData.map((item, idx) => (
-                                        <div key={idx} className={`p-3 rounded-xl border-2 flex justify-between items-center ${item.isShared ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'}`}
-                                             onClick={() => {
-                                                 const n = [...reviewData];
-                                                 n[idx].isShared = !n[idx].isShared;
-                                                 setReviewData(n);
-                                             }}>
-                                            <div className="flex-1">
-                                                <div className="flex justify-between">
-                                                    <span className="font-bold text-sm">{item.title}</span>
-                                                    <span className="font-bold">{formatCurrency(item.amount)}</span>
+                                        <div key={idx} className={`rounded-xl border-2 overflow-hidden transition-all ${item.isShared ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100 bg-white'}`}>
+                                            <div className="p-3 flex justify-between items-center" 
+                                                 onClick={() => {
+                                                     const n = [...reviewData];
+                                                     n[idx].isShared = !n[idx].isShared;
+                                                     setReviewData(n);
+                                                 }}>
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="font-bold text-sm">{item.title}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-bold">{formatCurrency(item.amount)}</span>
+                                                            <button onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setExpandedReviewId(expandedReviewId === idx ? null : idx);
+                                                            }} className="p-1 bg-gray-100 rounded-full">
+                                                                {expandedReviewId === idx ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex justify-between text-xs text-slate-500 mt-1">
+                                                        <span>{item.date} • {item.category}</span>
+                                                        <span className={`flex items-center gap-1 ${item.isShared ? 'text-indigo-600 font-bold' : ''}`}>
+                                                            {item.isShared ? <><Users size={12}/> Dividido</> : <><User size={12}/> Pessoal</>}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex justify-between text-xs text-slate-500 mt-1">
-                                                    <span>{item.date} • {item.category}</span>
-                                                    <span className={`flex items-center gap-1 ${item.isShared ? 'text-indigo-600 font-bold' : ''}`}>
-                                                        {item.isShared ? <><Users size={12}/> Dividido</> : <><User size={12}/> Pessoal</>}
-                                                    </span>
+                                                <div className={`ml-3 w-5 h-5 rounded-full border-2 flex items-center justify-center ${item.isShared ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300'}`}>
+                                                    {item.isShared && <Check size={12} className="text-white"/>}
                                                 </div>
                                             </div>
-                                            <div className={`ml-3 w-5 h-5 rounded-full border-2 flex items-center justify-center ${item.isShared ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300'}`}>
-                                                {item.isShared && <Check size={12} className="text-white"/>}
-                                            </div>
+                                            {/* Sub-itens na revisão */}
+                                            {expandedReviewId === idx && (
+                                                <div className="bg-gray-50 p-3 border-t border-gray-100 text-xs">
+                                                    <p className="font-bold text-slate-500 mb-2 uppercase">Detalhamento</p>
+                                                    {item.items && item.items.map((sub, sIdx) => (
+                                                        <div key={sIdx} className="flex justify-between py-1 border-b border-gray-200 last:border-0">
+                                                            <span>{sub.name}</span>
+                                                            <span>{formatCurrency(sub.value)}</span>
+                                                        </div>
+                                                    ))}
+                                                    <button onClick={() => addReviewItem(idx)} className="mt-2 text-indigo-600 font-bold flex items-center gap-1"><Plus size={12}/> Adicionar Item Manual</button>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -680,7 +842,7 @@
 
                     {/* Content */}
                     <div className="flex-1 overflow-y-auto p-6 pb-24 scrollbar-hide relative">
-                        {/* SELECTION BAR FLOATING */}
+                        {/* SELECTION BAR */}
                         {selectionMode && selectedIds.size > 0 && (
                             <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-pop">
                                 <span className="font-bold text-sm">{selectedIds.size} selecionados</span>
@@ -692,29 +854,54 @@
                             <div className="space-y-4 animate-fade-in">
                                 {data.list.map(t => (
                                     <div key={t.id} 
-                                         className={`bg-white p-4 rounded-2xl shadow-sm border flex justify-between items-center transition-all ${selectionMode && selectedIds.has(t.id) ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100 hover:shadow-md'}`}
+                                         className={`bg-white rounded-2xl shadow-sm border transition-all overflow-hidden ${selectionMode && selectedIds.has(t.id) ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100 hover:shadow-md'}`}
                                          onClick={() => {
                                              if (selectionMode) toggleSelection(t.id);
+                                             else if (t.items && t.items.length > 0) setExpandedTxId(expandedTxId === t.id ? null : t.id);
                                          }}>
-                                        <div className="flex gap-4 items-center">
-                                            {selectionMode ? (
-                                                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${selectedIds.has(t.id) ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300'}`}>
-                                                    {selectedIds.has(t.id) && <Check size={14} className="text-white"/>}
+                                        <div className="p-4 flex justify-between items-center">
+                                            <div className="flex gap-4 items-center">
+                                                {selectionMode ? (
+                                                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${selectedIds.has(t.id) ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300'}`}>
+                                                        {selectedIds.has(t.id) && <Check size={14} className="text-white"/>}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-2xl bg-gray-50 w-10 h-10 flex items-center justify-center rounded-xl">{t.type === 'income' ? '💰' : t.type === 'investment' ? '🚀' : t.isSettlement ? '🤝' : '🏷️'}</span>
+                                                )}
+                                                <div>
+                                                    <p className="font-bold text-sm flex items-center gap-1">
+                                                        {t.title} 
+                                                        {t.items && t.items.length > 0 && !selectionMode && <ChevronDown size={12} className={`text-gray-400 transition-transform ${expandedTxId === t.id ? 'rotate-180' : ''}`}/>}
+                                                    </p>
+                                                    <p className="text-xs text-gray-400">{formatDate(t.date)} • {t.category}</p>
                                                 </div>
-                                            ) : (
-                                                <span className="text-2xl bg-gray-50 w-10 h-10 flex items-center justify-center rounded-xl">{t.type === 'income' ? '💰' : t.type === 'investment' ? '🚀' : t.isSettlement ? '🤝' : '🏷️'}</span>
-                                            )}
-                                            <div><p className="font-bold text-sm">{t.title}</p><p className="text-xs text-gray-400">{formatDate(t.date)} • {t.category}</p></div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className={`font-bold text-sm ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>{t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}</p>
+                                                {!selectionMode && <button onClick={(e) => { e.stopPropagation(); deleteTx(t.id); }} className="text-[10px] text-gray-300 font-bold uppercase p-1">Excluir</button>}
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className={`font-bold text-sm ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>{t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}</p>
-                                            {!selectionMode && <button onClick={(e) => { e.stopPropagation(); deleteTx(t.id); }} className="text-[10px] text-gray-300 font-bold uppercase p-1">Excluir</button>}
-                                        </div>
+                                        {/* Sub-itens na lista principal */}
+                                        {expandedTxId === t.id && t.items && t.items.length > 0 && !selectionMode && (
+                                            <div className="bg-gray-50 px-4 py-2 border-t border-gray-100 text-xs space-y-1">
+                                                {t.items.map((sub, sIdx) => (
+                                                    <div key={sIdx} className="flex justify-between text-slate-600">
+                                                        <span>{sub.name}</span>
+                                                        <span>{formatCurrency(sub.value)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                                 {data.list.length === 0 && <div className="text-center text-gray-400 mt-10"><ListIcon className="mx-auto mb-2 opacity-50"/><p>Sem movimentações.</p></div>}
                             </div>
                         )}
+
+                        {tab === 'market' && (
+                            <MarketView data={data} />
+                        )}
+
                         {tab === 'planning' && (
                             <div className="space-y-6 bg-white p-6 rounded-3xl shadow-sm animate-fade-in">
                                 <div className="flex justify-between items-center mb-4"><h3 className="font-bold flex gap-2"><Target size={20} className="text-indigo-600"/> Metas</h3><button onClick={openBudget} className="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg font-bold flex gap-1 items-center"><Settings size={12}/> Configurar</button></div>
@@ -736,7 +923,7 @@
                     {/* Nav */}
                     <div className="bg-white border-t px-6 py-3 flex justify-between items-center fixed bottom-0 w-full pb-8 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-40">
                         <button onClick={() => setTab('home')} className={`flex flex-col items-center gap-1 w-12 ${tab === 'home' ? 'text-slate-900' : 'text-slate-300'}`}><Home size={24} strokeWidth={tab==='home'?2.5:2}/><span className="text-[10px] font-bold">Home</span></button>
-                        <button onClick={() => setTab('planning')} className={`flex flex-col items-center gap-1 w-12 ${tab === 'planning' ? 'text-slate-900' : 'text-slate-300'}`}><Target size={24} strokeWidth={tab==='planning'?2.5:2}/><span className="text-[10px] font-bold">Metas</span></button>
+                        <button onClick={() => setTab('market')} className={`flex flex-col items-center gap-1 w-12 ${tab === 'market' ? 'text-slate-900' : 'text-slate-300'}`}><ShoppingCart size={24} strokeWidth={tab==='market'?2.5:2}/><span className="text-[10px] font-bold">Mercado</span></button>
                         <div className="-mt-12 relative z-50">
                             {menuOpen && (
                                 <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex flex-col gap-3 items-center animate-pop w-48">
@@ -747,11 +934,11 @@
                             )}
                             <button onClick={() => setMenuOpen(!menuOpen)} className={`w-16 h-16 rounded-[1.2rem] bg-indigo-600 text-white flex items-center justify-center shadow-xl shadow-indigo-500/40 border-4 border-gray-50 transition-transform ${menuOpen ? 'rotate-45' : 'active:scale-95'}`}><Plus size={32}/></button>
                         </div>
+                        <button onClick={() => setTab('planning')} className={`flex flex-col items-center gap-1 w-12 ${tab === 'planning' ? 'text-slate-900' : 'text-slate-300'}`}><Target size={24} strokeWidth={tab==='planning'?2.5:2}/><span className="text-[10px] font-bold">Metas</span></button>
                         <button onClick={() => setTab('reports')} className={`flex flex-col items-center gap-1 w-12 ${tab === 'reports' ? 'text-slate-900' : 'text-slate-300'}`}><PieChart size={24} strokeWidth={tab==='reports'?2.5:2}/><span className="text-[10px] font-bold">Análise</span></button>
-                        <div className="w-12"/> 
                     </div>
 
-                    {/* Inputs Invisíveis (Unificados) */}
+                    {/* Inputs Invisíveis */}
                     <input type="file" ref={fileInputRef} onChange={handleUniversalUpload} accept="image/*,.pdf,.csv,.xlsx,.xls" className="hidden" />
 
                     {/* Modal Settings */}
