@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nosso Norte</title>
+    
+    <!-- Tailwind CSS (Visual) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React (Motor do App) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel (Tradutor de Código) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Firebase (Banco de Dados - Versão Compat/Estável) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <!-- Configuração para Celular (PWA) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    
+    <style>
+        body { -webkit-tap-highlight-color: transparent; user-select: none; font-family: sans-serif; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        input { user-select: text; }
+        /* Animações simples */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-800 h-screen overflow-hidden">
+    <div id="root" class="h-full w-full"></div>
+
+    <script type="text/babel">
+        // --- 1. ÍCONES (Embutidos para evitar erros de importação) ---
+        const Icons = {
+            Plus: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
+            Wallet: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>,
+            X: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>,
+            Users: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+            ArrowRightLeft: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>,
+            User: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            PiggyBank: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2.5V7.4c-1.5-1.5-3.5-2.4-5-2.4z"/><path d="M16 6h1a2 2 0 0 1 0 4h-1"/><line x1="9" x2="9" y1="11" y2="11.01"/></svg>,
+            Target: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+            PieChart: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>,
+            List: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>,
+            BarChart3: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>,
+            Home: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+            WifiOff: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><line x1="2" x2="22" y1="2" y2="22"/><path d="M8.5 8.5A6 6 0 0 1 12 8c1.38 0 2.66.45 3.71 1.2"/><path d="M5 12.5A10.3 10.3 0 0 1 12 10c2.43 0 4.67.85 6.47 2.27"/><path d="M2 17.5A14.36 14.36 0 0 1 12 12c.57 0 1.13.04 1.68.12"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg>,
+            Settings: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+            LogOut: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>,
+            Moon: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>,
+            Sun: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>,
+            Sunrise: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/></svg>,
+            ChevronLeft: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m15 18-6-6 6-6"/></svg>,
+            Heart: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
+            Check: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 6 9 17l-5-5"/></svg>,
+        };
+
+        const { useState, useEffect, useMemo } = React;
+        const { 
+            Plus, Wallet, X, Users, ArrowRightLeft, User, PiggyBank, Target, 
+            PieChart, List: ListIcon, BarChart3, Home, WifiOff, Settings, LogOut, 
+            Moon, Sun, Sunrise, ChevronLeft, Heart, Check 
+        } = Icons;
+
+        // --- 2. FIREBASE COMPAT SETUP (Mais estável para Single File) ---
+        const MY_FIREBASE_CONFIG = {
+            apiKey: 'AIzaSyDxpiQ5XHzv8jndc5uSUI1qbR3k_C19h4M',
+            authDomain: 'nosso-norte-fin.firebaseapp.com',
+            projectId: 'nosso-norte-fin',
+            storageBucket: 'nosso-norte-fin.firebasestorage.app',
+            messagingSenderId: '105922259166',
+            appId: '1:105922259166:web:45e0d0b2d9eea2e0363a4f',
+        };
+
+        // Inicializa o Firebase Global
+        if (!firebase.apps.length) {
+            firebase.initializeApp(MY_FIREBASE_CONFIG);
+        }
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const APP_ID = 'nosso-norte-fin-v1';
+
+        // --- DADOS ---
+        const USER_CONFIG = {
+            bruno: { name: 'Bruno', avatar: '👨🏻‍💻', defaultPin: '1234', color: 'bg-indigo-600' },
+            maiara: { name: 'Maiara', avatar: '👩🏻‍⚕️', defaultPin: '4321', color: 'bg-pink-600' },
+        };
+
+        const CATEGORIES = {
+            expense: [
+                { id: 'food', name: 'Alimentação', icon: '🛒', color: 'bg-orange-100 text-orange-600', barColor: 'bg-orange-500' },
+                { id: 'transport', name: 'Transporte', icon: '🚗', color: 'bg-blue-100 text-blue-600', barColor: 'bg-blue-500' },
+                { id: 'home', name: 'Moradia', icon: '🏠', color: 'bg-purple-100 text-purple-600', barColor: 'bg-purple-500' },
+                { id: 'leisure', name: 'Lazer', icon: '🎉', color: 'bg-pink-100 text-pink-600', barColor: 'bg-pink-500' },
+                { id: 'health', name: 'Saúde', icon: '💊', color: 'bg-red-100 text-red-600', barColor: 'bg-red-500' },
+                { id: 'adjustment', name: 'Ajuste/Reembolso', icon: '💸', color: 'bg-slate-100 text-slate-600', barColor: 'bg-slate-500' },
+                { id: 'other', name: 'Outros', icon: '📦', color: 'bg-gray-100 text-gray-600', barColor: 'bg-gray-500' },
+            ],
+            income: [
+                { id: 'salary', name: 'Salário', icon: '💰', color: 'bg-green-100 text-green-600' },
+                { id: 'freelance', name: 'Freelance', icon: '💻', color: 'bg-teal-100 text-teal-600' },
+                { id: 'adjustment', name: 'Reembolso Recebido', icon: '💸', color: 'bg-slate-100 text-slate-600' },
+            ],
+            investment: [
+                { id: 'goal', name: 'Reserva/Meta', icon: '🎯', color: 'bg-indigo-100 text-indigo-600' },
+                { id: 'stocks', name: 'Ações/FIIs', icon: '📊', color: 'bg-indigo-100 text-indigo-600' },
+            ],
+        };
+
+        const DEFAULT_BUDGETS = {
+            personal: [
+                { category: 'Alimentação', limit: 600 },
+                { category: 'Transporte', limit: 400 },
+                { category: 'Lazer', limit: 500 },
+            ],
+            joint: [
+                { category: 'Alimentação', limit: 1500 },
+                { category: 'Moradia', limit: 2500 },
+                { category: 'Lazer', limit: 800 },
+                { category: 'Investimento', limit: 3000 },
+            ],
+        };
+
+        // --- COMPONENTES ---
+        const formatCurrency = (val) => {
+            const num = Number(val);
+            return isNaN(num) ? 'R$ 0,00' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
+        };
+        const formatDate = (dateStr) => {
+             if (!dateStr) return '';
+             const parts = dateStr.split('-');
+             return parts.length === 3 ? `${parts[2]}/${parts[1]}` : dateStr;
+        };
+        
+        function App() {
+            const [user, setUser] = useState(null);
+            const [profile, setProfile] = useState(null);
+            const [pin, setPin] = useState('');
+            const [txs, setTxs] = useState([]);
+            const [budgets, setBudgets] = useState(DEFAULT_BUDGETS);
+            const [viewMode, setViewMode] = useState('personal');
+            const [tab, setTab] = useState('home');
+            const [modalOpen, setModalOpen] = useState(false);
+            const [menuOpen, setMenuOpen] = useState(false);
+            const [budgetModal, setBudgetModal] = useState(false);
+
+            // Form States
+            const [fTitle, setFTitle] = useState('');
+            const [fAmount, setFAmount] = useState('');
+            const [fType, setFType] = useState('expense');
+            const [fCat, setFCat] = useState('');
+            const [fShared, setFShared] = useState(false);
+            const [formPayer, setFormPayer] = useState('me');
+            const [editBudgets, setEditBudgets] = useState([]);
+
+            // Init Auth
+            useEffect(() => {
+                const localProfile = localStorage.getItem('fincontrol_profile');
+                if (localProfile) setProfile(localProfile);
+                auth.signInAnonymously().catch(console.error);
+                auth.onAuthStateChanged(setUser);
+            }, []);
+
+            // Sync Data
+            useEffect(() => {
+                if (!user) return;
+                
+                // Firestore Compat Syntax
+                const unsub = db.collection('artifacts').doc(APP_ID)
+                    .collection('public').doc('data').collection('transactions')
+                    .onSnapshot((snap) => {
+                        const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                        list.sort((a, b) => new Date(b.date) - new Date(a.date));
+                        setTxs(list);
+                    });
+
+                const unsubB = db.collection('artifacts').doc(APP_ID)
+                    .collection('public').doc('data').collection('settings').doc('budgets')
+                    .onSnapshot((s) => {
+                        if(s.exists) setBudgets(s.data());
+                    });
+
+                return () => { unsub(); unsubB(); };
+            }, [user]);
+
+            // Cálculos (useMemo)
+            const data = useMemo(() => {
+                if (!profile) return null;
+                let bal = 0, inc = 0, exp = 0, inv = 0, credit = 0, debt = 0;
+                const catMap = {};
+
+                const list = txs.filter(t => {
+                    if (viewMode === 'joint') return (t.isShared || t.type === 'investment') && !t.isSettlement;
+                    const myPrivate = t.ownerId === profile && !t.isShared;
+                    const iPaidShared = t.ownerId === profile && t.payer === 'me' && t.isShared;
+                    const settl = t.isSettlement && (t.ownerId === profile || (t.ownerId !== profile && t.payer !== 'me'));
+                    return myPrivate || iPaidShared || settl;
+                });
+
+                txs.forEach(t => {
+                    if (t.isSettlement) {
+                        if (t.payer === 'me' && t.ownerId === profile) credit += Number(t.amount);
+                        else if (t.payer === 'partner' && t.ownerId !== profile) debt += Number(t.amount);
+                    } else if (t.isShared && t.type === 'expense') {
+                        const half = Number(t.amount) / 2;
+                        if (t.ownerId === profile && t.payer === 'me') credit += half;
+                    }
+
+                    let include = false;
+                    if (viewMode === 'personal') {
+                        if (t.type !== 'investment' && t.ownerId === profile && t.payer === 'me') include = true;
+                    } else {
+                        if ((t.isShared || t.type === 'investment') && !t.isSettlement) include = true;
+                    }
+
+                    if (include) {
+                        const val = Number(t.amount);
+                        if (t.type === 'income') inc += val;
+                        if (t.type === 'expense') exp += val;
+                        if (t.type === 'investment') inv += val;
+                        if (t.type !== 'income') catMap[t.category || 'Outros'] = (catMap[t.category || 'Outros'] || 0) + val;
+                    }
+                });
+
+                const currentBudgets = budgets[viewMode] || [];
+                const planning = currentBudgets.map(b => {
+                    const spent = catMap[b.category] || 0;
+                    const pct = b.limit > 0 ? (spent / b.limit) * 100 : 0;
+                    const conf = [...CATEGORIES.expense, ...CATEGORIES.investment].find(c => c.name === b.category);
+                    return { ...b, spent, pct: Math.min(pct, 100), icon: conf?.icon || '📊' };
+                });
+
+                const charts = Object.keys(catMap).map(k => ({
+                    name: k, amount: catMap[k], pct: exp > 0 ? (catMap[k] / exp) * 100 : 0,
+                    icon: [...CATEGORIES.expense, ...CATEGORIES.investment].find(c => c.name === k)?.icon || '🏷️',
+                    color: [...CATEGORIES.expense, ...CATEGORIES.investment].find(c => c.name === k)?.barColor || 'bg-gray-500'
+                })).sort((a,b) => b.amount - a.amount);
+
+                return { list, bal: inc - exp - inv, inc, exp, inv, coupleBal: credit - debt, planning, charts, investGoal: 3000 };
+            }, [txs, profile, viewMode, budgets]);
+
+            // Actions
+            const handleLogin = () => {
+                if (pin === USER_CONFIG[profile].defaultPin) {
+                    localStorage.setItem('fincontrol_profile', profile);
+                    setPin('');
+                } else {
+                    alert('Senha incorreta'); setPin('');
+                }
+            };
+
+            const saveTx = async (e) => {
+                e.preventDefault();
+                // Firestore Compat Syntax
+                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').add({
+                    title: fTitle, amount: Number(fAmount), type: fType, category: fCat,
+                    date: new Date().toISOString().split('T')[0], isShared: fShared, payer: formPayer,
+                    ownerId: profile, createdAt: new Date().toISOString(), userId: user.uid, isSettlement: false
+                });
+                setModalOpen(false); setFTitle(''); setFAmount('');
+            };
+
+            const deleteTx = async (id) => {
+                 if(confirm("Apagar?")) {
+                     await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc(id).delete();
+                 }
+            };
+
+            const settleDebt = async () => {
+                const val = Math.abs(data.coupleBal);
+                const iPay = data.coupleBal < 0;
+                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').add({
+                    title: iPay ? 'Pagamento Enviado' : 'Reembolso Recebido', amount: val, type: iPay ? 'expense' : 'income',
+                    category: 'Ajuste/Reembolso', date: new Date().toISOString().split('T')[0], isShared: false,
+                    isSettlement: true, payer: iPay ? 'me' : 'partner', ownerId: profile, userId: user.uid, createdAt: new Date().toISOString()
+                });
+            };
+
+            // Budget Actions
+            const openBudget = () => {
+                const list = viewMode === 'joint' ? [...CATEGORIES.expense, ...CATEGORIES.investment] : CATEGORIES.expense;
+                const current = budgets[viewMode] || [];
+                setEditBudgets(list.map(c => ({
+                    category: c.name,
+                    limit: current.find(b => b.category === c.name)?.limit || 0,
+                    icon: c.icon
+                })));
+                setBudgetModal(true);
+            };
+
+            const saveBudget = async () => {
+                const newB = { ...budgets, [viewMode]: editBudgets.map(b => ({ ...b, limit: Number(b.limit) })) };
+                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('budgets').set(newB);
+                setBudgets(newB);
+                setBudgetModal(false);
+            };
+
+            // UI
+            if (!profile || (profile && localStorage.getItem('fincontrol_profile') !== profile)) {
+                return (
+                    <div className="h-full flex flex-col items-center justify-center p-6 bg-slate-900 text-white animate-fade-in">
+                        {!profile ? (
+                            <>
+                                <div className="mb-10 text-center">
+                                    <div className="w-20 h-20 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-700 shadow-xl">
+                                        <Wallet className="text-emerald-400" size={32} />
+                                    </div>
+                                    <h1 className="text-2xl font-bold">Nosso Norte</h1>
+                                    <p className="text-slate-400">Finanças a Dois</p>
+                                </div>
+                                <div className="space-y-4 w-full max-w-xs">
+                                    {Object.entries(USER_CONFIG).map(([k, cfg]) => (
+                                        <button key={k} onClick={() => setProfile(k)} className="w-full bg-slate-800 p-4 rounded-xl flex items-center gap-4 border border-slate-700 hover:bg-slate-700 transition-colors">
+                                            <span className="text-2xl">{cfg.avatar}</span>
+                                            <span className="font-bold">Sou {cfg.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <button onClick={() => setProfile(null)} className="absolute top-6 left-6 p-2 bg-slate-800 rounded-full"><ChevronLeft /></button>
+                                <div className={`w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-6 ${USER_CONFIG[profile].color} border-4 border-slate-800 shadow-xl`}>
+                                    {USER_CONFIG[profile].avatar}
+                                </div>
+                                <h2 className="text-xl font-bold mb-8">Olá, {USER_CONFIG[profile].name}</h2>
+                                <div className="flex gap-4 mb-8">
+                                    {[0,1,2,3].map(i => <div key={i} className={`w-3 h-3 rounded-full ${pin.length > i ? 'bg-emerald-400' : 'bg-slate-700'}`} />)}
+                                </div>
+                                <div className="grid grid-cols-3 gap-4 w-64">
+                                    {[1,2,3,4,5,6,7,8,9].map(n => <button key={n} onClick={() => setPin(p => (p.length < 4 ? p + n : p))} className="h-16 rounded-xl bg-slate-800 text-xl font-bold active:scale-95">{n}</button>)}
+                                    <div />
+                                    <button onClick={() => setPin(p => (p.length < 4 ? p + '0' : p))} className="h-16 rounded-xl bg-slate-800 text-xl font-bold active:scale-95">0</button>
+                                    <button onClick={() => setPin(p => p.slice(0, -1))} className="h-16 rounded-xl bg-slate-800 flex items-center justify-center active:scale-95"><X /></button>
+                                </div>
+                                <button onClick={handleLogin} disabled={pin.length !== 4} className={`w-64 mt-8 py-4 rounded-xl font-bold transition-all ${pin.length === 4 ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-800 text-slate-500'}`}>Entrar</button>
+                            </>
+                        )}
+                    </div>
+                );
+            }
+
+            if (!data) return <div className="h-full flex flex-col gap-4 items-center justify-center text-white bg-slate-900"><div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div><p>Carregando...</p></div>;
+
+            return (
+                <div className="h-full bg-gray-50 flex flex-col font-sans text-slate-900 animate-fade-in">
+                    {/* Header */}
+                    <div className="bg-slate-900 text-white pt-8 pb-6 px-6 rounded-b-[2rem] shadow-xl shrink-0">
+                         <div className="flex justify-between items-center mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl ${USER_CONFIG[profile].color}`}>{USER_CONFIG[profile].avatar}</div>
+                                <div><h1 className="font-bold">{USER_CONFIG[profile].name}</h1></div>
+                            </div>
+                            <button onClick={() => { localStorage.removeItem('fincontrol_profile'); setProfile(null); }}><LogOut size={20} /></button>
+                        </div>
+                        <div className="bg-slate-800/50 p-1 rounded-xl flex mb-6">
+                            <button onClick={() => setViewMode('personal')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${viewMode === 'personal' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-400'}`}>Meu Mundo</button>
+                            <button onClick={() => setViewMode('joint')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${viewMode === 'joint' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400'}`}>Nosso Mundo</button>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-xs text-slate-400 font-bold uppercase mb-1">{viewMode === 'personal' ? 'Disponível' : 'Patrimônio'}</p>
+                            <h2 className="text-4xl font-extrabold">{formatCurrency(data.bal)}</h2>
+                             {viewMode === 'joint' && Math.abs(data.coupleBal) > 1 && (
+                                <button onClick={settleDebt} className={`mt-4 px-4 py-2 rounded-full text-xs font-bold border flex items-center gap-2 mx-auto active:scale-95 transition-all ${data.coupleBal > 0 ? 'bg-emerald-900/30 text-emerald-300 border-emerald-500/30' : 'bg-rose-900/30 text-rose-300 border-rose-500/30'}`}>
+                                    <ArrowRightLeft size={12} /> {data.coupleBal > 0 ? 'Receber' : 'Pagar'} {formatCurrency(Math.abs(data.coupleBal))}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 overflow-y-auto p-6 pb-24 scrollbar-hide">
+                        {tab === 'home' && (
+                            <div className="space-y-4 animate-fade-in">
+                                {data.list.map(t => (
+                                    <div key={t.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow">
+                                        <div className="flex gap-4 items-center">
+                                            <span className="text-2xl bg-gray-50 w-10 h-10 flex items-center justify-center rounded-xl">{t.type === 'income' ? '💰' : t.type === 'investment' ? '🚀' : t.isSettlement ? '🤝' : '🏷️'}</span>
+                                            <div>
+                                                <p className="font-bold text-sm">{t.title}</p>
+                                                <p className="text-xs text-gray-400">{formatDate(t.date)} • {t.category}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className={`font-bold text-sm ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>{t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}</p>
+                                            <button onClick={(e) => { e.stopPropagation(); deleteTx(t.id); }} className="text-[10px] text-gray-300 font-bold uppercase p-1">Excluir</button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {data.list.length === 0 && <div className="text-center text-gray-400 mt-10"><ListIcon className="mx-auto mb-2 opacity-50"/><p>Sem movimentações.</p></div>}
+                            </div>
+                        )}
+                        {tab === 'planning' && (
+                            <div className="space-y-6 bg-white p-6 rounded-3xl shadow-sm animate-fade-in">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="font-bold flex gap-2"><Target size={20} className="text-indigo-600"/> Metas</h3>
+                                    <button onClick={openBudget} className="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg font-bold flex gap-1 items-center"><Settings size={12}/> Configurar</button>
+                                </div>
+                                {data.planning.map((b, i) => (
+                                    <div key={i}>
+                                        <div className="flex justify-between mb-1 text-sm font-bold">
+                                            <span className="flex gap-2 text-gray-600">{b.icon} {b.category}</span>
+                                            <span>{formatCurrency(b.spent)} / {formatCurrency(b.limit)}</span>
+                                        </div>
+                                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                            <div className={`h-full transition-all duration-500 ${b.pct > 100 ? 'bg-rose-500' : b.pct > 75 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{width: `${b.pct}%`}}/>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                         {tab === 'reports' && (
+                            <div className="space-y-6 bg-white p-6 rounded-3xl shadow-sm animate-fade-in">
+                                <h3 className="font-bold flex gap-2"><BarChart3 size={20} className="text-indigo-600"/> Por Categoria</h3>
+                                {data.charts.map((c, i) => (
+                                    <div key={i} className="flex justify-between items-center">
+                                        <div className="flex gap-3 items-center">
+                                            <span className="text-xl">{c.icon}</span>
+                                            <span className="text-sm font-bold text-gray-600">{c.name}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="font-bold text-sm">{formatCurrency(c.amount)}</span>
+                                            <span className="text-xs text-gray-400 ml-1">({c.pct.toFixed(0)}%)</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Nav */}
+                    <div className="bg-white border-t px-6 py-3 flex justify-between items-center fixed bottom-0 w-full pb-8 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-40">
+                        <button onClick={() => setTab('home')} className={`flex flex-col items-center gap-1 w-12 ${tab === 'home' ? 'text-slate-900' : 'text-slate-300'}`}><Home size={24} strokeWidth={tab==='home'?2.5:2}/><span className="text-[10px] font-bold">Home</span></button>
+                        <button onClick={() => setTab('planning')} className={`flex flex-col items-center gap-1 w-12 ${tab === 'planning' ? 'text-slate-900' : 'text-slate-300'}`}><Target size={24} strokeWidth={tab==='planning'?2.5:2}/><span className="text-[10px] font-bold">Metas</span></button>
+                        
+                        <div className="-mt-12 relative z-50">
+                            {menuOpen && (
+                                <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-40 flex flex-col gap-2 animate-fade-in">
+                                    <button onClick={() => { setMenuOpen(false); setModalOpen(true); }} className="bg-slate-900 text-white p-3 rounded-xl shadow-xl font-bold text-xs flex items-center justify-center gap-2 active:scale-95 transition-transform"><Plus size={16}/> Nova Transação</button>
+                                </div>
+                            )}
+                            <button onClick={() => setMenuOpen(!menuOpen)} className={`w-16 h-16 rounded-[1.2rem] bg-indigo-600 text-white flex items-center justify-center shadow-xl shadow-indigo-500/40 border-4 border-gray-50 transition-transform ${menuOpen ? 'rotate-45' : 'active:scale-95'}`}><Plus size={32}/></button>
+                        </div>
+
+                        <button onClick={() => setTab('reports')} className={`flex flex-col items-center gap-1 w-12 ${tab === 'reports' ? 'text-slate-900' : 'text-slate-300'}`}><PieChart size={24} strokeWidth={tab==='reports'?2.5:2}/><span className="text-[10px] font-bold">Análise</span></button>
+                        <div className="w-12"/> 
+                    </div>
+
+                    {/* Modal Add */}
+                    {modalOpen && (
+                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-end justify-center animate-fade-in">
+                            <div className="bg-white w-full rounded-t-[2rem] p-6 pb-10 shadow-2xl">
+                                <div className="flex justify-between mb-6"><h3 className="font-bold text-xl">Novo Lançamento</h3><button onClick={() => setModalOpen(false)} className="bg-gray-100 p-2 rounded-full"><X size={20}/></button></div>
+                                <form onSubmit={saveTx} className="space-y-4">
+                                    <div className="flex bg-gray-100 p-1 rounded-xl">
+                                        {['expense','income','investment'].map(t => (
+                                            <button type="button" key={t} onClick={() => setFType(t)} className={`flex-1 py-3 text-xs font-bold uppercase rounded-lg transition-all ${fType === t ? 'bg-white shadow-sm text-slate-900' : 'text-gray-400'}`}>{t === 'expense' ? 'Despesa' : t === 'income' ? 'Receita' : 'Investir'}</button>
+                                        ))}
+                                    </div>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">R$</span>
+                                        <input type="number" step="0.01" value={fAmount} onChange={e => setFAmount(e.target.value)} placeholder="0,00" className="w-full bg-gray-50 p-4 pl-10 rounded-xl text-2xl font-bold outline-none focus:ring-2 focus:ring-slate-100" required />
+                                    </div>
+                                    <input type="text" value={fTitle} onChange={e => setFTitle(e.target.value)} placeholder="Descrição" className="w-full bg-gray-50 p-4 rounded-xl font-bold outline-none focus:ring-2 focus:ring-slate-100" required />
+                                    
+                                    {fType === 'expense' && (
+                                        <div onClick={() => setFShared(!fShared)} className={`flex justify-between p-4 rounded-xl border-2 cursor-pointer transition-colors ${fShared ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'}`}>
+                                            <span className="font-bold text-sm flex gap-2 items-center"><Users size={16}/> Dividir Casal</span>
+                                            {fShared && <Check size={16} className="text-indigo-600"/>}
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {CATEGORIES[fType].map(c => (
+                                            <button type="button" key={c.id} onClick={() => setFCat(c.name)} className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition-colors ${fCat === c.name ? 'border-slate-900 bg-slate-50' : 'border-transparent'}`}>
+                                                <span className="text-xl">{c.icon}</span>
+                                                <span className="text-[8px] font-bold uppercase">{c.name.slice(0,8)}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <button type="submit" className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-lg shadow-xl active:scale-98 transition-transform">Salvar</button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Budget */}
+                    {budgetModal && (
+                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+                            <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl max-h-[80vh] flex flex-col">
+                                <div className="flex justify-between mb-6 border-b pb-4"><h3 className="font-bold text-xl flex gap-2"><Target className="text-indigo-600"/> Metas Mensais</h3><button onClick={() => setBudgetModal(false)} className="bg-gray-100 p-2 rounded-full"><X size={20}/></button></div>
+                                <div className="overflow-y-auto space-y-4 flex-1">
+                                    {editBudgets.map((b, i) => (
+                                        <div key={i} className="flex gap-3 items-center">
+                                            <span className="text-2xl">{b.icon}</span>
+                                            <div className="flex-1">
+                                                <p className="text-[10px] font-bold uppercase text-gray-500">{b.category}</p>
+                                                <input type="number" value={b.limit} onChange={e => {
+                                                    const n = [...editBudgets]; n[i].limit = e.target.value; setEditBudgets(n);
+                                                }} className="w-full border-b font-bold py-1 outline-none focus:border-indigo-600"/>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button onClick={saveBudget} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold mt-4">Salvar Alterações</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
