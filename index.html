@@ -34,7 +34,7 @@
         body { -webkit-tap-highlight-color: transparent; user-select: none; font-family: sans-serif; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        input, textarea { user-select: text; }
+        input, textarea, select { user-select: text; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         @keyframes pulse-ring { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); } }
@@ -85,6 +85,10 @@
             ShoppingCart: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>,
             Search: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
             TrendingDown: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>,
+            CreditCard: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>,
+            Calendar: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
+            MapPin: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>,
+            Banknote: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>,
         };
 
         const { useState, useEffect, useMemo, useRef } = React;
@@ -93,7 +97,7 @@
             PieChart, ListIcon, BarChart3, Home, WifiOff, Settings, LogOut, 
             Moon, Sun, Sunrise, ChevronLeft, Heart, Check, FileText, Camera, Upload, 
             Sparkles, Key, CheckSquare, Square, Trash2, ChevronDown, ChevronUp,
-            ShoppingCart, Search, TrendingDown
+            ShoppingCart, Search, TrendingDown, CreditCard, Calendar, MapPin, Banknote
         } = Icons;
 
         // --- FIREBASE CONFIG ---
@@ -118,6 +122,19 @@
             bruno: { name: 'Bruno', avatar: '👨🏻‍💻', defaultPin: '1234', color: 'bg-indigo-600' },
             maiara: { name: 'Maiara', avatar: '👩🏻‍⚕️', defaultPin: '4321', color: 'bg-pink-600' },
         };
+
+        const BANKS = [
+            { id: 'nubank', name: 'Nubank', color: 'bg-purple-600' },
+            { id: 'inter', name: 'Inter', color: 'bg-orange-500' },
+            { id: 'itau', name: 'Itaú', color: 'bg-blue-600' },
+            { id: 'xp', name: 'XP', color: 'bg-black' },
+            { id: 'btg', name: 'BTG', color: 'bg-blue-800' },
+            { id: 'caixa', name: 'Caixa', color: 'bg-blue-500' },
+            { id: 'bb', name: 'BB', color: 'bg-yellow-500' },
+            { id: 'santander', name: 'Santander', color: 'bg-red-600' },
+            { id: 'money', name: 'Dinheiro', color: 'bg-green-600' },
+            { id: 'vr', name: 'VR/VA', color: 'bg-pink-500' },
+        ];
 
         const CATEGORIES = {
             expense: [
@@ -253,9 +270,11 @@
                         tx.items.forEach(item => {
                             const normalizedName = item.name.toLowerCase().trim();
                             if (!map[normalizedName]) map[normalizedName] = { name: item.name, history: [] };
+                            // Use explicit market field if available, fallback to title
+                            const marketName = tx.market || tx.title;
                             map[normalizedName].history.push({ 
                                 price: item.value, 
-                                market: tx.title, 
+                                market: marketName, 
                                 date: tx.date 
                             });
                         });
@@ -397,12 +416,19 @@
             const [expandedReviewId, setExpandedReviewId] = useState(null);
             const [expandedTxId, setExpandedTxId] = useState(null);
 
+            // FORM STATES (Atualizado com Parcelas, Data, Banco e Mercado)
             const [fTitle, setFTitle] = useState('');
             const [fAmount, setFAmount] = useState('');
             const [fType, setFType] = useState('expense');
             const [fCat, setFCat] = useState('');
             const [fShared, setFShared] = useState(false);
             const [formPayer, setFormPayer] = useState('me');
+            const [isInstallment, setIsInstallment] = useState(false);
+            const [installments, setInstallments] = useState(2);
+            const [fDate, setFDate] = useState(new Date().toISOString().split('T')[0]); // Default Today
+            const [fBank, setFBank] = useState('');
+            const [fMarket, setFMarket] = useState('');
+
             const [editBudgets, setEditBudgets] = useState([]);
             
             const fileInputRef = useRef(null);
@@ -533,6 +559,8 @@
                     1. Se houver detalhamento de itens (ex: lista de produtos no mercado, pratos no restaurante), extraia-os no campo 'items'. Formato: items: [{name: 'Arroz', value: 20.00}, ...]. Se não houver, array vazio.
                     2. Se for uma PLANILHA MATRIZ (meses nas colunas): IGNORE colunas de outros meses. Foque APENAS na coluna referente a ${currentMonthName} (ou mês atual).
                     3. IGNORE linhas de "Total", "Saldo", "Cartão de Crédito" (se for o pagamento da fatura, ok, mas evite duplicidade).
+                    4. Tente identificar o nome do ESTABELECIMENTO (Loja, Mercado, etc) e coloque no campo 'market'.
+                    5. Se for possível identificar o BANCO/CONTA de origem, coloque no campo 'bank' (ex: Nubank, Itaú).
                     
                     SAÍDA OBRIGATÓRIA (JSON puro sem markdown):
                     {
@@ -543,6 +571,8 @@
                                 "amount": 0.00 (valor positivo float), 
                                 "type": "expense" (ou "income"), 
                                 "category": "Alimentação" (ou Transporte, Moradia, Lazer, Saúde, Outros),
+                                "market": "Nome do Mercado/Loja" (ou string vazia),
+                                "bank": "Nome do Banco" (ou string vazia),
                                 "items": [ {"name": "Item A", "value": 10.00} ] 
                             }
                         ]
@@ -607,7 +637,9 @@
                        isShared: false,
                        amount: Number(t.amount),
                        date: t.date || new Date().toISOString().split('T')[0],
-                       items: t.items || []
+                       items: t.items || [],
+                       market: t.market || '',
+                       bank: t.bank || ''
                    }));
                    setReviewData(prepared);
                    setIsReviewOpen(true);
@@ -676,12 +708,54 @@
             // --- ACTIONS ---
             const saveTx = async (e) => {
                 e.preventDefault();
-                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').add({
-                    title: fTitle, amount: Number(fAmount), type: fType, category: fCat,
-                    date: new Date().toISOString().split('T')[0], isShared: fShared, payer: formPayer,
-                    ownerId: profile, createdAt: new Date().toISOString(), userId: user.uid, isSettlement: false, items: []
-                });
-                setModalOpen(false); setFTitle(''); setFAmount('');
+                const batch = db.batch();
+                const collectionRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions');
+
+                // Lógica de Parcelamento
+                if (isInstallment && installments > 1) {
+                    const valPerInst = Number(fAmount) / installments;
+                    // Converter data do input para partes (evitar fuso horário UTC)
+                    const [y, m, d] = fDate.split('-').map(Number);
+                    
+                    for (let i = 0; i < installments; i++) {
+                        const docRef = collectionRef.doc();
+                        // Criar data baseada no dia escolhido, somando meses
+                        const dateObj = new Date(y, (m - 1) + i, d);
+                        const dateStr = dateObj.toISOString().split('T')[0];
+
+                        batch.set(docRef, {
+                            title: `${fTitle} (${i + 1}/${installments})`,
+                            amount: valPerInst,
+                            type: fType,
+                            category: fCat,
+                            date: dateStr,
+                            isShared: fShared,
+                            payer: formPayer,
+                            ownerId: profile,
+                            createdAt: new Date().toISOString(),
+                            userId: user.uid,
+                            isSettlement: false,
+                            items: [],
+                            market: fMarket,
+                            bank: fBank
+                        });
+                    }
+                } else {
+                    // Salvar Único
+                    const docRef = collectionRef.doc();
+                    batch.set(docRef, {
+                        title: fTitle, amount: Number(fAmount), type: fType, category: fCat,
+                        date: fDate, isShared: fShared, payer: formPayer,
+                        ownerId: profile, createdAt: new Date().toISOString(), userId: user.uid, isSettlement: false, items: [],
+                        market: fMarket,
+                        bank: fBank
+                    });
+                }
+                
+                await batch.commit();
+                setModalOpen(false); 
+                // Reset form
+                setFTitle(''); setFAmount(''); setIsInstallment(false); setInstallments(2); setFDate(new Date().toISOString().split('T')[0]); setFBank(''); setFMarket('');
             };
 
             const deleteTx = async (id) => {
@@ -784,6 +858,13 @@
                                                             {item.isShared ? <><Users size={12}/> Dividido</> : <><User size={12}/> Pessoal</>}
                                                         </span>
                                                     </div>
+                                                    {/* Exibir Banco/Mercado se a IA pegou */}
+                                                    {(item.bank || item.market) && (
+                                                        <div className="flex gap-2 mt-1">
+                                                            {item.bank && <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded flex items-center gap-1"><Banknote size={8}/> {item.bank}</span>}
+                                                            {item.market && <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded flex items-center gap-1"><MapPin size={8}/> {item.market}</span>}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className={`ml-3 w-5 h-5 rounded-full border-2 flex items-center justify-center ${item.isShared ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300'}`}>
                                                     {item.isShared && <Check size={12} className="text-white"/>}
@@ -873,7 +954,10 @@
                                                         {t.title} 
                                                         {t.items && t.items.length > 0 && !selectionMode && <ChevronDown size={12} className={`text-gray-400 transition-transform ${expandedTxId === t.id ? 'rotate-180' : ''}`}/>}
                                                     </p>
-                                                    <p className="text-xs text-gray-400">{formatDate(t.date)} • {t.category}</p>
+                                                    <div className="text-xs text-gray-400 flex flex-wrap gap-2 mt-0.5">
+                                                        <span>{formatDate(t.date)} • {t.category}</span>
+                                                        {t.bank && BANKS.find(b=>b.id===t.bank) && <span className={`px-1.5 rounded text-[9px] text-white ${BANKS.find(b=>b.id===t.bank).color}`}>{BANKS.find(b=>b.id===t.bank).name}</span>}
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="text-right">
@@ -964,7 +1048,7 @@
                     {/* Modal Add (Manual) */}
                     {modalOpen && (
                         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-end justify-center animate-fade-in">
-                            <div className="bg-white w-full rounded-t-[2rem] p-6 pb-10 shadow-2xl animate-slide-up">
+                            <div className="bg-white w-full rounded-t-[2rem] p-6 pb-10 shadow-2xl animate-slide-up max-h-[85vh] overflow-y-auto">
                                 <div className="flex justify-between mb-6"><h3 className="font-bold text-xl">Novo Lançamento</h3><button onClick={() => setModalOpen(false)} className="bg-gray-100 p-2 rounded-full"><X size={20}/></button></div>
                                 <form onSubmit={saveTx} className="space-y-4">
                                     <div className="flex bg-gray-100 p-1 rounded-xl">
@@ -978,11 +1062,53 @@
                                     </div>
                                     <input type="text" value={fTitle} onChange={e => setFTitle(e.target.value)} placeholder="Descrição" className="w-full bg-gray-50 p-4 rounded-xl font-bold outline-none focus:ring-2 focus:ring-slate-100" required />
                                     
+                                    {/* Data Picker */}
+                                    <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                        <Calendar size={18} className="text-gray-400"/>
+                                        <input type="date" value={fDate} onChange={e => setFDate(e.target.value)} className="bg-transparent font-bold text-sm w-full outline-none text-slate-600"/>
+                                    </div>
+
+                                    {/* Banco Selection */}
+                                    <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                        <Banknote size={18} className="text-gray-400"/>
+                                        <select value={fBank} onChange={e => setFBank(e.target.value)} className="bg-transparent font-bold text-sm w-full outline-none text-slate-600">
+                                            <option value="">Selecione Conta/Banco</option>
+                                            {BANKS.map(b => (
+                                                <option key={b.id} value={b.id}>{b.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    
                                     {fType === 'expense' && (
+                                        <>
+                                        {/* Market Input */}
+                                        <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                            <MapPin size={18} className="text-gray-400"/>
+                                            <input type="text" value={fMarket} onChange={e => setFMarket(e.target.value)} placeholder="Local / Mercado (Opcional)" className="bg-transparent font-bold text-sm w-full outline-none text-slate-600"/>
+                                        </div>
+
                                         <div onClick={() => setFShared(!fShared)} className={`flex justify-between p-4 rounded-xl border-2 cursor-pointer transition-colors ${fShared ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'}`}>
                                             <span className="font-bold text-sm flex gap-2 items-center"><Users size={16}/> Dividir Casal</span>
                                             {fShared && <Check size={16} className="text-indigo-600"/>}
                                         </div>
+                                        
+                                        {/* PARCELAMENTO */}
+                                        <div className="p-4 rounded-xl border-2 border-gray-100 bg-gray-50">
+                                            <div onClick={() => setIsInstallment(!isInstallment)} className="flex justify-between cursor-pointer">
+                                                <span className="font-bold text-sm flex gap-2 items-center text-slate-600"><CreditCard size={16}/> É compra parcelada?</span>
+                                                <div className={`w-10 h-5 rounded-full relative transition-colors ${isInstallment ? 'bg-indigo-500' : 'bg-gray-300'}`}>
+                                                    <div className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-all ${isInstallment ? 'left-6' : 'left-1'}`}/>
+                                                </div>
+                                            </div>
+                                            {isInstallment && (
+                                                <div className="mt-3 flex items-center gap-3 animate-fade-in">
+                                                    <span className="text-xs font-bold text-gray-500">Nº de Parcelas:</span>
+                                                    <input type="number" min="2" max="36" value={installments} onChange={e => setInstallments(e.target.value)} className="w-16 p-2 rounded-lg border text-center font-bold outline-none focus:border-indigo-500"/>
+                                                    <span className="text-xs text-indigo-600 font-bold">x {formatCurrency(Number(fAmount)/installments)}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        </>
                                     )}
 
                                     <div className="grid grid-cols-4 gap-2">
