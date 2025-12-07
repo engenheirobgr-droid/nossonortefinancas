@@ -13,10 +13,8 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- SheetJS (Excel) -->
+    <!-- SheetJS & PDF.js -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
-    <!-- PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 
@@ -38,8 +36,10 @@
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         input, textarea { user-select: text; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         @keyframes pulse-ring { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); } }
         .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+        .animate-slide-up { animation: slideUp 0.3s ease-out; }
         .animate-pulse-ring { animation: pulse-ring 2s infinite; }
     </style>
 </head>
@@ -49,7 +49,7 @@
     <script type="text/babel" data-type="module">
         import { GoogleGenerativeAI } from "@google/generative-ai";
 
-        // --- ÍCONES SVG ---
+        // --- ÍCONES ---
         const Icons = {
             Plus: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
             Wallet: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>,
@@ -77,13 +77,16 @@
             Upload: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
             Sparkles: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 5h4"/><path d="M3 9h4"/></svg>,
             Key: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/><path d="M21 2h-9.6"/></svg>,
+            CheckSquare: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>,
+            Square: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="18" height="18" x="3" y="3" rx="2"/></svg>,
+            Trash2: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>,
         };
 
         const { useState, useEffect, useMemo, useRef } = React;
         const { 
             Plus, Wallet, X, Users, ArrowRightLeft, User, PiggyBank, Target, 
             PieChart, ListIcon, BarChart3, Home, WifiOff, Settings, LogOut, 
-            Moon, Sun, Sunrise, ChevronLeft, Heart, Check, FileText, Camera, Upload, Sparkles, Key
+            Moon, Sun, Sunrise, ChevronLeft, Heart, Check, FileText, Camera, Upload, Sparkles, Key, CheckSquare, Square, Trash2
         } = Icons;
 
         // --- FIREBASE CONFIG ---
@@ -247,6 +250,12 @@
             const [settingsModal, setSettingsModal] = useState(false);
             const [isProcessingAI, setIsProcessingAI] = useState(false);
 
+            // Novos estados para Revisão e Seleção
+            const [reviewData, setReviewData] = useState([]);
+            const [isReviewOpen, setIsReviewOpen] = useState(false);
+            const [selectionMode, setSelectionMode] = useState(false);
+            const [selectedIds, setSelectedIds] = useState(new Set());
+
             const [fTitle, setFTitle] = useState('');
             const [fAmount, setFAmount] = useState('');
             const [fType, setFType] = useState('expense');
@@ -347,15 +356,15 @@
                 };
 
                 try {
-                    // Tenta o modelo rápido primeiro
-                    console.log("Tentando gemini-2.5-flash...");
-                    const text = await tryModel("gemini-2.5-flash");
+                    // Tenta o modelo 2.5 Flash primeiro (mais recente)
+                    console.log("Tentando gemini-2.5-flash-preview-09-2025...");
+                    const text = await tryModel("gemini-2.5-flash-preview-09-2025");
                     return JSON.parse(text.replace(/```json|```/g, '').trim());
                 } catch (e) {
-                    console.warn("Falha no Flash, tentando Pro...", e);
+                    console.warn("Falha no 2.5 Flash, tentando 1.5 Flash...", e);
                     // Se falhar (ex: 404), tenta o modelo padrão robusto
                     try {
-                        const text = await tryModel("gemini-pro");
+                        const text = await tryModel("gemini-1.5-flash");
                         return JSON.parse(text.replace(/```json|```/g, '').trim());
                     } catch (finalError) {
                         console.error("Erro Fatal IA:", finalError);
@@ -461,31 +470,68 @@
 
             const processAIResponse = (data) => {
                 if (data && data.transactions && data.transactions.length > 0) {
-                    let count = 0;
-                    data.transactions.forEach(t => {
-                        // Validação básica
-                        if (!t.amount || t.amount <= 0) return;
-                        
-                        db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').add({
-                            title: t.title || "Despesa Importada",
-                            amount: Number(t.amount),
-                            type: t.type || 'expense',
-                            category: t.category || 'Outros',
-                            date: t.date || new Date().toISOString().split('T')[0],
-                            isShared: false,
-                            payer: 'me',
-                            ownerId: profile,
-                            createdAt: new Date().toISOString(),
-                            userId: user.uid,
-                            isSettlement: false
-                        });
-                        count++;
-                    });
-                    alert(`Sucesso! ${count} transações identificadas pela IA.`);
+                   // Em vez de salvar, abre revisão
+                   const prepared = data.transactions.map(t => ({
+                       ...t,
+                       isShared: false, // Default
+                       amount: Number(t.amount),
+                       date: t.date || new Date().toISOString().split('T')[0]
+                   }));
+                   setReviewData(prepared);
+                   setIsReviewOpen(true);
+                   setIsProcessingAI(false);
                 } else {
                     alert("A IA analisou mas não encontrou transações claras. Tente simplificar o arquivo.");
+                    setIsProcessingAI(false);
                 }
-                setIsProcessingAI(false);
+            };
+
+            // --- AÇÕES DE SELEÇÃO E EXCLUSÃO ---
+            const toggleSelection = (id) => {
+                const newSet = new Set(selectedIds);
+                if (newSet.has(id)) newSet.delete(id);
+                else newSet.add(id);
+                setSelectedIds(newSet);
+            };
+
+            const deleteSelected = async () => {
+                if (!confirm(`Excluir ${selectedIds.size} itens?`)) return;
+                
+                // Simples iteração para compatibilidade
+                const batch = db.batch();
+                selectedIds.forEach(id => {
+                   const ref = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc(id);
+                   batch.delete(ref);
+                });
+                await batch.commit();
+                
+                setSelectedIds(new Set());
+                setSelectionMode(false);
+            };
+
+            // --- SAVE FINAL IMPORT ---
+            const confirmImport = async () => {
+                 const batch = db.batch();
+                 reviewData.forEach(t => {
+                     const ref = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc();
+                     batch.set(ref, {
+                        title: t.title || "Importado",
+                        amount: Number(t.amount),
+                        type: t.type || 'expense',
+                        category: t.category || 'Outros',
+                        date: t.date,
+                        isShared: t.isShared,
+                        payer: 'me',
+                        ownerId: profile,
+                        createdAt: new Date().toISOString(),
+                        userId: user.uid,
+                        isSettlement: false
+                     });
+                 });
+                 await batch.commit();
+                 setIsReviewOpen(false);
+                 setReviewData([]);
+                 alert("Importação concluída!");
             };
 
             // --- OUTRAS AÇÕES ---
@@ -533,13 +579,9 @@
             };
 
             // UI
-            // Guard clause for profile
-            if (!profile || (profile && (!USER_CONFIG[profile]))) {
-                // If profile is invalid (deleted from config but in localstorage), clear it
-                if (profile) {
-                    localStorage.removeItem('fincontrol_profile');
-                    setProfile(null);
-                }
+            const userConfig = profile ? USER_CONFIG[profile] : null;
+
+            if (!profile || !userConfig || (profile && localStorage.getItem('fincontrol_profile') !== profile)) {
                 return <LoginScreen onLoginSuccess={(p) => { setProfile(p); localStorage.setItem('fincontrol_profile', p); }} />;
             }
 
@@ -560,6 +602,54 @@
                         </div>
                     )}
 
+                    {/* MODAL REVISÃO IMPORTAÇÃO */}
+                    {isReviewOpen && (
+                        <div className="fixed inset-0 z-[70] bg-slate-900/95 backdrop-blur-sm flex flex-col animate-fade-in">
+                            <div className="bg-white rounded-t-3xl mt-10 flex-1 flex flex-col overflow-hidden">
+                                <div className="p-6 border-b flex justify-between items-center">
+                                    <h3 className="font-bold text-xl flex gap-2"><CheckSquare className="text-indigo-600"/> Revisar Importação</h3>
+                                    <button onClick={() => { setIsReviewOpen(false); setReviewData([]); }} className="bg-gray-100 p-2 rounded-full"><X size={20}/></button>
+                                </div>
+                                <div className="p-4 bg-indigo-50 border-b flex justify-between items-center">
+                                    <span className="text-sm font-bold text-indigo-800">{reviewData.length} itens encontrados</span>
+                                    <button onClick={() => {
+                                        const allShared = reviewData.every(i => i.isShared);
+                                        setReviewData(reviewData.map(i => ({...i, isShared: !allShared})));
+                                    }} className="text-xs bg-indigo-200 text-indigo-800 px-3 py-1 rounded-full font-bold">Dividir Todos</button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                                    {reviewData.map((item, idx) => (
+                                        <div key={idx} className={`p-3 rounded-xl border-2 flex justify-between items-center ${item.isShared ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'}`}
+                                             onClick={() => {
+                                                 const n = [...reviewData];
+                                                 n[idx].isShared = !n[idx].isShared;
+                                                 setReviewData(n);
+                                             }}>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between">
+                                                    <span className="font-bold text-sm">{item.title}</span>
+                                                    <span className="font-bold">{formatCurrency(item.amount)}</span>
+                                                </div>
+                                                <div className="flex justify-between text-xs text-slate-500 mt-1">
+                                                    <span>{item.date} • {item.category}</span>
+                                                    <span className={`flex items-center gap-1 ${item.isShared ? 'text-indigo-600 font-bold' : ''}`}>
+                                                        {item.isShared ? <><Users size={12}/> Dividido</> : <><User size={12}/> Pessoal</>}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className={`ml-3 w-5 h-5 rounded-full border-2 flex items-center justify-center ${item.isShared ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300'}`}>
+                                                {item.isShared && <Check size={12} className="text-white"/>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="p-4 border-t bg-white safe-pb">
+                                    <button onClick={confirmImport} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-lg shadow-xl">Confirmar Importação</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Header */}
                     <div className="bg-slate-900 text-white pt-8 pb-6 px-6 rounded-b-[2rem] shadow-xl shrink-0">
                          <div className="flex justify-between items-center mb-6">
@@ -568,6 +658,7 @@
                                 <div><div className="flex items-center gap-1.5 text-indigo-200 text-xs uppercase font-medium">{greeting.i} {greeting.t}</div><h1 className="font-bold text-lg">{USER_CONFIG[profile].name}</h1></div>
                             </div>
                             <div className="flex gap-2">
+                                <button onClick={() => { setSelectionMode(!selectionMode); setSelectedIds(new Set()); }} className={`p-2 rounded-full transition-colors ${selectionMode ? 'bg-indigo-500 text-white' : 'bg-slate-800'}`}><CheckSquare size={18}/></button>
                                 <button onClick={() => setSettingsModal(true)} className="p-2 bg-slate-800 rounded-full"><Settings size={18}/></button>
                                 <button onClick={() => { localStorage.removeItem('fincontrol_profile'); setProfile(null); }} className="p-2 bg-slate-800 rounded-full"><LogOut size={18} /></button>
                             </div>
@@ -588,18 +679,36 @@
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-6 pb-24 scrollbar-hide">
+                    <div className="flex-1 overflow-y-auto p-6 pb-24 scrollbar-hide relative">
+                        {/* SELECTION BAR FLOATING */}
+                        {selectionMode && selectedIds.size > 0 && (
+                            <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-pop">
+                                <span className="font-bold text-sm">{selectedIds.size} selecionados</span>
+                                <button onClick={deleteSelected} className="flex items-center gap-2 font-bold text-xs bg-rose-800 px-3 py-1.5 rounded-lg"><Trash2 size={14}/> Excluir</button>
+                            </div>
+                        )}
+
                         {tab === 'home' && (
                             <div className="space-y-4 animate-fade-in">
                                 {data.list.map(t => (
-                                    <div key={t.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow">
+                                    <div key={t.id} 
+                                         className={`bg-white p-4 rounded-2xl shadow-sm border flex justify-between items-center transition-all ${selectionMode && selectedIds.has(t.id) ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100 hover:shadow-md'}`}
+                                         onClick={() => {
+                                             if (selectionMode) toggleSelection(t.id);
+                                         }}>
                                         <div className="flex gap-4 items-center">
-                                            <span className="text-2xl bg-gray-50 w-10 h-10 flex items-center justify-center rounded-xl">{t.type === 'income' ? '💰' : t.type === 'investment' ? '🚀' : t.isSettlement ? '🤝' : '🏷️'}</span>
+                                            {selectionMode ? (
+                                                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${selectedIds.has(t.id) ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300'}`}>
+                                                    {selectedIds.has(t.id) && <Check size={14} className="text-white"/>}
+                                                </div>
+                                            ) : (
+                                                <span className="text-2xl bg-gray-50 w-10 h-10 flex items-center justify-center rounded-xl">{t.type === 'income' ? '💰' : t.type === 'investment' ? '🚀' : t.isSettlement ? '🤝' : '🏷️'}</span>
+                                            )}
                                             <div><p className="font-bold text-sm">{t.title}</p><p className="text-xs text-gray-400">{formatDate(t.date)} • {t.category}</p></div>
                                         </div>
                                         <div className="text-right">
                                             <p className={`font-bold text-sm ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>{t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}</p>
-                                            <button onClick={(e) => { e.stopPropagation(); deleteTx(t.id); }} className="text-[10px] text-gray-300 font-bold uppercase p-1">Excluir</button>
+                                            {!selectionMode && <button onClick={(e) => { e.stopPropagation(); deleteTx(t.id); }} className="text-[10px] text-gray-300 font-bold uppercase p-1">Excluir</button>}
                                         </div>
                                     </div>
                                 ))}
@@ -632,6 +741,7 @@
                             {menuOpen && (
                                 <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex flex-col gap-3 items-center animate-pop w-48">
                                     <button onClick={() => fileInputRef.current.click()} className="w-full bg-indigo-100 text-indigo-700 p-3 rounded-full shadow-lg border border-indigo-200 flex items-center justify-center gap-2 font-bold text-xs"><Sparkles size={16}/> Arquivo com IA</button>
+                                    <button onClick={() => setImportModal(true)} className="w-full bg-white text-slate-700 p-3 rounded-full shadow-lg border border-gray-200 flex items-center justify-center gap-2 font-bold text-xs"><Upload size={16}/> Importar</button>
                                     <button onClick={() => { setMenuOpen(false); setModalOpen(true); }} className="w-full bg-slate-900 text-white p-3 rounded-full shadow-lg flex items-center justify-center gap-2 font-bold text-xs"><FileText size={16}/> Manual</button>
                                 </div>
                             )}
