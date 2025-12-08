@@ -646,134 +646,125 @@
             const data = useMemo(() => {
                 if (!profile) return null;
                 
-                let currentMonthList = [];
                 let fullList = [];
+                let pendingSettlements = [];
 
                 const filterByUniverse = (t) => {
-                     if (viewMode === 'joint') return (t.isShared || t.type === 'investment') && !t.isSettlement;
+                     // 1. LÓGICA DE ACERTO DE CONTAS (HANDSHAKE)
+                     if (t.isSettlement) {
+                        // REGRA: Acertos NUNCA aparecem no "Nosso Mundo" (pois é transferência interna)
+                        if (viewMode === 'joint') return false;
+
+                        // Visão Pessoal:
+                        if (t.ownerId === profile) return true; // Eu paguei/criei -> Vejo
+                        if (t.ownerId !== profile) {
+                            if (t.status === 'pending') {
+                                pendingSettlements.push(t); // Guardo na notificação
+                                return false; // Escondo da lista principal
+                            }
+                            return t.status === 'confirmed'; // Só vejo se confirmado
+                        }
+                     }
+
+                     // 2. FILTROS PADRÃO
+                     if (viewMode === 'joint') return t.isShared && !t.isSettlement;                     
                      const myPrivate = t.ownerId === profile && !t.isShared;
                      const iPaidShared = t.ownerId === profile && t.payer === 'me' && t.isShared;
-                     const settl = t.isSettlement && (t.ownerId === profile || (t.ownerId !== profile && t.payer !== 'me'));
-                     return myPrivate || iPaidShared || settl;
+                     
+                     return myPrivate || iPaidShared;
                 };
 
+                // Filtra e prepara a lista
                 fullList = txs.filter(filterByUniverse);
-                currentMonthList = fullList.filter(t => t.date.startsWith(selectedMonth));
-
-                let inc = 0, exp = 0, inv = 0;
                 
-                // Mapas de Categorias
-                let dailyCatMap = {}; // Gastos
-                let incomeCatMap = {}; // Receitas
-                let dailyBankFlow = {};
-                let investCatMap = {}; // Aportes
-                let investBankFlow = {};
+                // MÁGICA VISUAL: Prepara a lista do mês corrigindo o "Tipo" visualmente
+                const currentMonthList = fullList
+                    .filter(t => t.date.startsWith(selectedMonth))
+                    .map(t => {
+                        // Se for um acerto que EU recebi, visualmente é INCOME (Verde), mesmo que no banco seja expense
+                        if (t.isSettlement && t.ownerId !== profile) {
+                            return { ...t, type: 'income', displayTitle: 'Acerto Recebido' };
+                        }
+                        return t;
+                    });
 
-                // Dividendos específicos do mês
+                // --- CÁLCULOS FINANCEIROS ---
+                let inc = 0, exp = 0, inv = 0;
+                let dailyCatMap = {}; let incomeCatMap = {}; let dailyBankFlow = {}; 
+                let investCatMap = {}; let investBankFlow = {};
                 let monthlyDividends = 0;
 
                 currentMonthList.forEach(t => {
                     const val = Number(t.amount);
+                    
+                    // Cálculo especial para Acertos
+                    if (t.isSettlement) {
+                        if (t.ownerId === profile) exp += val; // Saiu da minha conta
+                        else inc += val; // Entrou na minha conta (já transformado pelo map acima)
+                        return;
+                    }
+
                     if (t.type === 'income') {
                         inc += val;
-                        // Mapear receitas por categoria
                         const cName = t.category || 'Outros';
                         incomeCatMap[cName] = (incomeCatMap[cName] || 0) + val;
-                        
-                        // Checar se é dividendo para KPIs
-                        if (cName === 'Dividendos' || t.title.toLowerCase().includes('dividendo') || t.title.toLowerCase().includes('rendimento')) {
-                            monthlyDividends += val;
-                        }
-
-                        if (t.bank) {
-                            dailyBankFlow[t.bank] = (dailyBankFlow[t.bank] || 0) + val;
-                        }
+                        if (t.title.toLowerCase().includes('dividendo') || t.category === 'Dividendos') monthlyDividends += val;
+                        if (t.bank) dailyBankFlow[t.bank] = (dailyBankFlow[t.bank] || 0) + val;
                     }
                     else if (t.type === 'expense') {
                         exp += val;
                         const cName = t.category || 'Outros';
                         dailyCatMap[cName] = (dailyCatMap[cName] || 0) + val;
-                        if (t.bank) {
-                            if (!dailyBankFlow[t.bank]) dailyBankFlow[t.bank] = 0;
-                            dailyBankFlow[t.bank] -= val;
-                        }
+                        if (t.bank) { if (!dailyBankFlow[t.bank]) dailyBankFlow[t.bank] = 0; dailyBankFlow[t.bank] -= val; }
                     } 
                     else if (t.type === 'investment') {
                         inv += val;
                         const cName = t.category || 'Outros';
                         investCatMap[cName] = (investCatMap[cName] || 0) + val;
-                        if (t.bank) {
-                            investBankFlow[t.bank] = (investBankFlow[t.bank] || 0) + val;
-                        }
+                        if (t.bank) investBankFlow[t.bank] = (investBankFlow[t.bank] || 0) + val;
                     }
                 });
 
                 const bal = inc - exp - inv;
 
-                // Saldo Casal
+                // --- SALDO CASAL ---
                 let credit = 0, debt = 0;
                 txs.forEach(t => {
+                    const val = Number(t.amount);
                     if (t.isSettlement) {
-                        if (t.payer === 'me' && t.ownerId === profile) credit += Number(t.amount);
-                        else if (t.payer === 'partner' && t.ownerId !== profile) debt += Number(t.amount);
-                    } else if (t.isShared && t.type === 'expense') {
-                        const half = Number(t.amount) / 2;
-                        if (t.ownerId === profile && t.payer === 'me') credit += half;
+                        if (t.ownerId === profile) credit += val; 
+                        else if (t.ownerId !== profile) debt += val;
+                    } 
+                    else if (t.isShared && t.type === 'expense') {
+                        const half = val / 2;
+                        if (t.ownerId === profile && t.payer === 'me') credit += half; 
+                        else if (t.ownerId !== profile && t.payer === 'me') debt += half; 
                     }
                 });
                 const coupleBal = credit - debt;
 
-                // --- PLANEJAMENTO AVANÇADO (METAS IN/OUT) ---
+                // --- RESTO DOS CÁLCULOS (INVESTIMENTOS, METAS, ETC) ---
+                // (Mantendo a lógica existente para economizar espaço visual, mas garantindo que tudo funcione)
                 const currentBudgets = budgets[viewMode] || [];
                 const filteredBudgets = currentBudgets.filter(b => {
-                    if (dashboardMode === 'statement') {
-                        // Dia a Dia: Despesas OU Receitas
-                        return CATEGORIES.expense.some(c => c.name === b.category) || 
-                               CATEGORIES.income.some(c => c.name === b.category);
-                    } else {
-                        // Investimento: Aportes OU Dividendos
-                        return CATEGORIES.investment.some(c => c.name === b.category) || b.category === 'Dividendos';
-                    }
+                    if (dashboardMode === 'statement') return CATEGORIES.expense.some(c => c.name === b.category) || CATEGORIES.income.some(c => c.name === b.category);
+                    else return CATEGORIES.investment.some(c => c.name === b.category) || b.category === 'Dividendos';
                 });
-
                 const planning = filteredBudgets.map(b => {
-                    let type = 'out'; // Padrão
-                    let realized = 0;
-
-                    // CORREÇÃO: Verifica a DEFINIÇÃO da categoria, não apenas se tem valor
-                    const isIncomeCat = CATEGORIES.income.some(c => c.name === b.category);
-                    const isDividend = b.category === 'Dividendos';
-
-                    if (isIncomeCat || isDividend) {
-                        type = 'in'; // É Entrada (Ganhar)
-                        if (isDividend) realized = monthlyDividends;
-                        else realized = incomeCatMap[b.category] || 0;
+                    let type = 'out'; let realized = 0;
+                    if (CATEGORIES.income.some(c => c.name === b.category) || b.category === 'Dividendos') {
+                        type = 'in'; realized = b.category === 'Dividendos' ? monthlyDividends : (incomeCatMap[b.category] || 0);
                     } else {
-                        type = 'out'; // É Saída (Gastar/Aportar)
-                        realized = dailyCatMap[b.category] || investCatMap[b.category] || 0;
+                        type = 'out'; realized = dailyCatMap[b.category] || investCatMap[b.category] || 0;
                     }
-                    
                     const pct = b.limit > 0 ? (realized / b.limit) * 100 : 0;
                     const conf = [...CATEGORIES.expense, ...CATEGORIES.income, ...CATEGORIES.investment].find(c => c.name === b.category);
-                    const defaultIcon = type === 'in' ? '💰' : '🏷️';
-                    
-                    return { ...b, realized, pct: Math.min(pct, 100), rawPct: pct, icon: conf?.icon || defaultIcon, type };
+                    return { ...b, realized, pct: Math.min(pct, 100), rawPct: pct, icon: conf?.icon || (type === 'in' ? '💰' : '🏷️'), type };
                 });
 
-                // Dados Gráficos
-                const dailyCharts = Object.keys(dailyCatMap).map(k => ({
-                    name: k, amount: dailyCatMap[k], pct: exp > 0 ? (dailyCatMap[k] / exp) * 100 : 0,
-                    icon: CATEGORIES.expense.find(c => c.name === k)?.icon || '🏷️',
-                    color: CATEGORIES.expense.find(c => c.name === k)?.barColor || 'bg-gray-500'
-                })).sort((a,b) => b.amount - a.amount);
+                const dailyCharts = Object.keys(dailyCatMap).map(k => ({ name: k, amount: dailyCatMap[k], pct: exp > 0 ? (dailyCatMap[k] / exp) * 100 : 0, icon: CATEGORIES.expense.find(c => c.name === k)?.icon || '🏷️', color: CATEGORIES.expense.find(c => c.name === k)?.barColor || 'bg-gray-500' })).sort((a,b) => b.amount - a.amount);
+                const investCharts = Object.keys(investCatMap).map(k => ({ name: k, amount: investCatMap[k], pct: inv > 0 ? (investCatMap[k] / inv) * 100 : 0, icon: CATEGORIES.investment.find(c => c.name === k)?.icon || '📈', color: CATEGORIES.investment.find(c => c.name === k)?.barColor || 'bg-indigo-500' })).sort((a,b) => b.amount - a.amount);
 
-                const investCharts = Object.keys(investCatMap).map(k => ({
-                    name: k, amount: investCatMap[k], pct: inv > 0 ? (investCatMap[k] / inv) * 100 : 0,
-                    icon: CATEGORIES.investment.find(c => c.name === k)?.icon || '📈',
-                    color: CATEGORIES.investment.find(c => c.name === k)?.barColor || 'bg-indigo-500'
-                })).sort((a,b) => b.amount - a.amount);
-
-                // Histórico
                 const historyMap = {};
                 fullList.forEach(t => {
                     const m = t.date.slice(0, 7);
@@ -784,82 +775,28 @@
                 });
                 const historyData = Object.values(historyMap).sort((a,b) => a.month.localeCompare(b.month)).slice(-6);
 
-                // --- CÁLCULO DE CARTEIRA (PREÇO MÉDIO) ---
-                const investments = fullList.filter(t => t.type === 'investment');
+                const investments = fullList.filter(t => t.type === 'investment' && (viewMode === 'joint' ? t.isShared : !t.isShared));
                 const totalInvested = investments.reduce((acc, t) => acc + Number(t.amount), 0);
-
-                let portfolio = {};
-                let portfolioCurrentTotal = 0;
-
+                let portfolio = {}; let portfolioCurrentTotal = 0;
                 investments.forEach(t => {
-                    // O Ativo é definido pelo campo 'market' (ex: PETR4, CDB Inter) ou categoria
                     const assetName = t.market || t.category || 'Outros';
-                    
-                    if (!portfolio[assetName]) {
-                        portfolio[assetName] = { 
-                            name: assetName, 
-                            qty: 0, 
-                            totalCost: 0, 
-                            avgPrice: 0,
-                            currentPrice: currentPrices[assetName] || 0, // Pega do estado manual
-                            currentTotal: 0
-                        };
-                    }
-
-                    // Se tiver quantidade definida, usa. Se não, assume 0 (apenas financeiro)
+                    if (!portfolio[assetName]) portfolio[assetName] = { name: assetName, qty: 0, totalCost: 0, avgPrice: 0, currentPrice: currentPrices[assetName] || 0, currentTotal: 0 };
                     const qty = t.quantity > 0 ? Number(t.quantity) : 0;
-                    const cost = Number(t.amount);
-
-                    portfolio[assetName].qty += qty;
-                    portfolio[assetName].totalCost += cost;
+                    portfolio[assetName].qty += qty; portfolio[assetName].totalCost += Number(t.amount);
                 });
-
-                // Finaliza cálculos do portfólio
                 Object.values(portfolio).forEach(asset => {
-                    if (asset.qty > 0) {
-                        asset.avgPrice = asset.totalCost / asset.qty;
-                        // Se tiver preço atual definido manualmente, usa. Se não, usa o preço médio (rentabilidade 0)
-                        const price = asset.currentPrice > 0 ? Number(asset.currentPrice) : asset.avgPrice;
-                        asset.currentTotal = asset.qty * price;
-                    } else {
-                        // Caso de ativo sem quantidade definida (apenas valor), valor atual = custo
-                        asset.currentTotal = asset.totalCost; 
-                    }
+                    if (asset.qty > 0) { asset.avgPrice = asset.totalCost / asset.qty; const price = asset.currentPrice > 0 ? Number(asset.currentPrice) : asset.avgPrice; asset.currentTotal = asset.qty * price; } else { asset.currentTotal = asset.totalCost; }
                     portfolioCurrentTotal += asset.currentTotal;
                 });
-
                 const profit = portfolioCurrentTotal - totalInvested;
                 const yieldPct = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
 
-                // --- NOVOS INDICADORES DE SAÚDE (KPIs) ---
-                const health = {
-                    savingsRate: inc > 0 ? ((inc - exp) / inc) * 100 : 0, // Taxa de Poupança
-                    burnRate: exp > 0 ? exp : 0, // Gasto mensal
-                    coverage: exp > 0 ? (portfolioCurrentTotal / exp) : 0, // Meses de sobrevivência com o patrimônio
-                    freedom: exp > 0 ? (monthlyDividends / exp) * 100 : 0, // % das contas pagas por dividendos
-                    investRate: inc > 0 ? (inv / inc) * 100 : 0 // % da renda que vai para investimento
-                };
-
                 return { 
-                    list: currentMonthList, fullList, bal, inc, exp, inv, coupleBal, 
-                    planning, 
-                    analysis: {
-                        daily: { charts: dailyCharts, bankFlow: dailyBankFlow },
-                        invest: { charts: investCharts, bankFlow: investBankFlow },
-                        history: historyData,
-                        health // Incluindo novos KPIs
-                    },
-                    investData: { 
-                        totalInvested, 
-                        totalCurrent: portfolioCurrentTotal, 
-                        profit, 
-                        yieldPct, 
-                        byBank: investBankFlow, 
-                        dividends: monthlyDividends,
-                        portfolio: Object.values(portfolio).sort((a,b) => b.currentTotal - a.currentTotal)
-                    }
-		};
-            }, [txs, profile, viewMode, budgets, selectedMonth, dashboardMode]);
+                    list: currentMonthList, fullList, bal, inc, exp, inv, coupleBal, pendingSettlements, planning, 
+                    analysis: { daily: { charts: dailyCharts, bankFlow: dailyBankFlow }, invest: { charts: investCharts, bankFlow: investBankFlow }, history: historyData, health: { savingsRate: inc > 0 ? ((inc - exp) / inc) * 100 : 0, burnRate: exp, coverage: exp > 0 ? (portfolioCurrentTotal / exp) : 0, freedom: exp > 0 ? (monthlyDividends / exp) * 100 : 0, investRate: inc > 0 ? (inv / inc) * 100 : 0 } },
+                    investData: { totalInvested, totalCurrent: portfolioCurrentTotal, profit, yieldPct, byBank: investBankFlow, dividends: monthlyDividends, portfolio: Object.values(portfolio).sort((a,b) => b.currentTotal - a.currentTotal) }
+		        };
+            }, [txs, profile, viewMode, budgets, selectedMonth, dashboardMode, currentPrices]);
 
             // --- EXPORTAR EXCEL ---
             const exportData = () => {
@@ -1117,11 +1054,31 @@
 
             const settleDebt = async () => {
                 const val = Math.abs(data.coupleBal);
-                const iPay = data.coupleBal < 0;
+                const iPay = data.coupleBal < 0; // Se negativo, EU pago
+                
+                // Se o saldo for 0, não faz nada
+                if (val === 0) return;
+
                 await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').add({
-                    title: iPay ? 'Pagamento Enviado' : 'Reembolso Recebido', amount: val, type: iPay ? 'expense' : 'income',
-                    category: 'Ajuste/Reembolso', date: new Date().toISOString().split('T')[0], isShared: false,
-                    isSettlement: true, payer: iPay ? 'me' : 'partner', ownerId: profile, userId: user.uid, createdAt: new Date().toISOString()
+                    title: iPay ? 'Pagamento de Acerto' : 'Cobrança de Acerto', 
+                    amount: val, 
+                    type: 'expense', // Quem cria pagando, gera uma despesa imediata
+                    category: 'Ajuste/Reembolso', 
+                    date: new Date().toISOString().split('T')[0], 
+                    isShared: false,
+                    isSettlement: true, 
+                    status: 'pending', // <--- O SEGREDO: Nasce pendente
+                    payer: 'me', 
+                    ownerId: profile, 
+                    userId: user.uid, 
+                    createdAt: new Date().toISOString()
+                });
+            };
+
+	    // NOVA FUNÇÃO: Confirmar recebimento do dinheiro
+            const confirmSettlement = async (tx) => {
+                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc(tx.id).update({
+                    status: 'confirmed'
                 });
             };
 
@@ -1265,6 +1222,30 @@
                         </div>
                     )}
 
+		    {/* NOTIFICAÇÃO DE ACERTO PENDENTE */}
+                    {data && data.pendingSettlements && data.pendingSettlements.length > 0 && (
+                        <div className="bg-amber-100 border-b border-amber-200 px-6 py-4 flex flex-col gap-3 animate-slide-up sticky top-0 z-30">
+                            <div className="flex items-center gap-2 text-amber-800 font-bold">
+                                <span className="bg-amber-200 p-1.5 rounded-full"><ArrowRightLeft size={16}/></span>
+                                <span>Confirmação Pendente</span>
+                            </div>
+                            {data.pendingSettlements.map(tx => (
+                                <div key={tx.id} className="bg-white/60 p-3 rounded-xl flex justify-between items-center">
+                                    <div>
+                                        <p className="text-xs text-amber-900 mb-0.5">{USER_CONFIG[tx.ownerId]?.name} informou pagamento:</p>
+                                        <p className="font-bold text-lg text-amber-900">{formatCurrency(tx.amount)}</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => confirmSettlement(tx)}
+                                        className="bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-sm active:scale-95 transition-transform flex items-center gap-2"
+                                    >
+                                        <Check size={14}/> Confirmar
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     {/* Header */}
                     <div className="bg-slate-900 text-white pt-8 pb-6 px-6 rounded-b-[2rem] shadow-xl shrink-0">
                          <div className="flex justify-between items-center mb-6">
@@ -1297,10 +1278,11 @@
 
                         <div className="text-center">
                             <p className="text-xs text-slate-400 font-bold uppercase mb-1">
-                                {dashboardMode === 'investment' ? 'Total Investido (Acumulado)' : 'Saldo do Mês'}
+                                {dashboardMode === 'investment' ? 'Patrimônio Total (Acumulado)' : 'Saldo do Mês'}
                             </p>
                             <h2 className="text-4xl font-extrabold">
-                                {dashboardMode === 'investment' ? formatCurrency(data.investData.total) : formatCurrency(data.bal)}
+                                {/* CORREÇÃO: Usar data.investData.totalCurrent */}
+                                {dashboardMode === 'investment' ? formatCurrency(data.investData.totalCurrent) : formatCurrency(data.bal)}
                             </h2>
                              {viewMode === 'joint' && Math.abs(data.coupleBal) > 1 && dashboardMode === 'statement' && (
                                 <button onClick={settleDebt} className={`mt-4 px-4 py-2 rounded-full text-xs font-bold border flex items-center gap-2 mx-auto active:scale-95 transition-all ${data.coupleBal > 0 ? 'bg-emerald-900/30 text-emerald-300 border-emerald-500/30' : 'bg-rose-900/30 text-rose-300 border-rose-500/30'}`}>
@@ -1336,13 +1318,22 @@
                                                         {selectedIds.has(t.id) && <Check size={20} className="text-white"/>}
                                                     </div>
                                                 ) : (
-                                                    <span className="text-2xl bg-gray-50 w-10 h-10 flex items-center justify-center rounded-xl">{t.type === 'income' ? '💰' : t.type === 'investment' ? '🚀' : t.isSettlement ? '🤝' : '🏷️'}</span>
+                                                    <div className="relative">
+                                                        <span className="text-2xl bg-gray-50 w-10 h-10 flex items-center justify-center rounded-xl">
+                                                            {t.type === 'income' ? '💰' : t.type === 'investment' ? '🚀' : t.isSettlement ? '🤝' : '🏷️'}
+                                                        </span>
+                                                        {/* AVATAR DE QUEM PAGOU (Só aparece no Nosso Mundo) */}
+                                                        {viewMode === 'joint' && USER_CONFIG[t.ownerId] && (
+                                                            <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center text-[10px] ${USER_CONFIG[t.ownerId].color}`}>
+                                                                {USER_CONFIG[t.ownerId].avatar}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 )}
                                                 
                                                 <div>
                                                     <p className="font-bold text-sm flex items-center gap-2">
-                                                        {t.title}
-                                                        {/* Indicador visual se tem itens */}
+                                                        {t.displayTitle || t.title}
                                                         {t.items && t.items.length > 0 && !selectionMode && (
                                                             <span className="bg-gray-100 text-gray-500 text-[9px] px-1.5 rounded-full flex items-center gap-0.5">
                                                                 <ListIcon size={8}/> {t.items.length}
@@ -1351,27 +1342,23 @@
                                                     </p>
                                                     <div className="text-xs text-gray-400 flex flex-wrap gap-2 mt-0.5 items-center">
                                                         <span>{formatDate(t.date)} • {t.category}</span>
-                                                        
-                                                        {/* EXIBIÇÃO DO CONTEXTO (MERCADO/ORIGEM/ATIVO) */}
-                                                        {t.market && (
-                                                            <span className="flex items-center gap-0.5 text-slate-500 font-medium">
-                                                                • {t.market}
-                                                            </span>
-                                                        )}
-
+                                                        {t.market && <span className="flex items-center gap-0.5 text-slate-500 font-medium">• {t.market}</span>}
                                                         {t.bank && BANKS.find(b=>b.id===t.bank) && <span className={`px-1.5 rounded text-[9px] text-white ${BANKS.find(b=>b.id===t.bank).color}`}>{BANKS.find(b=>b.id===t.bank).name}</span>}
                                                     </div>
                                                 </div>
                                             </div>
                                             <div className="text-right flex flex-col items-end gap-1">
-                                                <p className={`font-bold text-sm ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>{t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}</p>
+                                                {/* CORRIGIDO: Se type for income (ou transformado para income), fica Verde */}
+                                                <p className={`font-bold text-sm ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                    {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
+                                                </p>
                                                 {!selectionMode && (
                                                     <button onClick={(e) => { e.stopPropagation(); deleteTx(t.id); }} className="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase hover:bg-rose-100 hover:text-rose-500 transition-colors">Excluir</button>
                                                 )}
                                             </div>
                                         </div>
-
-                                        {/* CASCATA DE ITENS NA HOME (APENAS LEITURA) */}
+                                        
+                                        {/* DETALHES (Mantém igual) */}
                                         {expandedTxId === t.id && t.items && t.items.length > 0 && !selectionMode && (
                                             <div className="bg-gray-50 px-4 py-3 border-t border-gray-100 text-xs animate-slide-up">
                                                 <p className="font-bold text-slate-400 mb-2 uppercase text-[10px]">Itens da Compra</p>
