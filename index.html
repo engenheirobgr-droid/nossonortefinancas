@@ -731,14 +731,27 @@
                 let credit = 0, debt = 0;
                 txs.forEach(t => {
                     const val = Number(t.amount);
+                    
+                    // 1. Acertos de Contas (Pagamentos diretos)
                     if (t.isSettlement) {
-                        if (t.ownerId === profile) credit += val; 
-                        else if (t.ownerId !== profile) debt += val;
+                        if (t.ownerId === profile) credit += val; // Eu paguei acerto = Crédito
+                        else if (t.ownerId !== profile) debt += val; // Parceiro pagou acerto = Dívida
                     } 
-                    else if (t.isShared && t.type === 'expense') {
+                    // 2. Transações Compartilhadas
+                    else if (t.isShared) {
                         const half = val / 2;
-                        if (t.ownerId === profile && t.payer === 'me') credit += half; 
-                        else if (t.ownerId !== profile && t.payer === 'me') debt += half; 
+                        
+                        if (t.type === 'expense') {
+                            // Despesa: Quem pagou ganha crédito
+                            if (t.ownerId === profile && t.payer === 'me') credit += half; 
+                            else if (t.ownerId !== profile && t.payer === 'me') debt += half; 
+                        }
+                        else if (t.type === 'income') {
+                            // Receita: Quem recebeu ganha DÍVIDA (tem que repassar metade)
+                            if (t.ownerId === profile) debt += half; 
+                            else if (t.ownerId !== profile) credit += half;
+                        }
+                        // Investimento: Não gera dívida imediata (Patrimônio Conjunto)
                     }
                 });
                 const coupleBal = credit - debt;
@@ -775,7 +788,9 @@
                 });
                 const historyData = Object.values(historyMap).sort((a,b) => a.month.localeCompare(b.month)).slice(-6);
 
-                const investments = fullList.filter(t => t.type === 'investment' && (viewMode === 'joint' ? t.isShared : !t.isShared));
+                const investments = fullList.filter(t => 
+                    t.type === 'investment' && (viewMode === 'joint' ? t.isShared : !t.isShared)
+                );
                 const totalInvested = investments.reduce((acc, t) => acc + Number(t.amount), 0);
                 let portfolio = {}; let portfolioCurrentTotal = 0;
                 investments.forEach(t => {
@@ -1278,11 +1293,19 @@
 
                         <div className="text-center">
                             <p className="text-xs text-slate-400 font-bold uppercase mb-1">
-                                {dashboardMode === 'investment' ? 'Patrimônio Total (Acumulado)' : 'Saldo do Mês'}
+                                {dashboardMode === 'investment' 
+                                    ? 'Patrimônio Total (Acumulado)' 
+                                    : (viewMode === 'joint' ? 'Gastos Totais do Casal' : 'Saldo do Mês')
+                                }
                             </p>
                             <h2 className="text-4xl font-extrabold">
-                                {/* CORREÇÃO: Usar data.investData.totalCurrent */}
-                                {dashboardMode === 'investment' ? formatCurrency(data.investData.totalCurrent) : formatCurrency(data.bal)}
+                                {dashboardMode === 'investment' 
+                                    ? formatCurrency(data.investData.totalCurrent) 
+                                    : (viewMode === 'joint' 
+                                        ? formatCurrency(data.exp) // Mostra o GASTO positivo
+                                        : formatCurrency(data.bal) // Mostra o SALDO real (pode ser negativo)
+                                    )
+                                }
                             </h2>
                              {viewMode === 'joint' && Math.abs(data.coupleBal) > 1 && dashboardMode === 'statement' && (
                                 <button onClick={settleDebt} className={`mt-4 px-4 py-2 rounded-full text-xs font-bold border flex items-center gap-2 mx-auto active:scale-95 transition-all ${data.coupleBal > 0 ? 'bg-emerald-900/30 text-emerald-300 border-emerald-500/30' : 'bg-rose-900/30 text-rose-300 border-rose-500/30'}`}>
@@ -1511,8 +1534,15 @@
                                                 </div>
                                                 <div className="col-span-2 bg-white/5 p-3 rounded-2xl border border-white/5 flex justify-between items-center mt-1">
                                                     <div>
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">Sobras (Saldo)</p>
-                                                        <p className="text-lg font-bold text-white">{formatCurrency(data.bal)}</p>
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">
+                                                            {viewMode === 'joint' ? 'Custo p/ Pessoa' : 'Sobras (Saldo)'}
+                                                        </p>
+                                                        <p className="text-lg font-bold text-white">
+                                                            {viewMode === 'joint' 
+                                                                ? formatCurrency(data.exp / 2) // Mostra quanto custou para cada um
+                                                                : formatCurrency(data.bal)     // Mostra o saldo real
+                                                            }
+                                                        </p>
                                                     </div>
                                                     <div className="h-8 w-[1px] bg-white/10"></div>
                                                     <div className="text-right">
@@ -1572,10 +1602,16 @@
                                             {data.investData.portfolio.map((asset, i) => {
                                                 const assetProfit = asset.currentTotal - asset.totalCost;
                                                 const assetYield = asset.totalCost > 0 ? (assetProfit / asset.totalCost) * 100 : 0;
+                                                // Descobrir quem é o "dono principal" ou se é misto (apenas visual simples por enquanto)
+                                                // Como o portfolio agrupa por nome, pode ter aportes de ambos. 
+                                                // Mas vamos focar na lista geral.
+                                                
                                                 return (
                                                     <div key={i} className="flex justify-between items-center border-b border-gray-50 pb-2 last:border-0 last:pb-0">
                                                         <div>
-                                                            <p className="font-bold text-sm text-slate-700">{asset.name}</p>
+                                                            <p className="font-bold text-sm text-slate-700 flex items-center gap-2">
+                                                                {asset.name}
+                                                            </p>
                                                             <p className="text-[10px] text-gray-400">
                                                                 {asset.qty > 0 ? `${asset.qty} cotas • PM ${formatCurrency(asset.avgPrice)}` : 'Saldo Financeiro'}
                                                             </p>
@@ -1793,13 +1829,17 @@
                                         </datalist>
                                     </div>
 
-                                    {/* OPÇÕES ESPECÍFICAS DE DESPESA (DIVIDIR / PARCELAR) */}
+                                    {/* ALTERAÇÃO: CHECKBOX "DIVIDIR" AGORA DISPONÍVEL PARA TUDO */}
+                                    <div onClick={() => setFShared(!fShared)} className={`flex justify-between p-4 rounded-xl border-2 cursor-pointer transition-colors ${fShared ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'}`}>
+                                        <span className="font-bold text-sm flex gap-2 items-center">
+                                            <Users size={16}/> 
+                                            {fType === 'investment' ? 'Investimento Conjunto' : fType === 'income' ? 'Receita Conjunta' : 'Dividir Casal'}
+                                        </span>
+                                        {fShared && <Check size={16} className="text-indigo-600"/>}
+                                    </div>
+
+                                    {/* OPÇÕES ESPECÍFICAS DE DESPESA (SÓ PARCELAMENTO AGORA) */}
                                     {fType === 'expense' && (
-                                        <>
-                                        <div onClick={() => setFShared(!fShared)} className={`flex justify-between p-4 rounded-xl border-2 cursor-pointer transition-colors ${fShared ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'}`}>
-                                            <span className="font-bold text-sm flex gap-2 items-center"><Users size={16}/> Dividir Casal</span>
-                                            {fShared && <Check size={16} className="text-indigo-600"/>}
-                                        </div>
                                         <div className="p-4 rounded-xl border-2 border-gray-100 bg-gray-50">
                                             <div onClick={() => setIsInstallment(!isInstallment)} className="flex justify-between cursor-pointer">
                                                 <span className="font-bold text-sm flex gap-2 items-center text-slate-600"><CreditCard size={16}/> É compra parcelada?</span>
@@ -1815,7 +1855,6 @@
                                                 </div>
                                             )}
                                         </div>
-                                        </>
                                     )}
 
                                     <div className="grid grid-cols-4 gap-2">
