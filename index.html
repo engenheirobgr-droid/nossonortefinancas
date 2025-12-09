@@ -593,6 +593,8 @@
             const [fBank, setFBank] = useState('');
             const [fMarket, setFMarket] = useState('');
             const [fInvestType, setFInvestType] = useState(''); // Novo para investimentos
+            // NOVO: Estado para controlar qual item está sendo editado
+            const [editingId, setEditingId] = useState(null);
 
             const [editBudgets, setEditBudgets] = useState([]);
             
@@ -652,21 +654,21 @@
                 const filterByUniverse = (t) => {
                      // 1. LÓGICA DE ACERTO DE CONTAS (HANDSHAKE)
                      if (t.isSettlement) {
-                        // REGRA: Acertos NUNCA aparecem no "Nosso Mundo" (pois é transferência interna)
                         if (viewMode === 'joint') return false;
-
-                        // Visão Pessoal:
-                        if (t.ownerId === profile) return true; // Eu paguei/criei -> Vejo
+                        if (t.ownerId === profile) return true; 
                         if (t.ownerId !== profile) {
                             if (t.status === 'pending') {
-                                pendingSettlements.push(t); // Guardo na notificação
-                                return false; // Escondo da lista principal
+                                pendingSettlements.push(t); 
+                                return false; 
                             }
-                            return t.status === 'confirmed'; // Só vejo se confirmado
+                            return t.status === 'confirmed'; 
                         }
                      }
 
                      // 2. FILTROS PADRÃO
+                     // NOVO: Investimento Conjunto não aparece no Pessoal
+                     if (t.type === 'investment' && t.isShared && viewMode === 'personal') return false;
+
                      if (viewMode === 'joint') return t.isShared && !t.isSettlement;                     
                      const myPrivate = t.ownerId === profile && !t.isShared;
                      const iPaidShared = t.ownerId === profile && t.payer === 'me' && t.isShared;
@@ -677,11 +679,10 @@
                 // Filtra e prepara a lista
                 fullList = txs.filter(filterByUniverse);
                 
-                // MÁGICA VISUAL: Prepara a lista do mês corrigindo o "Tipo" visualmente
+                // MÁGICA VISUAL: Prepara a lista do mês
                 const currentMonthList = fullList
                     .filter(t => t.date.startsWith(selectedMonth))
                     .map(t => {
-                        // Se for um acerto que EU recebi, visualmente é INCOME (Verde), mesmo que no banco seja expense
                         if (t.isSettlement && t.ownerId !== profile) {
                             return { ...t, type: 'income', displayTitle: 'Acerto Recebido' };
                         }
@@ -690,17 +691,21 @@
 
                 // --- CÁLCULOS FINANCEIROS ---
                 let inc = 0, exp = 0, inv = 0;
+                let receivables = 0; // Valor a receber do parceiro (50% das despesas compartilhadas pagas por mim)
+                let economicExp = 0; // Minha despesa real (Burn Rate)
+                
                 let dailyCatMap = {}; let incomeCatMap = {}; let dailyBankFlow = {}; 
                 let investCatMap = {}; let investBankFlow = {};
                 let monthlyDividends = 0;
 
                 currentMonthList.forEach(t => {
+                    // LIMPEZA VISUAL: Se estiver no modo Dia a Dia, ignora investimentos nos totais visuais
                     const val = Number(t.amount);
                     
                     // Cálculo especial para Acertos
                     if (t.isSettlement) {
-                        if (t.ownerId === profile) exp += val; // Saiu da minha conta
-                        else inc += val; // Entrou na minha conta (já transformado pelo map acima)
+                        if (t.ownerId === profile) exp += val; 
+                        else inc += val; 
                         return;
                     }
 
@@ -712,7 +717,16 @@
                         if (t.bank) dailyBankFlow[t.bank] = (dailyBankFlow[t.bank] || 0) + val;
                     }
                     else if (t.type === 'expense') {
-                        exp += val;
+                        exp += val; // Caixa: Saiu 100% da conta
+                        
+                        // Lógica Econômica (Burn Rate) e Recebíveis
+                        if (viewMode === 'personal' && t.isShared) {
+                            receivables += val / 2;
+                            economicExp += val / 2; // Gasto real é só 50%
+                        } else {
+                            economicExp += val;
+                        }
+
                         const cName = t.category || 'Outros';
                         dailyCatMap[cName] = (dailyCatMap[cName] || 0) + val;
                         if (t.bank) { if (!dailyBankFlow[t.bank]) dailyBankFlow[t.bank] = 0; dailyBankFlow[t.bank] -= val; }
@@ -728,30 +742,31 @@
                 const bal = inc - exp - inv;
 
                 // --- SALDO CASAL ---
+                // --- SALDO CASAL ---
                 let credit = 0, debt = 0;
                 txs.forEach(t => {
                     const val = Number(t.amount);
                     
-                    // 1. Acertos de Contas (Pagamentos diretos)
+                    // 1. Acertos de Contas
                     if (t.isSettlement) {
-                        if (t.ownerId === profile) credit += val; // Eu paguei acerto = Crédito
-                        else if (t.ownerId !== profile) debt += val; // Parceiro pagou acerto = Dívida
+                        if (t.ownerId === profile) credit += val; 
+                        else if (t.ownerId !== profile) debt += val; 
                     } 
                     // 2. Transações Compartilhadas
                     else if (t.isShared) {
-                        const half = val / 2;
+                        // Determina quem pagou baseado no criador (owner) e na flag (payer)
+                        // Lógica robusta: Se eu criei e paguei (me) OU parceiro criou e marcou (partner) => EU PAGUEI
+                        const iPaid = (t.ownerId === profile && t.payer === 'me') || (t.ownerId !== profile && t.payer === 'partner');
+                        const partnerPaid = (t.ownerId !== profile && t.payer === 'me') || (t.ownerId === profile && t.payer === 'partner');
                         
                         if (t.type === 'expense') {
-                            // Despesa: Quem pagou ganha crédito
-                            if (t.ownerId === profile && t.payer === 'me') credit += half; 
-                            else if (t.ownerId !== profile && t.payer === 'me') debt += half; 
+                            if (iPaid) credit += val / 2;      // Paguei tudo, recebo metade
+                            else if (partnerPaid) debt += val / 2; // Parceiro pagou, devo metade
                         }
                         else if (t.type === 'income') {
-                            // Receita: Quem recebeu ganha DÍVIDA (tem que repassar metade)
-                            if (t.ownerId === profile) debt += half; 
-                            else if (t.ownerId !== profile) credit += half;
+                            if (iPaid) debt += val / 2;       // Recebi tudo, devo metade
+                            else if (partnerPaid) credit += val / 2; // Parceiro recebeu, recebo metade
                         }
-                        // Investimento: Não gera dívida imediata (Patrimônio Conjunto)
                     }
                 });
                 const coupleBal = credit - debt;
@@ -807,8 +822,19 @@
                 const yieldPct = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
 
                 return { 
-                    list: currentMonthList, fullList, bal, inc, exp, inv, coupleBal, pendingSettlements, planning, 
-                    analysis: { daily: { charts: dailyCharts, bankFlow: dailyBankFlow }, invest: { charts: investCharts, bankFlow: investBankFlow }, history: historyData, health: { savingsRate: inc > 0 ? ((inc - exp) / inc) * 100 : 0, burnRate: exp, coverage: exp > 0 ? (portfolioCurrentTotal / exp) : 0, freedom: exp > 0 ? (monthlyDividends / exp) * 100 : 0, investRate: inc > 0 ? (inv / inc) * 100 : 0 } },
+                    list: currentMonthList, fullList, bal, inc, exp, inv, coupleBal, receivables, economicExp, pendingSettlements, planning, 
+                    analysis: { 
+                        daily: { charts: dailyCharts, bankFlow: dailyBankFlow }, 
+                        invest: { charts: investCharts, bankFlow: investBankFlow }, 
+                        history: historyData, 
+                        health: { 
+                            savingsRate: inc > 0 ? ((inc - economicExp) / inc) * 100 : 0, // Usa custo econômico
+                            burnRate: economicExp, // Usa custo econômico
+                            coverage: economicExp > 0 ? (portfolioCurrentTotal / economicExp) : 0, 
+                            freedom: economicExp > 0 ? (monthlyDividends / economicExp) * 100 : 0, 
+                            investRate: inc > 0 ? (inv / inc) * 100 : 0 
+                        } 
+                    },
                     investData: { totalInvested, totalCurrent: portfolioCurrentTotal, profit, yieldPct, byBank: investBankFlow, dividends: monthlyDividends, portfolio: Object.values(portfolio).sort((a,b) => b.currentTotal - a.currentTotal) }
 		        };
             }, [txs, profile, viewMode, budgets, selectedMonth, dashboardMode, currentPrices]);
@@ -1030,12 +1056,44 @@
             };
 
             // --- ACTIONS ---
+            const handleEdit = (tx) => {
+                setEditingId(tx.id);
+                setFTitle(tx.title);
+                setFAmount(tx.amount.toString());
+                setFType(tx.type);
+                setFCat(tx.category || '');
+                setFShared(tx.isShared);
+                setFormPayer(tx.payer || 'me'); // Carrega quem pagou
+                setFDate(tx.date);
+                setFBank(tx.bank || '');
+                setFMarket(tx.market || '');
+                // Se for investimento
+                if (tx.type === 'investment') {
+                    setFQty(tx.quantity || '');
+                    setFUnitPrice(tx.unitPrice || '');
+                }
+                setModalOpen(true);
+            };
+
             const saveTx = async (e) => {
                 e.preventDefault();
                 const batch = db.batch();
                 const collectionRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions');
 
-                if (isInstallment && installments > 1) {
+                // LÓGICA DE EDIÇÃO (UPDATE)
+                if (editingId) {
+                    const docRef = collectionRef.doc(editingId);
+                    batch.update(docRef, {
+                        title: fTitle, amount: Number(fAmount), type: fType, category: fCat,
+                        date: fDate, isShared: fShared, payer: formPayer,
+                        items: [], // Resetar itens em edição simples para evitar conflito (ou manter lógica complexa depois)
+                        market: fMarket, bank: fBank,
+                        quantity: fType === 'investment' ? Number(fQty) : 0,
+                        unitPrice: fType === 'investment' ? Number(fUnitPrice) : 0
+                    });
+                } 
+                // LÓGICA DE CRIAÇÃO (NEW)
+                else if (isInstallment && installments > 1) {
                     const valPerInst = Number(fAmount) / installments;
                     const [y, m, d] = fDate.split('-').map(Number);
                     for (let i = 0; i < installments; i++) {
@@ -1061,7 +1119,7 @@
                     });
                 }
                 await batch.commit();
-                setModalOpen(false); 
+                setModalOpen(false); setEditingId(null); // Limpa ID de edição
                 setFTitle(''); setFQty(''); setFUnitPrice('');setFAmount(''); setIsInstallment(false); setFDate(new Date().toISOString().split('T')[0]);
             };
 
@@ -1327,7 +1385,11 @@
 
                         {tab === 'home' && dashboardMode === 'statement' && (
                             <div className="space-y-4 animate-fade-in">
-                                {data.list.map(t => (
+                                {data.list.map(t => {
+                                    // FILTRO VISUAL: Não renderiza investimento no modo Dia a Dia
+                                    if (dashboardMode === 'statement' && t.type === 'investment') return null;
+                                    
+                                    return (
                                     <div key={t.id} 
                                          className={`rounded-2xl shadow-sm border transition-all overflow-hidden cursor-pointer ${selectionMode && selectedIds.has(t.id) ? 'bg-indigo-50 border-indigo-500' : 'bg-white border-gray-100 hover:bg-gray-50'}`}
                                          onClick={() => {
@@ -1376,7 +1438,10 @@
                                                     {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
                                                 </p>
                                                 {!selectionMode && (
-                                                    <button onClick={(e) => { e.stopPropagation(); deleteTx(t.id); }} className="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase hover:bg-rose-100 hover:text-rose-500 transition-colors">Excluir</button>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={(e) => { e.stopPropagation(); handleEdit(t); }} className="text-[10px] bg-indigo-50 text-indigo-500 p-1.5 rounded-lg font-bold hover:bg-indigo-100 transition-colors"><FileText size={14}/></button>
+                                                        <button onClick={(e) => { e.stopPropagation(); deleteTx(t.id); }} className="text-[10px] bg-gray-100 text-gray-400 p-1.5 rounded-lg font-bold hover:bg-rose-100 hover:text-rose-500 transition-colors"><Trash2 size={14}/></button>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
@@ -1396,7 +1461,8 @@
                                             </div>
                                         )}
                                     </div>
-                                ))}
+                                    ); // Fechamento do return do map
+                                })} {/* Fechamento do map */}
                                 {data.list.length === 0 && <div className="text-center text-gray-400 mt-10"><ListIcon className="mx-auto mb-2 opacity-50"/><p>Sem movimentações este mês.</p></div>}
                             </div>
                         )}
@@ -1836,6 +1902,14 @@
                                             {fType === 'investment' ? 'Investimento Conjunto' : fType === 'income' ? 'Receita Conjunta' : 'Dividir Casal'}
                                         </span>
                                         {fShared && <Check size={16} className="text-indigo-600"/>}
+                                    </div>
+
+                                    {/* NOVO: SELETOR DE QUEM PAGOU (SÓ APARECE SE FOR COMPARTILHADO OU SE QUISER FORÇAR) */}
+                                    {/* Na verdade, deixaremos sempre visível pois posso pagar algo sozinho para o parceiro */}
+                                    <div className="bg-gray-50 p-2 rounded-xl flex gap-2 border border-gray-100">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase flex items-center px-2">Quem pagou?</span>
+                                        <button type="button" onClick={() => setFormPayer('me')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${formPayer === 'me' ? 'bg-white shadow text-indigo-600' : 'text-gray-400'}`}>Eu</button>
+                                        <button type="button" onClick={() => setFormPayer('partner')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${formPayer === 'partner' ? 'bg-white shadow text-pink-600' : 'text-gray-400'}`}>Parceiro</button>
                                     </div>
 
                                     {/* OPÇÕES ESPECÍFICAS DE DESPESA (SÓ PARCELAMENTO AGORA) */}
