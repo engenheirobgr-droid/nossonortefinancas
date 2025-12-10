@@ -155,24 +155,59 @@
 
         const CATEGORIES = {
             expense: [
-                { id: 'food', name: 'Alimentação', icon: '🛒', color: 'bg-orange-100 text-orange-600', barColor: 'bg-orange-500' },
-                { id: 'transport', name: 'Transporte', icon: '🚗', color: 'bg-blue-100 text-blue-600', barColor: 'bg-blue-500' },
-                { id: 'home', name: 'Moradia', icon: '🏠', color: 'bg-purple-100 text-purple-600', barColor: 'bg-purple-500' },
-                { id: 'leisure', name: 'Lazer', icon: '🎉', color: 'bg-pink-100 text-pink-600', barColor: 'bg-pink-500' },
-                { id: 'health', name: 'Saúde', icon: '💊', color: 'bg-red-100 text-red-600', barColor: 'bg-red-500' },
-                { id: 'education', name: 'Educação', icon: '📚', color: 'bg-teal-100 text-teal-600', barColor: 'bg-teal-500' },
-                { id: 'shopping', name: 'Compras', icon: '🛍️', color: 'bg-amber-100 text-amber-600', barColor: 'bg-amber-500' },
-                { id: 'adjustment', name: 'Ajuste/Reembolso', icon: '💸', color: 'bg-slate-100 text-slate-600', barColor: 'bg-slate-500' },
-                { id: 'other', name: 'Outros', icon: '📦', color: 'bg-gray-100 text-gray-600', barColor: 'bg-gray-500' },
+                { 
+                    id: 'home', name: 'Moradia', icon: '🏠', color: 'bg-purple-100 text-purple-600', barColor: 'bg-purple-500',
+                    subcategories: ['Aluguel', 'Condomínio', 'Internet/TV', 'Água', 'Luz', 'Gás', 'Mercado (Limpeza)', 'Mercado (Higiene)']
+                },
+                { 
+                    id: 'food', name: 'Alimentação', icon: '🛒', color: 'bg-orange-100 text-orange-600', barColor: 'bg-orange-500',
+                    subcategories: ['Mercado (Comida)', 'Mercado (Água)', 'Feira', 'Padaria']
+                },
+                { 
+                    id: 'transport', name: 'Transporte', icon: '🚗', color: 'bg-blue-100 text-blue-600', barColor: 'bg-blue-500',
+                    subcategories: ['Gasolina', 'Lavagem', 'Manutenção', 'Uber/99', 'Estacionamento', 'IPVA/Licenciamento']
+                },
+                { 
+                    id: 'leisure', name: 'Lazer', icon: '🎉', color: 'bg-pink-100 text-pink-600', barColor: 'bg-pink-500',
+                    subcategories: ['Restaurante', 'Bebida', 'Bares e Festas', 'Confraternizações', 'Netflix/Streaming', 'Viagem', 'Outros']
+                },
+                { 
+                    id: 'health', name: 'Saúde', icon: '💊', color: 'bg-red-100 text-red-600', barColor: 'bg-red-500',
+                    subcategories: ['Academia', 'Consultas Médicas', 'Odonto', 'Exames', 'Remédios', 'Terapia']
+                },
+                { 
+                    id: 'education', name: 'Educação', icon: '📚', color: 'bg-teal-100 text-teal-600', barColor: 'bg-teal-500',
+                    subcategories: ['Curso', 'Faculdade', 'Livros', 'Material Escolar']
+                },
+                { 
+                    id: 'shopping', name: 'Compras', icon: '🛍️', color: 'bg-amber-100 text-amber-600', barColor: 'bg-amber-500',
+                    subcategories: ['Roupas', 'Eletrônicos', 'Casa', 'Presentes']
+                },
+                { 
+                    id: 'adjustment', name: 'Ajuste/Reembolso', icon: '💸', color: 'bg-slate-100 text-slate-600', barColor: 'bg-slate-500',
+                    subcategories: []
+                },
+                { 
+                    id: 'other', name: 'Outros', icon: '📦', color: 'bg-gray-100 text-gray-600', barColor: 'bg-gray-500',
+                    subcategories: ['Telefone Celular', 'Corte Cabelo/Beleza', 'Contribuição Família', 'Cesta Básica/Doação', 'Ação Fim de Ano']
+                },
             ],
             income: [
-                { id: 'salary', name: 'Salário', icon: '💰', color: 'bg-green-100 text-green-600' },
-                { id: 'freelance', name: 'Freelance', icon: '💻', color: 'bg-teal-100 text-teal-600' },
-                { id: 'gift', name: 'Presente', icon: '🎁', color: 'bg-pink-100 text-pink-600' },
-                { id: 'dividends', name: 'Dividendos', icon: '💵', color: 'bg-emerald-100 text-emerald-600' },
-                { id: 'adjustment', name: 'Reembolso Recebido', icon: '💸', color: 'bg-slate-100 text-slate-600' },
+                { id: 'salary', name: 'Salário', icon: '💰', color: 'bg-green-100 text-green-600', subcategories: ['Adiantamento', 'Mensal', '13º Salário', 'Férias'] },
+                { id: 'freelance', name: 'Freelance', icon: '💻', color: 'bg-teal-100 text-teal-600', subcategories: ['Projeto', 'Consultoria'] },
+                { id: 'gift', name: 'Presente', icon: '🎁', color: 'bg-pink-100 text-pink-600', subcategories: [] },
+                { id: 'dividends', name: 'Dividendos', icon: '💵', color: 'bg-emerald-100 text-emerald-600', subcategories: [] },
+                { id: 'adjustment', name: 'Reembolso Recebido', icon: '💸', color: 'bg-slate-100 text-slate-600', subcategories: [] },
             ],
-            investment: INVESTMENT_TYPES.map(t => ({ ...t, color: 'bg-indigo-100 text-indigo-600', barColor: 'bg-indigo-500' })),
+            investment: INVESTMENT_TYPES.map(t => ({ 
+                ...t, 
+                color: 'bg-indigo-100 text-indigo-600', 
+                barColor: 'bg-indigo-500',
+                subcategories: t.id === 'reserve' ? ['Caixinha', 'Poupança'] : 
+                               t.id === 'fixed' ? ['CDB', 'Tesouro Direto', 'LCI/LCA'] : 
+                               t.id === 'stocks' ? ['Varejo', 'Bancos', 'Elétricas', 'Commodities'] :
+                               t.id === 'reits' ? ['Papel', 'Tijolo', 'Fiagro'] : []
+            })),
         };
 
         const DEFAULT_BUDGETS = {
@@ -592,11 +627,30 @@
             const [fDate, setFDate] = useState(new Date().toISOString().split('T')[0]);
             const [fBank, setFBank] = useState('');
             const [fMarket, setFMarket] = useState('');
-            const [fInvestType, setFInvestType] = useState(''); // Novo para investimentos
-            // NOVO: Estado para controlar qual item está sendo editado
+            const [fInvestType, setFInvestType] = useState(''); 
+
+            // --- NOVO (FASE 2): Subcategoria ---
+            const [fSubCat, setFSubCat] = useState('');
+
+            // --- NOVO (FASE 3): Recorrência e Sonhos ---
+            const [fRecurrent, setFRecurrent] = useState(false);
+            const [fDreamId, setFDreamId] = useState('');
+            const [dreams, setDreams] = useState([]);
+            const [dreamModal, setDreamModal] = useState(false);
+            
+            // Estados do Modal de Sonho (Atualizado Melhoria 4)
+            const [dTitle, setDTitle] = useState('');
+            const [dTarget, setDTarget] = useState('');
+            const [dEmoji, setDEmoji] = useState('✈️');
+            const [dScope, setDScope] = useState('personal'); // 'personal' | 'joint'
+
+            // --- NOVO: Estado para Edição ---
             const [editingId, setEditingId] = useState(null);
 
             const [editBudgets, setEditBudgets] = useState([]);
+            const [budgetSearch, setBudgetSearch] = useState(''); // NOVO: Filtro de Orçamento
+            
+            // Novos estados para o contexto da importação
             
             // Novos estados para o contexto da importação
             const [importMarket, setImportMarket] = useState('');
@@ -637,50 +691,74 @@
                 const unsubBudgets = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('budgets')
                     .onSnapshot(s => { if (s.exists) setBudgets(s.data()); });
                 
+                // FASE 3: Carregar Sonhos (CORRIGIDO)
+                const unsubDreams = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('dreams')
+                    .onSnapshot(snap => {
+                        setDreams(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                    });
+
                 // Carregar Cotações Manuais (Carteira)
                 const unsubPrices = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('assetPrices')
                     .onSnapshot(s => { if (s.exists) setCurrentPrices(s.data()); });
 
-                return () => { unsubTx(); unsubBudgets(); unsubPrices(); };
+                return () => { unsubTx(); unsubBudgets(); unsubDreams(); unsubPrices(); };
             }, [user]);
 
-// --- BLOCO 1: LÓGICA DE DADOS ATUALIZADA ---
+// --- BLOCO 1: LÓGICA DE DADOS ATUALIZADA (Soma de Subcategorias e Correção Calendário) ---
             const data = useMemo(() => {
                 if (!profile) return null;
                 
-                let fullList = [];
+                let fullList = [...txs]; 
                 let pendingSettlements = [];
 
+                // --- 1. MOTOR DE PROJEÇÃO ---
+                const today = new Date();
+                const currentMonthStr = today.toISOString().slice(0, 7);
+                const isFutureView = selectedMonth > currentMonthStr;
+
+                if (isFutureView) {
+                    const recurrenceMap = new Map();
+                    txs.forEach(t => {
+                        if (t.isRecurrent && !t.isSettlement) {
+                            recurrenceMap.set(t.title, t);
+                        }
+                    });
+
+                    recurrenceMap.forEach(template => {
+                        const existsInMonth = txs.some(t => 
+                            t.date.startsWith(selectedMonth) && 
+                            t.title === template.title
+                        );
+
+                        if (!existsInMonth) {
+                            fullList.push({
+                                ...template,
+                                id: 'ghost_' + template.id,
+                                date: `${selectedMonth}-05`, 
+                                isProjection: true, 
+                                displayTitle: template.title + ' (Previsto)'
+                            });
+                        }
+                    });
+                }
+
                 const filterByUniverse = (t) => {
-                     // 1. LÓGICA DE ACERTO DE CONTAS (HANDSHAKE)
                      if (t.isSettlement) {
                         if (viewMode === 'joint') return false;
                         if (t.ownerId === profile) return true; 
                         if (t.ownerId !== profile) {
-                            if (t.status === 'pending') {
-                                pendingSettlements.push(t); 
-                                return false; 
-                            }
+                            if (t.status === 'pending') { pendingSettlements.push(t); return false; }
                             return t.status === 'confirmed'; 
                         }
                      }
-
-                     // 2. FILTROS PADRÃO
-                     // NOVO: Investimento Conjunto não aparece no Pessoal
-                     if (t.type === 'investment' && t.isShared && viewMode === 'personal') return false;
-
                      if (viewMode === 'joint') return t.isShared && !t.isSettlement;                     
                      const myPrivate = t.ownerId === profile && !t.isShared;
                      const iPaidShared = t.ownerId === profile && t.payer === 'me' && t.isShared;
-                     
                      return myPrivate || iPaidShared;
                 };
 
-                // Filtra e prepara a lista
-                fullList = txs.filter(filterByUniverse);
-                
-                // MÁGICA VISUAL: Prepara a lista do mês
                 const currentMonthList = fullList
+                    .filter(filterByUniverse)
                     .filter(t => t.date.startsWith(selectedMonth))
                     .map(t => {
                         if (t.isSettlement && t.ownerId !== profile) {
@@ -691,24 +769,15 @@
 
                 // --- CÁLCULOS FINANCEIROS ---
                 let inc = 0, exp = 0, inv = 0;
-                let receivables = 0; // Valor a receber do parceiro (50% das despesas compartilhadas pagas por mim)
-                let economicExp = 0; // Minha despesa real (Burn Rate)
-                
                 let dailyCatMap = {}; let incomeCatMap = {}; let dailyBankFlow = {}; 
                 let investCatMap = {}; let investBankFlow = {};
                 let monthlyDividends = 0;
 
                 currentMonthList.forEach(t => {
-                    // LIMPEZA VISUAL: Se estiver no modo Dia a Dia, ignora investimentos nos totais visuais
                     const val = Number(t.amount);
-                    
-                    // Cálculo especial para Acertos
                     if (t.isSettlement) {
-                        if (t.ownerId === profile) exp += val; 
-                        else inc += val; 
-                        return;
+                        if (t.ownerId === profile) exp += val; else inc += val; return;
                     }
-
                     if (t.type === 'income') {
                         inc += val;
                         const cName = t.category || 'Outros';
@@ -717,16 +786,7 @@
                         if (t.bank) dailyBankFlow[t.bank] = (dailyBankFlow[t.bank] || 0) + val;
                     }
                     else if (t.type === 'expense') {
-                        exp += val; // Caixa: Saiu 100% da conta
-                        
-                        // Lógica Econômica (Burn Rate) e Recebíveis
-                        if (viewMode === 'personal' && t.isShared) {
-                            receivables += val / 2;
-                            economicExp += val / 2; // Gasto real é só 50%
-                        } else {
-                            economicExp += val;
-                        }
-
+                        exp += val;
                         const cName = t.category || 'Outros';
                         dailyCatMap[cName] = (dailyCatMap[cName] || 0) + val;
                         if (t.bank) { if (!dailyBankFlow[t.bank]) dailyBankFlow[t.bank] = 0; dailyBankFlow[t.bank] -= val; }
@@ -742,70 +802,84 @@
                 const bal = inc - exp - inv;
 
                 // --- SALDO CASAL ---
-                // --- SALDO CASAL ---
                 let credit = 0, debt = 0;
-                txs.forEach(t => {
+                let economicExp = 0;
+
+                fullList.filter(t => !t.isProjection).forEach(t => { 
                     const val = Number(t.amount);
-                    
-                    // 1. Acertos de Contas
-                    if (t.isSettlement) {
-                        if (t.ownerId === profile) credit += val; 
-                        else if (t.ownerId !== profile) debt += val; 
-                    } 
-                    // 2. Transações Compartilhadas
-                    else if (t.isShared) {
-                        // Determina quem pagou baseado no criador (owner) e na flag (payer)
-                        // Lógica robusta: Se eu criei e paguei (me) OU parceiro criou e marcou (partner) => EU PAGUEI
-                        const iPaid = (t.ownerId === profile && t.payer === 'me') || (t.ownerId !== profile && t.payer === 'partner');
-                        const partnerPaid = (t.ownerId !== profile && t.payer === 'me') || (t.ownerId === profile && t.payer === 'partner');
-                        
-                        if (t.type === 'expense') {
-                            if (iPaid) credit += val / 2;      // Paguei tudo, recebo metade
-                            else if (partnerPaid) debt += val / 2; // Parceiro pagou, devo metade
-                        }
-                        else if (t.type === 'income') {
-                            if (iPaid) debt += val / 2;       // Recebi tudo, devo metade
-                            else if (partnerPaid) credit += val / 2; // Parceiro recebeu, recebo metade
-                        }
+                    if (t.ownerId === profile && t.type === 'expense') {
+                        if (t.isShared) economicExp += val / 2; else economicExp += val;
                     }
+                    if (t.isShared && !t.isSettlement) {
+                        const half = val / 2;
+                        if (t.payer === 'me') credit += half; else if (t.payer !== 'me') debt += half;
+                    }
+                    if (t.isSettlement) {
+                        if (t.ownerId === profile) credit += val; else if (t.ownerId !== profile) debt += val; 
+                    } 
                 });
                 const coupleBal = credit - debt;
 
-                // --- RESTO DOS CÁLCULOS (INVESTIMENTOS, METAS, ETC) ---
-                // (Mantendo a lógica existente para economizar espaço visual, mas garantindo que tudo funcione)
+                // --- SONHOS ---
+                const filteredDreams = dreams.filter(d => {
+                    if (viewMode === 'joint') return d.scope === 'joint';
+                    return d.scope === 'personal' || !d.scope; 
+                });
+
+                const dreamsProgress = filteredDreams.map(d => {
+                    const currentAmount = txs
+                        .filter(t => t.type === 'investment' && t.dreamId === d.id)
+                        .reduce((acc, t) => acc + Number(t.amount), 0);
+                    const pct = d.targetAmount > 0 ? (currentAmount / d.targetAmount) * 100 : 0;
+                    return { ...d, currentAmount, pct };
+                });
+
+                // --- PLANNING (LIMITES INTELIGENTES COM SOMA DE FILHOS) ---
                 const currentBudgets = budgets[viewMode] || [];
-                const filteredBudgets = currentBudgets.filter(b => {
-                    if (dashboardMode === 'statement') return CATEGORIES.expense.some(c => c.name === b.category) || CATEGORIES.income.some(c => c.name === b.category);
-                    else return CATEGORIES.investment.some(c => c.name === b.category) || b.category === 'Dividendos';
-                });
-                const planning = filteredBudgets.map(b => {
-                    let type = 'out'; let realized = 0;
-                    if (CATEGORIES.income.some(c => c.name === b.category) || b.category === 'Dividendos') {
-                        type = 'in'; realized = b.category === 'Dividendos' ? monthlyDividends : (incomeCatMap[b.category] || 0);
+                // Pega todos os orçamentos definidos (mesmo que 0, pois pode ser Pai agregador)
+                const rawBudgets = currentBudgets.filter(b => Number(b.limit) >= 0);
+
+                let planning = rawBudgets.map(b => {
+                    let realized = 0;
+                    let type = 'out'; 
+                    const isIncome = CATEGORIES.income.some(c => c.name === b.category) || 
+                                     CATEGORIES.income.some(c => c.subcategories?.includes(b.category)) ||
+                                     b.category === 'Dividendos';
+                    
+                    if (isIncome) {
+                        type = 'in';
+                        if (b.category === 'Dividendos') realized = monthlyDividends;
+                        else realized = currentMonthList.filter(t => t.type === 'income' && (t.category === b.category || t.subCategory === b.category)).reduce((acc, t) => acc + Number(t.amount), 0);
                     } else {
-                        type = 'out'; realized = dailyCatMap[b.category] || investCatMap[b.category] || 0;
+                        type = 'out';
+                        realized = currentMonthList.filter(t => (t.type === 'expense' || t.type === 'investment') && (t.category === b.category || t.subCategory === b.category)).reduce((acc, t) => acc + Number(t.amount), 0);
                     }
-                    const pct = b.limit > 0 ? (realized / b.limit) * 100 : 0;
-                    const conf = [...CATEGORIES.expense, ...CATEGORIES.income, ...CATEGORIES.investment].find(c => c.name === b.category);
-                    return { ...b, realized, pct: Math.min(pct, 100), rawPct: pct, icon: conf?.icon || (type === 'in' ? '💰' : '🏷️'), type };
+                    
+                    // Ícone
+                    let icon = '🎯'; 
+                    [...CATEGORIES.expense, ...CATEGORIES.income, ...CATEGORIES.investment].forEach(c => {
+                        if (c.name === b.category) icon = c.icon; 
+                        if (c.subcategories && c.subcategories.includes(b.category)) icon = '↳'; 
+                    });
+                    if (b.category === 'Dividendos') icon = '💵';
+
+                    return { ...b, realized, limit: Number(b.limit), type, icon, isParent: false };
                 });
+
+                // Recalcula porcentagens após agregação
+                planning = planning.map(p => {
+                    const pct = p.limit > 0 ? (p.realized / p.limit) * 100 : 0;
+                    return { ...p, pct: Math.min(pct, 100), rawPct: pct };
+                });
+                
+                // Remove pais com valor 0 se não tiverem filhos ativos (limpeza visual)
+                planning = planning.filter(p => p.limit > 0 || p.realized > 0);
 
                 const dailyCharts = Object.keys(dailyCatMap).map(k => ({ name: k, amount: dailyCatMap[k], pct: exp > 0 ? (dailyCatMap[k] / exp) * 100 : 0, icon: CATEGORIES.expense.find(c => c.name === k)?.icon || '🏷️', color: CATEGORIES.expense.find(c => c.name === k)?.barColor || 'bg-gray-500' })).sort((a,b) => b.amount - a.amount);
                 const investCharts = Object.keys(investCatMap).map(k => ({ name: k, amount: investCatMap[k], pct: inv > 0 ? (investCatMap[k] / inv) * 100 : 0, icon: CATEGORIES.investment.find(c => c.name === k)?.icon || '📈', color: CATEGORIES.investment.find(c => c.name === k)?.barColor || 'bg-indigo-500' })).sort((a,b) => b.amount - a.amount);
 
-                const historyMap = {};
-                fullList.forEach(t => {
-                    const m = t.date.slice(0, 7);
-                    if(!historyMap[m]) historyMap[m] = { month: m, income: 0, expense: 0, invested: 0 };
-                    if(t.type === 'income') historyMap[m].income += Number(t.amount);
-                    if(t.type === 'expense') historyMap[m].expense += Number(t.amount);
-                    if(t.type === 'investment') historyMap[m].invested += Number(t.amount);
-                });
-                const historyData = Object.values(historyMap).sort((a,b) => a.month.localeCompare(b.month)).slice(-6);
-
-                const investments = fullList.filter(t => 
-                    t.type === 'investment' && (viewMode === 'joint' ? t.isShared : !t.isShared)
-                );
+                // --- INVESTIMENTOS ---
+                const investments = txs.filter(t => t.type === 'investment' && (viewMode === 'joint' ? t.isShared : !t.isShared));
                 const totalInvested = investments.reduce((acc, t) => acc + Number(t.amount), 0);
                 let portfolio = {}; let portfolioCurrentTotal = 0;
                 investments.forEach(t => {
@@ -820,24 +894,25 @@
                 });
                 const profit = portfolioCurrentTotal - totalInvested;
                 const yieldPct = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
+                const netWorth = bal + portfolioCurrentTotal;
+
+                const historyMap = {};
+                txs.forEach(t => {
+                    const m = t.date.slice(0, 7);
+                    if(!historyMap[m]) historyMap[m] = { month: m, income: 0, expense: 0, invested: 0 };
+                    if(t.type === 'income') historyMap[m].income += Number(t.amount);
+                    if(t.type === 'expense') historyMap[m].expense += Number(t.amount);
+                    if(t.type === 'investment') historyMap[m].invested += Number(t.amount);
+                });
+                const historyData = Object.values(historyMap).sort((a,b) => a.month.localeCompare(b.month)).slice(-6);
 
                 return { 
-                    list: currentMonthList, fullList, bal, inc, exp, inv, coupleBal, receivables, economicExp, pendingSettlements, planning, 
-                    analysis: { 
-                        daily: { charts: dailyCharts, bankFlow: dailyBankFlow }, 
-                        invest: { charts: investCharts, bankFlow: investBankFlow }, 
-                        history: historyData, 
-                        health: { 
-                            savingsRate: inc > 0 ? ((inc - economicExp) / inc) * 100 : 0, // Usa custo econômico
-                            burnRate: economicExp, // Usa custo econômico
-                            coverage: economicExp > 0 ? (portfolioCurrentTotal / economicExp) : 0, 
-                            freedom: economicExp > 0 ? (monthlyDividends / economicExp) * 100 : 0, 
-                            investRate: inc > 0 ? (inv / inc) * 100 : 0 
-                        } 
-                    },
+                    list: currentMonthList, fullList, bal, inc, exp, inv, coupleBal, pendingSettlements, 
+                    planning, dreamsProgress, netWorth, economicExp,
+                    analysis: { daily: { charts: dailyCharts, bankFlow: dailyBankFlow }, invest: { charts: investCharts, bankFlow: investBankFlow }, history: historyData, health: { savingsRate: inc > 0 ? ((inc - exp) / inc) * 100 : 0, burnRate: exp, coverage: exp > 0 ? (portfolioCurrentTotal / exp) : 0, freedom: exp > 0 ? (monthlyDividends / exp) * 100 : 0, investRate: inc > 0 ? (inv / inc) * 100 : 0 } },
                     investData: { totalInvested, totalCurrent: portfolioCurrentTotal, profit, yieldPct, byBank: investBankFlow, dividends: monthlyDividends, portfolio: Object.values(portfolio).sort((a,b) => b.currentTotal - a.currentTotal) }
 		        };
-            }, [txs, profile, viewMode, budgets, selectedMonth, dashboardMode, currentPrices]);
+            }, [txs, profile, viewMode, budgets, selectedMonth, dashboardMode, currentPrices, dreams]);
 
             // --- EXPORTAR EXCEL ---
             const exportData = () => {
@@ -1056,22 +1131,30 @@
             };
 
             // --- ACTIONS ---
+            // NOVO: Função para carregar edição
             const handleEdit = (tx) => {
                 setEditingId(tx.id);
                 setFTitle(tx.title);
-                setFAmount(tx.amount.toString());
+                setFAmount(tx.amount);
                 setFType(tx.type);
-                setFCat(tx.category || '');
-                setFShared(tx.isShared);
-                setFormPayer(tx.payer || 'me'); // Carrega quem pagou
+                setFCat(tx.category);
+                setFSubCat(tx.subCategory || '');
+                
+                // FASE 3: Recorrência e Sonho
+                setFRecurrent(tx.isRecurrent || false);
+                setFDreamId(tx.dreamId || '');
+
+                setFShared(tx.isShared || false);
+                setFormPayer(tx.payer || 'me'); 
                 setFDate(tx.date);
                 setFBank(tx.bank || '');
                 setFMarket(tx.market || '');
-                // Se for investimento
+                
                 if (tx.type === 'investment') {
                     setFQty(tx.quantity || '');
                     setFUnitPrice(tx.unitPrice || '');
                 }
+                
                 setModalOpen(true);
             };
 
@@ -1080,48 +1163,71 @@
                 const batch = db.batch();
                 const collectionRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions');
 
-                // LÓGICA DE EDIÇÃO (UPDATE)
+                // Payload base (Dados comuns)
+                const payload = {
+                    title: fTitle, amount: Number(fAmount), type: fType, category: fCat,
+                    subCategory: fSubCat,
+                    date: fDate, isShared: fShared, payer: formPayer,
+                    ownerId: profile, userId: user.uid, isSettlement: false, 
+                    market: fMarket, bank: fBank,
+                    quantity: fType === 'investment' ? Number(fQty) : 0,
+                    unitPrice: fType === 'investment' ? Number(fUnitPrice) : 0,
+                    
+                    // FASE 3: Novos Campos
+                    isRecurrent: fRecurrent,
+                    dreamId: fType === 'investment' ? fDreamId : '' // Só salva vínculo se for investimento
+                };
+
                 if (editingId) {
                     const docRef = collectionRef.doc(editingId);
-                    batch.update(docRef, {
-                        title: fTitle, amount: Number(fAmount), type: fType, category: fCat,
-                        date: fDate, isShared: fShared, payer: formPayer,
-                        items: [], // Resetar itens em edição simples para evitar conflito (ou manter lógica complexa depois)
-                        market: fMarket, bank: fBank,
-                        quantity: fType === 'investment' ? Number(fQty) : 0,
-                        unitPrice: fType === 'investment' ? Number(fUnitPrice) : 0
-                    });
-                } 
-                // LÓGICA DE CRIAÇÃO (NEW)
-                else if (isInstallment && installments > 1) {
-                    const valPerInst = Number(fAmount) / installments;
-                    const [y, m, d] = fDate.split('-').map(Number);
-                    for (let i = 0; i < installments; i++) {
-                        const docRef = collectionRef.doc();
-                        const dateObj = new Date(y, (m - 1) + i, d);
-                        batch.set(docRef, {
-                            title: `${fTitle} (${i + 1}/${installments})`, amount: valPerInst, type: fType, category: fCat,
-                            date: dateObj.toISOString().split('T')[0], isShared: fShared, payer: formPayer,
-                            ownerId: profile, createdAt: new Date().toISOString(), userId: user.uid, isSettlement: false, items: [],
-                            market: fMarket, bank: fBank
-                        });
-                    }
+                    batch.update(docRef, payload);
                 } else {
-                    const docRef = collectionRef.doc();
-                    batch.set(docRef, {
-                        title: fTitle, amount: Number(fAmount), type: fType, category: fCat,
-                        date: fDate, isShared: fShared, payer: formPayer,
-                        ownerId: profile, createdAt: new Date().toISOString(), userId: user.uid, isSettlement: false, items: [],
-                        market: fMarket, bank: fBank,
-                        // Novos campos para Carteira
-                        quantity: fType === 'investment' ? Number(fQty) : 0,
-                        unitPrice: fType === 'investment' ? Number(fUnitPrice) : 0
-                    });
+                    if (isInstallment && installments > 1) {
+                        const valPerInst = Number(fAmount) / installments;
+                        const [y, m, d] = fDate.split('-').map(Number);
+                        for (let i = 0; i < installments; i++) {
+                            const docRef = collectionRef.doc();
+                            const dateObj = new Date(y, (m - 1) + i, d);
+                            batch.set(docRef, {
+                                ...payload,
+                                title: `${fTitle} (${i + 1}/${installments})`, 
+                                amount: valPerInst,
+                                date: dateObj.toISOString().split('T')[0],
+                                createdAt: new Date().toISOString(),
+                                items: [] 
+                            });
+                        }
+                    } else {
+                        const docRef = collectionRef.doc();
+                        batch.set(docRef, { ...payload, createdAt: new Date().toISOString(), items: [] });
+                    }
                 }
+
                 await batch.commit();
-                setModalOpen(false); setEditingId(null); // Limpa ID de edição
-                setFTitle(''); setFQty(''); setFUnitPrice('');setFAmount(''); setIsInstallment(false); setFDate(new Date().toISOString().split('T')[0]);
+                setModalOpen(false); 
+                // Reset do Form
+                setEditingId(null); 
+                setFTitle(''); setFQty(''); setFUnitPrice(''); setFAmount(''); setIsInstallment(false); setFDate(new Date().toISOString().split('T')[0]);
+                setFSubCat(''); setFRecurrent(false); setFDreamId(''); // Reset Fase 3
             };
+            
+            // FASE 3: Salvar Sonho (Atualizado com Escopo)
+            const saveDream = async () => {
+                if(!dTitle || !dTarget) return alert("Preencha título e valor");
+                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('dreams').add({
+                    title: dTitle,
+                    targetAmount: Number(dTarget),
+                    emoji: dEmoji,
+                    scope: dScope, // Salva se é 'personal' ou 'joint'
+                    ownerId: profile,
+                    createdAt: new Date().toISOString()
+                });
+                setDreamModal(false); setDTitle(''); setDTarget('');
+            };
+
+            const deleteDream = async (id) => {
+                if(confirm("Apagar este sonho?")) await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('dreams').doc(id).delete();
+            }
 
             const deleteTx = async (id) => { if(confirm("Apagar este lançamento?")) await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc(id).delete(); };
 
@@ -1156,35 +1262,139 @@
             };
 
             const openBudget = () => {
-                // Lógica inteligente: Mostra categorias de Receita e Despesa no modo Dia a Dia
+                // FASE 3 FIX (Melhorias 1 e 2): Lista expandida com Subcategorias e Investimentos
                 let list = [];
-                if (dashboardMode === 'statement') {
-                    list = [...CATEGORIES.income, ...CATEGORIES.expense];
-                } else {
-                    // Modo Investimento: Mostra Investimentos e adiciona Dividendos
-                    list = [...CATEGORIES.investment]; 
-                    if (!list.find(c => c.name === 'Dividendos')) {
-                        list = [{ id: 'div', name: 'Dividendos', icon: '💵' }, ...list];
-                    }
-                }
                 
+                // 1. Adiciona Despesas e Receitas (Com Subcategorias)
+                [...CATEGORIES.expense, ...CATEGORIES.income].forEach(cat => {
+                    // Adiciona a Categoria Pai (Geral)
+                    list.push({ id: cat.name, name: cat.name, type: 'main', icon: cat.icon });
+                    
+                    // Adiciona as Subcategorias (se houver)
+                    if (cat.subcategories) {
+                        cat.subcategories.forEach(sub => {
+                            list.push({ 
+                                id: sub, // O ID da meta será o nome da subcategoria
+                                name: `${cat.name} > ${sub}`, // Nome visual indentado
+                                type: 'sub',
+                                parent: cat.name,
+                                icon: '↳' 
+                            });
+                        });
+                    }
+                });
+
+                // 2. Adiciona Investimentos (Metas de Aporte)
+                CATEGORIES.investment.forEach(cat => {
+                    list.push({ id: cat.name, name: cat.name, type: 'invest', icon: cat.icon });
+                });
+
                 const current = budgets[viewMode] || [];
+                
                 setEditBudgets(list.map(c => ({ 
-                    category: c.name, 
-                    limit: current.find(b => b.category === c.name)?.limit || 0, 
-                    icon: c.icon 
+                    category: c.id, 
+                    displayName: c.name, 
+                    limit: current.find(b => b.category === c.id)?.limit || 0, 
+                    icon: c.icon,
+                    // CRÍTICO: Estas propriedades estavam sendo perdidas na versão anterior
+                    parent: c.parent, 
+                    type: c.type      
                 })));
+                
+                setBudgetSearch(''); 
                 setBudgetModal(true);
             };
 
+            // --- CORREÇÃO 1: Função saveBudget Blindada ---
             const saveBudget = async () => {
-                const current = budgets[viewMode] || [];
-                const otherBudgets = current.filter(b => !editBudgets.some(e => e.category === b.category));
-                const updatedBudgets = [...otherBudgets, ...editBudgets.map(b => ({ ...b, limit: Number(b.limit) })).filter(b => b.limit > 0)];
+                try {
+                    const current = budgets[viewMode] || [];
+                    
+                    // 1. Remove do banco atual os itens que estamos editando agora (para substituir pelos novos)
+                    const otherBudgets = current.filter(b => !editBudgets.some(e => e.category === b.category));
+                    
+                    // 2. Prepara os novos itens para salvar (SANITIZAÇÃO)
+                    // Aqui removemos 'icon', 'parent', 'type' e 'displayName' para não sujar o banco
+                    // 2. Prepara os novos itens para salvar (SANITIZAÇÃO E SOMA DE PAIS)
+                    const newItems = editBudgets
+                        .map(b => {
+                            let finalLimit = Number(b.limit);
+                            
+                            // Se for Pai, recalcula a soma dos filhos para salvar o valor total correto
+                            if (b.type === 'main') {
+                                const childrenSum = editBudgets
+                                    .filter(child => child.parent === b.category)
+                                    .reduce((sum, child) => sum + (Number(child.limit) || 0), 0);
+                                
+                                // Se tiver filhos somando algo, o limite do pai assume essa soma
+                                if (childrenSum > 0) finalLimit = childrenSum;
+                            }
+
+                            return { 
+                                category: b.category, 
+                                limit: finalLimit
+                            };
+                        })
+                        .filter(b => b.limit > 0 && !isNaN(b.limit)); // Só salva metas maiores que zero
+
+                    const updatedBudgets = [...otherBudgets, ...newItems];
+                    
+                    const newB = { ...budgets, [viewMode]: updatedBudgets };
+                    
+                    await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('budgets').set(newB);
+                    
+                    setBudgets(newB); 
+                    setBudgetModal(false);
+                } catch (error) {
+                    console.error("Erro ao salvar orçamento:", error);
+                    alert("Erro ao salvar: " + error.message);
+                }
+            };
+
+    // --- FUNÇÃO DE HARD RESET (LIMPEZA TOTAL) ---
+            const resetDatabase = async () => {
+                if (!confirm("⚠️ PERIGO: HARD RESET\n\nIsso apagará TODAS as transações, sonhos e configurações de orçamento.\nO app voltará ao estado original.\n\nDeseja continuar?")) return;
                 
-                const newB = { ...budgets, [viewMode]: updatedBudgets };
-                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('budgets').set(newB);
-                setBudgets(newB); setBudgetModal(false);
+                // Segunda confirmação de segurança
+                if (!confirm("Tem certeza absoluta? Essa ação é irreversível.")) return;
+
+                setIsProcessingAI(true); // Usa o spinner de loading
+
+                try {
+                    const batch = db.batch();
+                    const basePath = db.collection('artifacts').doc(APP_ID).collection('public').doc('data');
+
+                    // 1. Coletar e Deletar Transações
+                    const txSnapshot = await basePath.collection('transactions').get();
+                    txSnapshot.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+
+                    // 2. Coletar e Deletar Sonhos
+                    const dreamsSnapshot = await basePath.collection('dreams').get();
+                    dreamsSnapshot.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+
+                    // 3. Resetar Orçamentos para o Padrão (Overwrite com DEFAULT_BUDGETS)
+                    // Isso garante que a estrutura volte limpa, sem duplicatas
+                    const budgetRef = basePath.collection('settings').doc('budgets');
+                    batch.set(budgetRef, DEFAULT_BUDGETS);
+
+                    // 4. Apagar Cotações Manuais e outras configs
+                    batch.delete(basePath.collection('settings').doc('assetPrices'));
+
+                    // Executar tudo
+                    await batch.commit();
+
+                    alert("✅ Sistema reiniciado com sucesso! A página será recarregada.");
+                    window.location.reload();
+
+                } catch (error) {
+                    console.error("Erro no reset:", error);
+                    alert("Erro ao resetar: " + error.message);
+                    setIsProcessingAI(false);
+                }
             };
 
             // UI HELPERS
@@ -1319,14 +1529,26 @@
                         </div>
                     )}
 
-                    {/* Header */}
-                    <div className="bg-slate-900 text-white pt-8 pb-6 px-6 rounded-b-[2rem] shadow-xl shrink-0">
+                    {/* Header - CORREÇÃO VISUAL v23 */}
+                    {/* Header - CORREÇÃO VISUAL v23 */}
+                    <div className="bg-slate-900 text-white pt-8 pb-8 px-6 rounded-b-[2rem] shadow-xl shrink-0 z-30 relative">
                          <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-3">
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl ${USER_CONFIG[profile].color}`}>{USER_CONFIG[profile].avatar}</div>
                                 <div><div className="flex items-center gap-1.5 text-indigo-200 text-xs uppercase font-medium">{greeting.i} {greeting.t}</div><h1 className="font-bold text-lg">{USER_CONFIG[profile].name}</h1></div>
                             </div>
                             <div className="flex gap-2">
+                                {/* NOVO: Calendário Global movido para cá */}
+                                <div className="relative p-2 bg-slate-800 rounded-full overflow-hidden cursor-pointer hover:bg-slate-700 transition-colors group">
+                                    <input 
+                                        type="month" 
+                                        value={selectedMonth} 
+                                        onChange={e => setSelectedMonth(e.target.value)} 
+                                        className="absolute inset-0 opacity-0 cursor-pointer z-50 w-full h-full"
+                                    />
+                                    <Calendar size={18} className="text-white group-hover:text-emerald-400 transition-colors"/>
+                                </div>
+                                
                                 <button onClick={() => { setSelectionMode(!selectionMode); setSelectedIds(new Set()); }} className={`p-2 rounded-full transition-colors ${selectionMode ? 'bg-indigo-500 text-white' : 'bg-slate-800'}`}><CheckSquare size={18}/></button>
                                 <button onClick={() => setSettingsModal(true)} className="p-2 bg-slate-800 rounded-full"><Settings size={18}/></button>
                                 <button onClick={() => { localStorage.removeItem('fincontrol_profile'); setProfile(null); }} className="p-2 bg-slate-800 rounded-full"><LogOut size={18} /></button>
@@ -1339,9 +1561,9 @@
                             <button onClick={() => setViewMode('joint')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${viewMode === 'joint' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400'}`}>Nosso Mundo</button>
                         </div>
                         
-                        {/* HOME FILTER (Statement vs Investment) */}
+                        {/* HOME FILTER */}
                         {['home', 'planning', 'reports'].includes(tab) && (
-                            <div className="flex justify-center mb-4">
+                            <div className="flex justify-center mb-6">
                                 <div className="bg-slate-800 rounded-full p-1 flex">
                                     <button onClick={() => setDashboardMode('statement')} className={`px-4 py-1 rounded-full text-xs font-bold transition-all ${dashboardMode === 'statement' ? 'bg-emerald-500 text-white' : 'text-slate-400'}`}>Dia a Dia</button>
                                     <button onClick={() => setDashboardMode('investment')} className={`px-4 py-1 rounded-full text-xs font-bold transition-all ${dashboardMode === 'investment' ? 'bg-indigo-500 text-white' : 'text-slate-400'}`}>Investimentos</button>
@@ -1349,24 +1571,33 @@
                             </div>
                         )}
 
-                        <div className="text-center">
-                            <p className="text-xs text-slate-400 font-bold uppercase mb-1">
-                                {dashboardMode === 'investment' 
-                                    ? 'Patrimônio Total (Acumulado)' 
-                                    : (viewMode === 'joint' ? 'Gastos Totais do Casal' : 'Saldo do Mês')
-                                }
-                            </p>
-                            <h2 className="text-4xl font-extrabold">
-                                {dashboardMode === 'investment' 
-                                    ? formatCurrency(data.investData.totalCurrent) 
-                                    : (viewMode === 'joint' 
-                                        ? formatCurrency(data.exp) // Mostra o GASTO positivo
-                                        : formatCurrency(data.bal) // Mostra o SALDO real (pode ser negativo)
-                                    )
-                                }
-                            </h2>
+                        {/* SALDO E CALENDÁRIO (Layout Corrigido e Limpo) */}
+                        <div className="text-center relative pb-2"> 
+                            
+                            <div className="pointer-events-none relative z-10">
+                                <p className="text-xs text-slate-400 font-bold uppercase mb-2 flex items-center justify-center gap-2">
+                                    {dashboardMode === 'investment' 
+                                        ? 'Patrimônio Total' 
+                                        : (viewMode === 'joint' ? 'Gastos Casal' : 'Saldo Projetado')
+                                    }
+                                    {/* Apenas exibe o mês formatado, sem input aqui */}
+                                    <span className="bg-slate-800 px-2 py-0.5 rounded text-[10px] text-emerald-400 flex items-center gap-1 border border-slate-700">
+                                        {selectedMonth.split('-').reverse().join('/')}
+                                    </span>
+                                </p>
+                                <h2 className="text-4xl font-extrabold text-white tracking-tight">
+                                    {dashboardMode === 'investment' 
+                                        ? formatCurrency(data.investData.totalCurrent) 
+                                        : (viewMode === 'joint' 
+                                            ? formatCurrency(data.exp) 
+                                            : formatCurrency(data.bal)
+                                        )
+                                    }
+                                </h2>
+                            </div>
+
                              {viewMode === 'joint' && Math.abs(data.coupleBal) > 1 && dashboardMode === 'statement' && (
-                                <button onClick={settleDebt} className={`mt-4 px-4 py-2 rounded-full text-xs font-bold border flex items-center gap-2 mx-auto active:scale-95 transition-all ${data.coupleBal > 0 ? 'bg-emerald-900/30 text-emerald-300 border-emerald-500/30' : 'bg-rose-900/30 text-rose-300 border-rose-500/30'}`}>
+                                <button onClick={settleDebt} className={`mt-6 px-4 py-2 rounded-full text-xs font-bold border flex items-center gap-2 mx-auto active:scale-95 transition-all relative z-50 pointer-events-auto ${data.coupleBal > 0 ? 'bg-emerald-900/30 text-emerald-300 border-emerald-500/30' : 'bg-rose-900/30 text-rose-300 border-rose-500/30'}`}>
                                     <ArrowRightLeft size={12} /> {data.coupleBal > 0 ? 'Receber' : 'Pagar'} {formatCurrency(Math.abs(data.coupleBal))}
                                 </button>
                             )}
@@ -1385,13 +1616,10 @@
 
                         {tab === 'home' && dashboardMode === 'statement' && (
                             <div className="space-y-4 animate-fade-in">
-                                {data.list.map(t => {
-                                    // FILTRO VISUAL: Não renderiza investimento no modo Dia a Dia
-                                    if (dashboardMode === 'statement' && t.type === 'investment') return null;
-                                    
-                                    return (
+                                {data.list.map(t => (
                                     <div key={t.id} 
-                                         className={`rounded-2xl shadow-sm border transition-all overflow-hidden cursor-pointer ${selectionMode && selectedIds.has(t.id) ? 'bg-indigo-50 border-indigo-500' : 'bg-white border-gray-100 hover:bg-gray-50'}`}
+                                         className={`rounded-2xl shadow-sm border transition-all overflow-hidden cursor-pointer ${selectionMode && selectedIds.has(t.id) ? 'bg-indigo-50 border-indigo-500' : 'bg-white border-gray-100 hover:bg-gray-50'} 
+                                         ${t.isProjection ? 'opacity-60 border-dashed border-slate-300' : ''}`} // <--- FASE 3: Classe para projeção
                                          onClick={() => {
                                              if(selectionMode) toggleSelection(t.id);
                                              else setExpandedTxId(expandedTxId === t.id ? null : t.id);
@@ -1426,7 +1654,11 @@
                                                         )}
                                                     </p>
                                                     <div className="text-xs text-gray-400 flex flex-wrap gap-2 mt-0.5 items-center">
-                                                        <span>{formatDate(t.date)} • {t.category}</span>
+                                                        <span>
+                                                            {formatDate(t.date)} • {t.category} 
+                                                            {/* FASE 2: Exibir Subcategoria */}
+                                                            {t.subCategory && <span className="text-slate-500 font-medium"> ({t.subCategory})</span>}
+                                                        </span>
                                                         {t.market && <span className="flex items-center gap-0.5 text-slate-500 font-medium">• {t.market}</span>}
                                                         {t.bank && BANKS.find(b=>b.id===t.bank) && <span className={`px-1.5 rounded text-[9px] text-white ${BANKS.find(b=>b.id===t.bank).color}`}>{BANKS.find(b=>b.id===t.bank).name}</span>}
                                                     </div>
@@ -1439,8 +1671,9 @@
                                                 </p>
                                                 {!selectionMode && (
                                                     <div className="flex gap-2">
-                                                        <button onClick={(e) => { e.stopPropagation(); handleEdit(t); }} className="text-[10px] bg-indigo-50 text-indigo-500 p-1.5 rounded-lg font-bold hover:bg-indigo-100 transition-colors"><FileText size={14}/></button>
-                                                        <button onClick={(e) => { e.stopPropagation(); deleteTx(t.id); }} className="text-[10px] bg-gray-100 text-gray-400 p-1.5 rounded-lg font-bold hover:bg-rose-100 hover:text-rose-500 transition-colors"><Trash2 size={14}/></button>
+                                                        {/* BOTÃO EDITAR (NOVO) */}
+                                                        <button onClick={(e) => { e.stopPropagation(); handleEdit(t); }} className="text-[10px] bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded-full font-bold uppercase hover:bg-indigo-100 transition-colors">Editar</button>
+                                                        <button onClick={(e) => { e.stopPropagation(); deleteTx(t.id); }} className="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase hover:bg-rose-100 hover:text-rose-500 transition-colors">Excluir</button>
                                                     </div>
                                                 )}
                                             </div>
@@ -1461,8 +1694,7 @@
                                             </div>
                                         )}
                                     </div>
-                                    ); // Fechamento do return do map
-                                })} {/* Fechamento do map */}
+                                ))}
                                 {data.list.length === 0 && <div className="text-center text-gray-400 mt-10"><ListIcon className="mx-auto mb-2 opacity-50"/><p>Sem movimentações este mês.</p></div>}
                             </div>
                         )}
@@ -1503,22 +1735,58 @@
 
                         {tab === 'planning' && (
                             <div className="space-y-6 animate-fade-in pb-20">
+                                {/* SEÇÃO DE SONHOS (Corrigido Item 1) */}
+                                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="font-bold flex gap-2 items-center text-lg">
+                                            <Sparkles size={20} className="text-amber-500"/> 
+                                            {viewMode === 'joint' ? 'Nossos Sonhos' : 'Meus Sonhos'}
+                                        </h3>
+                                        <button onClick={() => setDreamModal(true)} className="bg-slate-900 text-white p-2 rounded-full"><Plus size={16}/></button>
+                                    </div>
+                                    
+                                    {data.dreamsProgress.length === 0 ? (
+                                        <p className="text-center text-gray-400 text-sm">Nenhum sonho cadastrado. Comece agora!</p>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {data.dreamsProgress.map(d => (
+                                                <div key={d.id} className="relative">
+                                                    <div className="flex justify-between items-end mb-1">
+                                                        <div>
+                                                            <span className="text-2xl mr-2">{d.emoji}</span>
+                                                            <span className="font-bold text-slate-700">{d.title}</span>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-xs text-gray-400">Meta: {formatCurrency(d.targetAmount)}</p>
+                                                            <p className="font-bold text-indigo-600">{formatCurrency(d.currentAmount)}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="h-4 bg-gray-100 rounded-full overflow-hidden relative">
+                                                        <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-1000" style={{width: `${d.pct}%`}}/>
+                                                    </div>
+                                                    <button onClick={() => deleteDream(d.id)} className="absolute -top-1 -right-1 opacity-0 hover:opacity-100 transition-opacity bg-rose-100 p-1 rounded-full text-rose-500"><X size={12}/></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="bg-white p-6 rounded-3xl shadow-sm">
                                     <div className="flex justify-between items-center mb-6">
                                         <h3 className="font-bold flex gap-2 items-center text-lg">
                                             <Target size={20} className="text-indigo-600"/> 
-                                            Metas: {dashboardMode === 'statement' ? 'Dia a Dia' : 'Investimentos'}
+                                            Orçamento Mensal
                                         </h3>
                                         <button onClick={openBudget} className="text-xs bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg font-bold flex gap-1 items-center hover:bg-indigo-100 transition-colors">
                                             <Settings size={14}/> Configurar
                                         </button>
                                     </div>
-
+                                    {/* (Resto do código de budget mantém igual...) */}
                                     {data.planning.length === 0 ? (
                                         <p className="text-center text-gray-400 text-sm py-8">Nenhuma meta configurada.</p>
                                     ) : (
                                         <div className="space-y-8">
-                                            {/* SEÇÃO 1: OBJETIVOS DE ENTRADA (RECEITAS/DIVIDENDOS) */}
+                                            {/* SEÇÃO 1: OBJETIVOS DE ENTRADA */}
                                             {data.planning.filter(b => b.type === 'in').length > 0 && (
                                                 <div className="space-y-4">
                                                     <h4 className="text-xs font-bold uppercase text-emerald-600 tracking-wider mb-2 border-b border-emerald-100 pb-1">Objetivos de Receita</h4>
@@ -1539,7 +1807,7 @@
                                                 </div>
                                             )}
 
-                                            {/* SEÇÃO 2: LIMITES DE SAÍDA (GASTOS/APORTES) */}
+                                            {/* SEÇÃO 2: LIMITES DE SAÍDA */}
                                             {data.planning.filter(b => b.type === 'out').length > 0 && (
                                                 <div className="space-y-4">
                                                     <h4 className="text-xs font-bold uppercase text-rose-500 tracking-wider mb-2 border-b border-rose-100 pb-1 mt-6">Limites de {dashboardMode === 'statement' ? 'Gastos' : 'Aportes'}</h4>
@@ -1567,11 +1835,8 @@
                         
                         {tab === 'reports' && (
                             <div className="space-y-6 animate-fade-in pb-20">
-                                {/* Filtro de Mês */}
-                                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
-                                    <span className="text-sm font-bold text-gray-500">Período:</span>
-                                    <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="font-bold bg-gray-50 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-100"/>
-                                </div>
+                                {/* Filtro de Mês REMOVIDO - Usando Global */}
+                                {/* O bloco que existia aqui foi removido para evitar redundância */}
 
                                 {/* DASHBOARD DE SAÚDE FINANCEIRA (NOVO) */}
                                 <div className="bg-slate-900 text-white p-5 rounded-3xl shadow-lg relative overflow-hidden mb-6">
@@ -1804,12 +2069,21 @@
                                     </div>
                                     <button onClick={() => { localStorage.setItem('gemini_api_key', apiKey); alert('Salvo!'); setSettingsModal(false); }} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">Salvar Configuração</button>
                                     <button onClick={exportData} className="w-full border border-slate-200 text-slate-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2"><Download size={18}/> Exportar Dados (Excel)</button>
+                                    
+                                    {/* --- BOTÃO DE RESET (NOVO) --- */}
+                                    <div className="pt-4 mt-4 border-t border-gray-100">
+                                        <button onClick={resetDatabase} className="w-full bg-rose-50 text-rose-600 border border-rose-100 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors">
+                                            <Trash2 size={18}/> Reiniciar Banco de Dados
+                                        </button>
+                                        <p className="text-[10px] text-center text-gray-400 mt-2">Apaga tudo e restaura o padrão de fábrica.</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {/* Modal Add (Manual) */}
+                    {/* Modal Add (Manual) - REVISADO (Melhoria 6 e 7) */}
                     {modalOpen && (
                         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-end justify-center animate-fade-in">
                             <div className="bg-white w-full rounded-t-[2rem] p-6 pb-10 shadow-2xl animate-slide-up max-h-[85vh] overflow-y-auto">
@@ -1820,7 +2094,8 @@
                                             <button type="button" key={t} onClick={() => { setFType(t); setFCat(''); }} className={`flex-1 py-3 text-xs font-bold uppercase rounded-lg transition-all ${fType === t ? 'bg-white shadow-sm text-slate-900' : 'text-gray-400'}`}>{t === 'expense' ? 'Despesa' : t === 'income' ? 'Receita' : 'Investir'}</button>
                                         ))}
                                     </div>
-                                    {/* SE FOR INVESTIMENTO, MOSTRA CAMPOS DE QUANTIDADE/PREÇO */}
+                                    
+                                    {/* VALORES E QUANTIDADES */}
                                     {fType === 'investment' ? (
                                         <div className="flex gap-3">
                                             <div className="flex-1">
@@ -1846,73 +2121,81 @@
                                         </div>
                                     )}
                                     
-                                    {/* Mostra o total calculado se for investimento */}
                                     {fType === 'investment' && fAmount > 0 && (
-                                        <div className="text-center text-xs font-bold text-indigo-600 bg-indigo-50 p-2 rounded-lg mb-2">
-                                            Total: {formatCurrency(fAmount)}
-                                        </div>
+                                        <div className="text-center text-xs font-bold text-indigo-600 bg-indigo-50 p-2 rounded-lg mb-2">Total: {formatCurrency(fAmount)}</div>
                                     )}
                                     
-                                    {/* DESCRIÇÃO COM AUTOCOMPLETE */}
                                     <input type="text" list="titleOptions" value={fTitle} onChange={e => setFTitle(e.target.value)} placeholder="Descrição (ex: Almoço)" className="w-full bg-gray-50 p-4 rounded-xl font-bold outline-none focus:ring-2 focus:ring-slate-100" required />
-                                    <datalist id="titleOptions">
-                                        {uniqueTitles.map(t => <option key={t} value={t} />)}
-                                    </datalist>
+                                    <datalist id="titleOptions">{uniqueTitles.map(t => <option key={t} value={t} />)}</datalist>
                                     
+                                    {/* DATA E CONTA */}
+                                    <div className="flex gap-3">
+                                        <div className="flex-1 flex items-center gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                            <Calendar size={18} className="text-gray-400"/>
+                                            <input type="date" value={fDate} onChange={e => setFDate(e.target.value)} className="bg-transparent font-bold text-sm w-full outline-none text-slate-600"/>
+                                        </div>
+                                        <div className="flex-1 flex items-center gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                            <Banknote size={18} className="text-gray-400"/>
+                                            <select value={fBank} onChange={e => setFBank(e.target.value)} className="bg-transparent font-bold text-sm w-full outline-none text-slate-600">
+                                                <option value="">Conta</option>
+                                                {BANKS.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* DETALHE CONTEXTUAL */}
                                     <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                        <Calendar size={18} className="text-gray-400"/>
-                                        <input type="date" value={fDate} onChange={e => setFDate(e.target.value)} className="bg-transparent font-bold text-sm w-full outline-none text-slate-600"/>
+                                        {fType === 'expense' ? <MapPin size={18} className="text-gray-400"/> : fType === 'income' ? <Briefcase size={18} className="text-gray-400"/> : <TrendingUp size={18} className="text-gray-400"/>}
+                                        <input type="text" list="marketOptions" value={fMarket} onChange={e => setFMarket(e.target.value)} placeholder={fType === 'expense' ? "Local / Mercado" : fType === 'income' ? "Origem / Pagador" : "Ativo (ex: PETR4)"} className="bg-transparent font-bold text-sm w-full outline-none text-slate-600"/>
+                                        <datalist id="marketOptions">{uniqueMarkets.map(m => <option key={m} value={m} />)}</datalist>
                                     </div>
 
-                                    <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                        <Banknote size={18} className="text-gray-400"/>
-                                        <select value={fBank} onChange={e => setFBank(e.target.value)} className="bg-transparent font-bold text-sm w-full outline-none text-slate-600">
-                                            <option value="">{fType === 'investment' ? 'Corretora / Banco' : 'Conta / Banco'}</option>
-                                            {BANKS.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                        </select>
-                                    </div>
-                                    
-                                    {/* CAMPO CONTEXTUAL (MERCADO / ORIGEM / ATIVO) */}
-                                    <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                        {fType === 'expense' ? <MapPin size={18} className="text-gray-400"/> : 
-                                         fType === 'income' ? <Briefcase size={18} className="text-gray-400"/> : 
-                                         <TrendingUp size={18} className="text-gray-400"/>}
-                                        
-                                        <input 
-                                            type="text" 
-                                            list="marketOptions" 
-                                            value={fMarket} 
-                                            onChange={e => setFMarket(e.target.value)} 
-                                            placeholder={
-                                                fType === 'expense' ? "Local / Mercado (Opcional)" : 
-                                                fType === 'income' ? "Origem / Pagador (Opcional)" : 
-                                                "Ativo / Detalhe (ex: CDB, PETR4)"
-                                            } 
-                                            className="bg-transparent font-bold text-sm w-full outline-none text-slate-600"
-                                        />
-                                        <datalist id="marketOptions">
-                                            {uniqueMarkets.map(m => <option key={m} value={m} />)}
-                                        </datalist>
-                                    </div>
-
-                                    {/* ALTERAÇÃO: CHECKBOX "DIVIDIR" AGORA DISPONÍVEL PARA TUDO */}
-                                    <div onClick={() => setFShared(!fShared)} className={`flex justify-between p-4 rounded-xl border-2 cursor-pointer transition-colors ${fShared ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'}`}>
-                                        <span className="font-bold text-sm flex gap-2 items-center">
-                                            <Users size={16}/> 
-                                            {fType === 'investment' ? 'Investimento Conjunto' : fType === 'income' ? 'Receita Conjunta' : 'Dividir Casal'}
+                                    {/* RECORRÊNCIA (Melhoria 6: Texto dinâmico) */}
+                                    <div onClick={() => setFRecurrent(!fRecurrent)} className={`flex justify-between p-4 rounded-xl border-2 cursor-pointer transition-colors ${fRecurrent ? 'border-amber-500 bg-amber-50' : 'border-gray-100'}`}>
+                                        <span className="font-bold text-sm flex gap-2 items-center text-slate-700">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                                            {fType === 'income' ? 'Receita Fixa Mensal' : fType === 'investment' ? 'Aporte Recorrente Mensal' : 'Despesa Fixa Mensal'}
                                         </span>
-                                        {fShared && <Check size={16} className="text-indigo-600"/>}
+                                        {fRecurrent && <Check size={16} className="text-amber-600"/>}
                                     </div>
 
-                                    {/* NOVO: SELETOR DE QUEM PAGOU (SÓ APARECE SE FOR COMPARTILHADO OU SE QUISER FORÇAR) */}
-                                    {/* Na verdade, deixaremos sempre visível pois posso pagar algo sozinho para o parceiro */}
-                                    <div className="bg-gray-50 p-2 rounded-xl flex gap-2 border border-gray-100">
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase flex items-center px-2">Quem pagou?</span>
-                                        <button type="button" onClick={() => setFormPayer('me')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${formPayer === 'me' ? 'bg-white shadow text-indigo-600' : 'text-gray-400'}`}>Eu</button>
-                                        <button type="button" onClick={() => setFormPayer('partner')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${formPayer === 'partner' ? 'bg-white shadow text-pink-600' : 'text-gray-400'}`}>Parceiro</button>
+                                    {/* DIVISÃO E PAGADOR (Melhoria 7: Reordenado e Textos Dinâmicos) */}
+                                    <div className="space-y-2">
+                                        <div onClick={() => setFShared(!fShared)} className={`flex justify-between p-4 rounded-xl border-2 cursor-pointer transition-colors ${fShared ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'}`}>
+                                            <span className="font-bold text-sm flex gap-2 items-center">
+                                                <Users size={16}/> 
+                                                {fType === 'investment' ? 'Investimento Conjunto' : fType === 'income' ? 'Receita Conjunta' : 'Dividir Casal'}
+                                            </span>
+                                            {fShared && <Check size={16} className="text-indigo-600"/>}
+                                        </div>
+
+                                        {(fShared || viewMode === 'joint') && (
+                                            <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-center justify-between animate-fade-in">
+                                                <span className="text-xs font-bold text-gray-500 uppercase ml-1">
+                                                    {fType === 'income' ? 'Quem Recebeu?' : fType === 'investment' ? 'Quem Aportou?' : 'Quem Pagou?'}
+                                                </span>
+                                                <div className="flex bg-gray-200 rounded-lg p-1">
+                                                    <button type="button" onClick={() => setFormPayer('me')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${formPayer === 'me' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}>Eu</button>
+                                                    <button type="button" onClick={() => setFormPayer('partner')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${formPayer === 'partner' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-500'}`}>Parceiro</button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {/* OPÇÕES ESPECÍFICAS DE DESPESA (SÓ PARCELAMENTO AGORA) */}
+                                    {/* SONHO E CATEGORIAS */}
+                                    {fType === 'investment' && dreams.length > 0 && (
+                                        <div className="bg-indigo-50 p-3 rounded-xl border border-indigo-100">
+                                            <label className="text-[10px] font-bold text-indigo-400 uppercase ml-1 block mb-1">Vincular a um Sonho? (Opcional)</label>
+                                            <select value={fDreamId} onChange={e => setFDreamId(e.target.value)} className="w-full bg-transparent font-bold text-sm outline-none text-slate-700">
+                                                <option value="">Sem vínculo (Aporte Geral)</option>
+                                                {/* Filtra sonhos baseado no modo de visualização atual */}
+                                                {dreams.filter(d => (viewMode === 'joint' ? d.scope === 'joint' : d.scope === 'personal')).map(d => (
+                                                    <option key={d.id} value={d.id}>{d.emoji} {d.title}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+
                                     {fType === 'expense' && (
                                         <div className="p-4 rounded-xl border-2 border-gray-100 bg-gray-50">
                                             <div onClick={() => setIsInstallment(!isInstallment)} className="flex justify-between cursor-pointer">
@@ -1933,35 +2216,84 @@
 
                                     <div className="grid grid-cols-4 gap-2">
                                         {CATEGORIES[fType].map(c => (
-                                            <button type="button" key={c.id} onClick={() => setFCat(c.name)} className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition-colors ${fCat === c.name ? 'border-slate-900 bg-slate-50' : 'border-transparent'}`}>
+                                            <button type="button" key={c.id} onClick={() => { setFCat(c.name); setFSubCat(''); }} className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition-colors ${fCat === c.name ? 'border-slate-900 bg-slate-50' : 'border-transparent'}`}>
                                                 <span className="text-xl">{c.icon}</span>
                                                 <span className="text-[8px] font-bold uppercase text-center">{c.name.slice(0,10)}</span>
                                             </button>
                                         ))}
                                     </div>
+
+                                    {fCat && CATEGORIES[fType].find(c => c.name === fCat)?.subcategories?.length > 0 && (
+                                        <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 animate-fade-in">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 block mb-1">Detalhe da {fCat}</label>
+                                            <select value={fSubCat} onChange={e => setFSubCat(e.target.value)} className="w-full bg-transparent font-bold text-sm outline-none text-slate-700">
+                                                <option value="">Selecione o tipo...</option>
+                                                {CATEGORIES[fType].find(c => c.name === fCat).subcategories.map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                                            </select>
+                                        </div>
+                                    )}
+
                                     <button type="submit" className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-lg shadow-xl active:scale-98 transition-transform">Salvar</button>
                                 </form>
                             </div>
                         </div>
                     )}
 
-                    {/* Modal Budget */}
+                    {/* Modal Budget (Atualizado v23: Soma Automática de Filhos) */}
                     {budgetModal && (
                         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
                             <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl max-h-[80vh] flex flex-col">
-                                <div className="flex justify-between mb-6 border-b pb-4"><h3 className="font-bold text-xl flex gap-2"><Target className="text-indigo-600"/> Planejar Gastos</h3><button onClick={() => setBudgetModal(false)} className="bg-gray-100 p-2 rounded-full"><X size={20}/></button></div>
-                                <div className="overflow-y-auto space-y-4 flex-1">
-                                    {editBudgets.map((b, i) => (
-                                        <div key={i} className="flex gap-3 items-center">
-                                            <span className="text-2xl">{b.icon}</span>
-                                            <div className="flex-1">
-                                                <p className="text-[10px] font-bold uppercase text-gray-500">{b.category}</p>
-                                                <input type="number" value={b.limit} onChange={e => {
-                                                    const n = [...editBudgets]; n[i].limit = e.target.value; setEditBudgets(n);
-                                                }} className="w-full border-b font-bold py-1 outline-none focus:border-indigo-600"/>
-                                            </div>
-                                        </div>
-                                    ))}
+                                <div className="flex justify-between mb-2"><h3 className="font-bold text-xl flex gap-2"><Target className="text-indigo-600"/> Definir metas</h3><button onClick={() => setBudgetModal(false)} className="bg-gray-100 p-2 rounded-full"><X size={20}/></button></div>
+                                
+                                <div className="mb-4 relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>
+                                    <input type="text" placeholder="Buscar categoria..." value={budgetSearch} onChange={e => setBudgetSearch(e.target.value)} className="w-full bg-gray-50 pl-9 pr-3 py-2 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-100"/>
+                                </div>
+
+                                <div className="overflow-y-auto space-y-4 flex-1 pr-2">
+                                    {editBudgets
+                                        .filter(b => b.displayName.toLowerCase().includes(budgetSearch.toLowerCase()))
+                                        .map((b, i) => {
+                                            // LÓGICA DE SOMA AUTOMÁTICA (Reforçada)
+                                            const isParent = b.type === 'main'; // Agora 'b.type' existe
+                                            const hasChildren = editBudgets.some(child => child.parent === b.category); // Agora 'child.parent' existe
+                                            
+                                            let displayVal = b.limit;
+                                            
+                                            if (isParent && hasChildren) {
+                                                const childrenSum = editBudgets
+                                                    .filter(child => child.parent === b.category)
+                                                    .reduce((sum, child) => sum + (Number(child.limit) || 0), 0); // Força Number() para evitar erro
+                                                displayVal = childrenSum;
+                                            }
+
+                                            return (
+                                                <div key={b.category} className="flex gap-3 items-center">
+                                                    <span className="text-xl w-8 text-center">{b.icon}</span>
+                                                    <div className="flex-1">
+                                                        <div className="flex justify-between">
+                                                            <p className={`text-[10px] font-bold uppercase truncate ${isParent ? 'text-indigo-600' : 'text-gray-500'}`}>{b.displayName || b.category}</p>
+                                                            {/* Feedback visual adicionado */}
+                                                            {isParent && hasChildren && <span className="text-[9px] text-indigo-500 font-bold bg-indigo-50 px-1.5 rounded flex items-center gap-1">Auto <Sparkles size={8}/></span>}
+                                                        </div>
+                                                        <input 
+                                                            type="number" 
+                                                            value={displayVal} 
+                                                            readOnly={isParent && hasChildren} // Bloqueia edição do Pai
+                                                            onChange={e => {
+                                                                if (isParent && hasChildren) return;
+                                                                
+                                                                const realIndex = editBudgets.findIndex(eb => eb.category === b.category);
+                                                                const n = [...editBudgets]; 
+                                                                n[realIndex].limit = Number(e.target.value); // Salva já como número
+                                                                setEditBudgets(n);
+                                                            }} 
+                                                            className={`w-full border-b font-bold py-1 outline-none focus:border-indigo-600 transition-colors ${isParent && hasChildren ? 'bg-gray-100 text-slate-500 cursor-not-allowed pl-2 rounded' : 'text-slate-900'}`}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                 </div>
                                 <button onClick={saveBudget} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold mt-4">Salvar Alterações</button>
                             </div>
@@ -2003,6 +2335,41 @@
                                     db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('assetPrices').set(currentPrices);
                                     setPricesModal(false);
                                 }} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold mt-4">Salvar Cotações</button>
+                            </div>
+                        </div>
+                    )}
+
+	            {/* MODAL NOVO SONHO (Atualizado) */}
+                    {dreamModal && (
+                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+                            <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-slide-up">
+                                <div className="flex justify-between mb-6"><h3 className="font-bold text-xl flex gap-2"><Sparkles className="text-amber-500"/> Novo Sonho</h3><button onClick={() => setDreamModal(false)} className="bg-gray-100 p-2 rounded-full"><X size={20}/></button></div>
+                                <div className="space-y-4">
+                                    {/* Toggle Tipo de Sonho (Melhoria 4) */}
+                                    <div className="flex bg-gray-100 p-1 rounded-xl">
+                                        <button onClick={() => setDScope('personal')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${dScope === 'personal' ? 'bg-white shadow text-indigo-600' : 'text-gray-400'}`}>Meu Sonho</button>
+                                        <button onClick={() => setDScope('joint')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${dScope === 'joint' ? 'bg-white shadow text-pink-600' : 'text-gray-400'}`}>Nosso Sonho</button>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs font-bold uppercase text-slate-500 ml-1">Nome do Sonho</label>
+                                        <input type="text" value={dTitle} onChange={e => setDTitle(e.target.value)} placeholder={dScope === 'joint' ? "Ex: Nossa Casa" : "Ex: Viagem Solo"} className="w-full bg-gray-50 p-3 rounded-xl font-bold outline-none focus:ring-2 focus:ring-indigo-100 mt-1"/>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold uppercase text-slate-500 ml-1">Valor Alvo (Meta)</label>
+                                        <input type="number" value={dTarget} onChange={e => setDTarget(e.target.value)} placeholder="Ex: 20000" className="w-full bg-gray-50 p-3 rounded-xl font-bold outline-none focus:ring-2 focus:ring-indigo-100 mt-1"/>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold uppercase text-slate-500 ml-1">Ícone</label>
+                                        {/* CORREÇÃO: flex-wrap e largura máxima */}
+                                        <div className="flex flex-wrap gap-3 mt-2 max-w-full"> 
+                                            {['✈️','🏠','🚗','💍','👶','🎓','🏖️','💰','🚀','💻'].map(e => (
+                                                <button key={e} onClick={() => setDEmoji(e)} className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${dEmoji === e ? 'bg-indigo-600 text-white shadow-lg scale-110' : 'bg-gray-100 hover:bg-gray-200'}`}>{e}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <button onClick={saveDream} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold mt-2">Criar Sonho</button>
+                                </div>
                             </div>
                         </div>
                     )}
