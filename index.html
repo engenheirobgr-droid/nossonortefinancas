@@ -102,13 +102,14 @@
         };
 
         const { useState, useEffect, useMemo, useRef } = React;
+
         const { 
             Plus, Wallet, X, Users, ArrowRightLeft, User, PiggyBank, Target, 
             PieChart, ListIcon, BarChart3, Home, Settings, LogOut, 
             Moon, Sun, Sunrise, ChevronLeft, Heart, Check, FileText, Upload, 
             Sparkles, Key, CheckSquare, Trash2, ChevronDown, ChevronUp,
             ShoppingCart, Search, TrendingDown, CreditCard, Calendar, MapPin, Banknote, Briefcase, Download, TrendingUp,
-            Broom, RefreshCw, Trophy, Trash // <--- ADICIONE AQUI TAMBÉM
+            Broom, RefreshCw, Trophy, Trash 
         } = Icons;
 
         // --- FIREBASE CONFIG ---
@@ -446,12 +447,12 @@
             );
         };
 
-        // --- COMPONENTE MARKET (V10 - Unificado) ---
-        const MarketView = ({ data }) => {
+        // --- COMPONENTE MARKET (V11 - COM BANCO DE DADOS) ---
+        const MarketView = ({ data, shoppingList }) => { // Recebe shoppingList via props
             const [searchTerm, setSearchTerm] = useState('');
-            const [shoppingList, setShoppingList] = useState([]);
-            
-            // INTELIGÊNCIA DE PREÇOS
+            // REMOVIDO: const [shoppingList, setShoppingList] = useState([]); <--- AGORA VEM DO FIREBASE
+
+            // INTELIGÊNCIA DE PREÇOS (Mantida igual)
             const productIntelligence = useMemo(() => {
                 const map = {};
                 data.fullList.forEach(tx => {
@@ -460,77 +461,66 @@
                             const normalizedName = item.name.toLowerCase().trim();
                             if (!map[normalizedName]) map[normalizedName] = { name: item.name, history: [] };
                             const marketName = tx.market || tx.title;
-                            map[normalizedName].history.push({ 
-                                price: item.value, 
-                                market: marketName, 
-                                date: tx.date 
-                            });
+                            map[normalizedName].history.push({ price: item.value, market: marketName, date: tx.date });
                         });
                     }
                 });
-                
                 return Object.values(map).map(p => {
                     p.history.sort((a,b) => a.price - b.price);
                     const best = p.history[0];
                     p.bestPrice = best.price;
                     p.bestMarket = best.market;
-                    
-                    const sum = p.history.reduce((a, b) => a + b.price, 0);
-                    p.avgPrice = sum / p.history.length;
-                    
+                    p.avgPrice = p.history.reduce((a, b) => a + b.price, 0) / p.history.length;
                     return p;
                 }).sort((a,b) => a.name.localeCompare(b.name));
             }, [data.fullList]);
 
-            const filteredProducts = productIntelligence.filter(p => 
-                p.name.toLowerCase().includes(searchTerm.toLowerCase())
-            );
+            const filteredProducts = productIntelligence.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-            const addToCart = (product) => {
+            // --- AÇÕES COM BANCO DE DADOS ---
+            const addToCart = async (product) => {
                 const newItem = {
-                    id: Date.now(),
                     name: product.name,
                     price: product.bestPrice || 0,
                     market: product.bestMarket || '?',
-                    checked: false
+                    checked: false,
+                    createdAt: new Date().toISOString()
                 };
-                setShoppingList([...shoppingList, newItem]);
+                // Salva no Firestore
+                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('shopping_list').add(newItem);
                 setSearchTerm('');
             };
 
-            // --- DENTRO DE MarketView ---
-            const addManualItem = () => {
+            const addManualItem = async () => {
                 if(!searchTerm) return;
-                
-                // CORREÇÃO 1: Prompt para Preço
                 let priceInput = prompt(`Qual o preço para "${searchTerm}"?`, "0.00");
-                if (priceInput === null) return; // Cancelou
-                
-                // Troca vírgula por ponto para garantir float
+                if (priceInput === null) return; 
                 priceInput = priceInput.replace(',', '.');
                 const finalPrice = parseFloat(priceInput);
+                if (isNaN(finalPrice)) { alert("Valor inválido"); return; }
 
-                if (isNaN(finalPrice)) {
-                    alert("Valor inválido");
-                    return;
-                }
-
-                addToCart({ 
+                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('shopping_list').add({ 
                     name: searchTerm, 
-                    bestPrice: finalPrice, 
-                    bestMarket: 'Manual 📝' // Adiciona ícone para diferenciar
+                    price: finalPrice, 
+                    market: 'Manual 📝',
+                    checked: false,
+                    createdAt: new Date().toISOString()
                 });
+                setSearchTerm('');
             };
 
-            const toggleCartItem = (id) => {
-                setShoppingList(shoppingList.map(i => i.id === id ? {...i, checked: !i.checked} : i));
+            const toggleCartItem = async (item) => {
+                // Atualiza status no Firestore
+                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('shopping_list').doc(item.id).update({ checked: !item.checked });
             };
 
-            const removeCartItem = (id) => {
-                setShoppingList(shoppingList.filter(i => i.id !== id));
+            const removeCartItem = async (id) => {
+                // Deleta do Firestore (sem confirmação para ser rápido, ou com se preferir)
+                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('shopping_list').doc(id).delete();
             };
 
-            const totalCart = shoppingList.reduce((acc, item) => acc + (item.checked ? 0 : item.price), 0);
+            // Cálculo do total usando a lista que vem do banco
+            const totalCart = (shoppingList || []).reduce((acc, item) => acc + (item.checked ? 0 : item.price), 0);
 
             return (
                 <div className="space-y-6 pb-24">
@@ -538,13 +528,13 @@
                      <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
                         <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><ShoppingCart className="text-indigo-600"/> Lista de Compras</h3>
                         
-                        {shoppingList.length === 0 ? (
+                        {(!shoppingList || shoppingList.length === 0) ? (
                             <p className="text-sm text-gray-400 text-center py-4">Sua lista está vazia.</p>
                         ) : (
                             <div className="space-y-3">
                                 {shoppingList.map(item => (
                                     <div key={item.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${item.checked ? 'bg-gray-50 border-gray-100 opacity-50' : 'bg-white border-indigo-100'}`}>
-                                        <button onClick={() => toggleCartItem(item.id)} className={`w-5 h-5 rounded border-2 flex items-center justify-center ${item.checked ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300'}`}>
+                                        <button onClick={() => toggleCartItem(item)} className={`w-5 h-5 rounded border-2 flex items-center justify-center ${item.checked ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300'}`}>
                                             {item.checked && <Check size={12} className="text-white"/>}
                                         </button>
                                         <div className="flex-1">
@@ -581,7 +571,6 @@
                         </div>
 
                         <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-hide">
-                            {/* OPÇÃO DE ADICIONAR NOVO (Sempre visível se houver texto) */}
                             {searchTerm && (
                                 <div onClick={addManualItem} className="flex items-center gap-3 p-3 bg-indigo-50 hover:bg-indigo-100 rounded-xl cursor-pointer border border-indigo-100 mb-2">
                                     <div className="w-8 h-8 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-700">
@@ -594,31 +583,21 @@
                                 </div>
                             )}
 
-                            {/* ITENS DO HISTÓRICO (Correção de Alinhamento) */}
                             {filteredProducts.slice(0, 10).map((prod, idx) => (
                                 <div key={idx} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl cursor-pointer group border border-transparent hover:border-gray-100" onClick={() => addToCart(prod)}>
-                                    
-                                    {/* LADO ESQUERDO: Nome e Média (Ocupa o espaço disponível e trunca se for longo) */}
                                     <div className="flex-1 pr-3 overflow-hidden">
                                         <p className="font-bold text-sm text-slate-700 truncate">{prod.name}</p>
                                         <p className="text-[10px] text-gray-400">Média: {formatCurrency(prod.avgPrice)}</p>
                                     </div>
-
-                                    {/* LADO DIREITO: Preço e Mercado (Travado na direita com largura mínima) */}
                                     <div className="text-right flex-shrink-0 min-w-[100px]">
                                         <p className="font-bold text-sm text-emerald-600 leading-tight">{formatCurrency(prod.bestPrice)}</p>
-                                        <p className="text-[10px] text-gray-400 truncate max-w-[120px] ml-auto block">
-                                            {prod.bestMarket || 'Sem local'}
-                                        </p>
+                                        <p className="text-[10px] text-gray-400 truncate max-w-[120px] ml-auto block">{prod.bestMarket || 'Sem local'}</p>
                                     </div>
-
-                                    {/* ÍCONE HOVER */}
                                     <div className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity bg-emerald-100 p-1.5 rounded-lg">
                                         <Plus size={14} className="text-emerald-600"/>
                                     </div>
                                 </div>
                             ))}
-                            
                             {!searchTerm && filteredProducts.length === 0 && <p className="text-center text-xs text-gray-400 py-4">Comece a digitar para ver sugestões.</p>}
                         </div>
                      </div>
@@ -626,8 +605,10 @@
             );
         };
 
-	// --- COMPONENTE DE TAREFAS (V5 - CORREÇÃO DE TEXTO QUEBRADO) ---
-        const ChoresView = ({ chores, onToggle, onAdd, onDelete, onRotateCycle, onResetDaily, userConfig, weekCycle }) => {
+	// --- COMPONENTE DE TAREFAS (V6 - COM MERCADO INTEGRADO) ---
+        const ChoresView = ({ chores, onToggle, onAdd, onDelete, onRotateCycle, onResetDaily, userConfig, weekCycle, data, shoppingList }) => { // <--- ADICIONAR shoppingList AQUI
+            const [mode, setMode] = useState('market'); // 'tasks' | 'market'
+            
             const [newChore, setNewChore] = useState('');
             const [newAssignee, setNewAssignee] = useState('bruno');
             const [newFreq, setNewFreq] = useState('weekly'); 
@@ -637,7 +618,6 @@
             const [customPoints, setCustomPoints] = useState(20);
             const [points, setPoints] = useState({ bruno: 0, maiara: 0 });
 
-            // CORREÇÃO 1: Rótulos já definidos na ordem correta (Emoji + Texto)
             const EFFORT_LEVELS = {
                 easy:   { label: '😌 Sussa', points: 5, color: 'text-emerald-500' },
                 medium: { label: '😐 Normal', points: 15, color: 'text-blue-500' },
@@ -648,14 +628,16 @@
             // Calcula Placar
             useMemo(() => {
                 let p = { bruno: 0, maiara: 0 };
-                chores.forEach(c => {
-                    if (c.done && p[c.assignee] !== undefined) p[c.assignee] += Number(c.points || 0);
-                });
+                if (chores) {
+                    chores.forEach(c => {
+                        if (c.done && p[c.assignee] !== undefined) p[c.assignee] += Number(c.points || 0);
+                    });
+                }
                 setPoints(p);
             }, [chores]);
 
             useEffect(() => {
-                setCustomPoints(EFFORT_LEVELS[newEffort].points);
+                if(EFFORT_LEVELS[newEffort]) setCustomPoints(EFFORT_LEVELS[newEffort].points);
             }, [newEffort]);
 
             const handleAdd = () => {
@@ -696,12 +678,9 @@
                             <div className="flex justify-between items-start">
                                 <p className={`font-bold text-sm text-slate-800 truncate pr-2 ${chore.done ? 'line-through' : ''}`}>{chore.title}</p>
                                 <div className="flex gap-1 items-center">
-                                    
-                                    {/* CORREÇÃO 2: Renderiza o rótulo inteiro direto, sem 'split' */}
                                     <span className={`text-[9px] px-1.5 py-0.5 rounded bg-gray-50 border border-gray-100 ${effortStyle.color} whitespace-nowrap`}>
                                         {effortStyle.label}
                                     </span>
-                                    
                                     {chore.frequency === 'biweekly' && <span className="text-[9px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded font-bold uppercase">Quinzenal</span>}
                                 </div>
                             </div>
@@ -722,107 +701,107 @@
             return (
                 <div className="space-y-6 pb-24 animate-fade-in">
                     
-                    {/* PLACAR */}
-                    <div className="bg-slate-900 text-white p-5 rounded-3xl shadow-lg relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-4 opacity-10"><Trophy size={100}/></div>
-                        <div className="flex justify-between items-start relative z-10 mb-4">
-                            <h3 className="font-bold text-lg flex items-center gap-2"><Trophy className="text-yellow-400"/> Placar</h3>
-                            <div className="text-right">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase block">Ciclo Atual</span>
-                                <span className="text-xs font-bold bg-white/10 px-2 py-1 rounded text-emerald-400">Semana #{weekCycle || 0}</span>
-                            </div>
-                        </div>
-                        <div className="flex gap-4 relative z-10">
-                            {Object.entries(userConfig).map(([key, u]) => (
-                                <div key={key} className={`flex-1 p-3 rounded-2xl border ${points[key] >= points[key === 'bruno'?'maiara':'bruno'] && points[key] > 0 ? 'bg-emerald-500/20 border-emerald-500' : 'bg-white/10 border-white/10'}`}>
-                                    <div className="flex justify-between items-center mb-1">
-                                        <div className="text-2xl">{u.avatar}</div>
-                                        <span className="text-2xl font-bold">{points[key]}</span>
-                                    </div>
-                                    <div className="w-full bg-slate-700 h-1.5 rounded-full mt-2">
-                                        <div className={`h-full rounded-full transition-all duration-1000 ${u.color.replace('bg-', 'bg-')}`} style={{width: `${Math.min(points[key], 200) / 2}%`}}></div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* GRUPO 1: ROTINA DIÁRIA */}
-                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-lg flex items-center gap-2"><Sun className="text-amber-500"/> Rotina Diária</h3>
-                            <button onClick={onResetDaily} className="text-[10px] font-bold text-slate-400 hover:text-indigo-600 flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg">
-                                <RefreshCw size={10}/> Resetar Dia
+                    {/* SELETOR DE MODO (Tarefas vs Mercado) */}
+                    <div className="flex justify-center mb-6">
+                        <div className="bg-white p-1 rounded-2xl shadow-sm border border-gray-100 flex">
+                            
+                            {/* 1º BOTÃO: MERCADO (Esquerda) */}
+                            <button onClick={() => setMode('market')} className={`px-6 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${mode === 'market' ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:bg-gray-50'}`}>
+                                <ShoppingCart size={16}/> Mercado
                             </button>
+
+                            {/* 2º BOTÃO: TAREFAS (Direita) - Ícone Checklist */}
+                            <button onClick={() => setMode('tasks')} className={`px-6 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${mode === 'tasks' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-gray-50'}`}>
+                                <CheckSquare size={16}/> Tarefas
+                            </button>
+                            
                         </div>
-                        <div className="space-y-3">{groups.daily.map(renderChoreItem)}{groups.daily.length === 0 && <p className="text-xs text-gray-400 text-center">Sem tarefas diárias.</p>}</div>
                     </div>
 
-                    {/* GRUPO 2: MISSÕES DA SEMANA */}
-                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 relative overflow-hidden">
-                        {(weekCycle || 0) % 2 === 0 && (
-                            <div className="absolute top-0 right-0 bg-purple-100 text-purple-600 text-[9px] font-bold px-3 py-1 rounded-bl-xl">
-                                ✨ Semana da Faxina Pesada
-                            </div>
-                        )}
+                    {mode === 'market' ? (
+                        <MarketView data={data} shoppingList={shoppingList} /> // <--- ADICIONAR A PROP AQUI
+                    ) : (
+                        <>
+                            {/* --- PLACAR REMOVIDO AQUI --- */}
 
-                        <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Broom className="text-indigo-600"/> Missões da Semana</h3>
-                        <div className="space-y-3">{groups.weekly.map(renderChoreItem)}{groups.weekly.length === 0 && <p className="text-xs text-gray-400 text-center">Tudo limpo por aqui!</p>}</div>
-
-                        {/* ÁREA DE CRIAÇÃO */}
-                        <div className="mt-8 pt-6 border-t border-dashed border-gray-200">
-                            <div className="flex flex-col gap-3 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200">
-                                <input 
-                                    type="text" 
-                                    value={newChore} 
-                                    onChange={e => setNewChore(e.target.value)} 
-                                    placeholder="Nome da tarefa (Ex: Limpar Lajes)" 
-                                    className="bg-transparent font-bold text-sm outline-none w-full border-b border-gray-200 pb-2"
-                                />
-                                
-                                <div className="flex gap-2">
-                                    <select value={newAssignee} onChange={e => setNewAssignee(e.target.value)} className="flex-1 text-[10px] font-bold bg-white p-2 rounded-lg border border-gray-300 outline-none">
-                                        <option value="bruno">Bruno</option>
-                                        <option value="maiara">Maiara</option>
-                                    </select>
-                                    <select value={newFreq} onChange={e => setNewFreq(e.target.value)} className="flex-1 text-[10px] font-bold bg-white p-2 rounded-lg border border-gray-300 outline-none">
-                                        <option value="daily">Diária</option>
-                                        <option value="weekly">Semanal</option>
-                                        <option value="biweekly">Quinzenal</option>
-                                    </select>
-                                </div>
-
-                                <div className="flex gap-2 items-center">
-                                    <select value={newEffort} onChange={e => setNewEffort(e.target.value)} className="flex-1 text-[10px] font-bold bg-white p-2 rounded-lg border border-gray-300 outline-none text-slate-700">
-                                        {Object.entries(EFFORT_LEVELS).map(([k, v]) => (
-                                            <option key={k} value={k}>{v.label} ({v.points}pts)</option>
-                                        ))}
-                                    </select>
-
-                                    <button onClick={() => setIsRotating(!isRotating)} className={`px-3 py-2 rounded-lg text-[10px] font-bold border transition-colors ${isRotating ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-white text-gray-500 border-gray-300'}`}>
-                                        {isRotating ? '🔄 Revezar' : '🔒 Fixo'}
+                            {/* GRUPO 1: ROTINA DIÁRIA */}
+                            <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="font-bold text-lg flex items-center gap-2"><Sun className="text-amber-500"/> Rotina Diária</h3>
+                                    <button onClick={onResetDaily} className="text-[10px] font-bold text-slate-400 hover:text-indigo-600 flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg">
+                                        <RefreshCw size={10}/> Resetar Dia
                                     </button>
                                 </div>
+                                <div className="space-y-3">{groups.daily.map(renderChoreItem)}{groups.daily.length === 0 && <p className="text-xs text-gray-400 text-center">Sem tarefas diárias.</p>}</div>
+                            </div>
 
-                                <div className="flex justify-between items-center pt-2 border-t border-gray-200 mt-1">
-                                    <div className="flex items-center gap-1">
-                                        <span className="text-[10px] font-bold text-gray-400">Pontos:</span>
-                                        <input type="number" value={customPoints} onChange={e => setCustomPoints(e.target.value)} className="w-10 text-xs font-bold text-slate-800 bg-white border border-gray-300 rounded px-1 text-center"/>
+                            {/* GRUPO 2: MISSÕES DA SEMANA */}
+                            <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 relative overflow-hidden">
+                                {(weekCycle || 0) % 2 === 0 && (
+                                    <div className="absolute top-0 right-0 bg-purple-100 text-purple-600 text-[9px] font-bold px-3 py-1 rounded-bl-xl">
+                                        ✨ Semana da Faxina Pesada
                                     </div>
-                                    <button onClick={handleAdd} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md active:scale-95 flex items-center gap-1">
-                                        <Plus size={14}/> Criar
+                                )}
+
+                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Broom className="text-indigo-600"/> Missões da Semana</h3>
+                                <div className="space-y-3">{groups.weekly.map(renderChoreItem)}{groups.weekly.length === 0 && <p className="text-xs text-gray-400 text-center">Tudo limpo por aqui!</p>}</div>
+
+                                {/* ÁREA DE CRIAÇÃO */}
+                                <div className="mt-8 pt-6 border-t border-dashed border-gray-200">
+                                    <div className="flex flex-col gap-3 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                        <input 
+                                            type="text" 
+                                            value={newChore} 
+                                            onChange={e => setNewChore(e.target.value)} 
+                                            placeholder="Nome da tarefa (Ex: Limpar Lajes)" 
+                                            className="bg-transparent font-bold text-sm outline-none w-full border-b border-gray-200 pb-2"
+                                        />
+                                        
+                                        <div className="flex gap-2">
+                                            <select value={newAssignee} onChange={e => setNewAssignee(e.target.value)} className="flex-1 text-[10px] font-bold bg-white p-2 rounded-lg border border-gray-300 outline-none">
+                                                <option value="bruno">Bruno</option>
+                                                <option value="maiara">Maiara</option>
+                                            </select>
+                                            <select value={newFreq} onChange={e => setNewFreq(e.target.value)} className="flex-1 text-[10px] font-bold bg-white p-2 rounded-lg border border-gray-300 outline-none">
+                                                <option value="daily">Diária</option>
+                                                <option value="weekly">Semanal</option>
+                                                <option value="biweekly">Quinzenal</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="flex gap-2 items-center">
+                                            <select value={newEffort} onChange={e => setNewEffort(e.target.value)} className="flex-1 text-[10px] font-bold bg-white p-2 rounded-lg border border-gray-300 outline-none text-slate-700">
+                                                {Object.entries(EFFORT_LEVELS).map(([k, v]) => (
+                                                    <option key={k} value={k}>{v.label} ({v.points}pts)</option>
+                                                ))}
+                                            </select>
+
+                                            <button onClick={() => setIsRotating(!isRotating)} className={`px-3 py-2 rounded-lg text-[10px] font-bold border transition-colors ${isRotating ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-white text-gray-500 border-gray-300'}`}>
+                                                {isRotating ? '🔄 Revezar' : '🔒 Fixo'}
+                                            </button>
+                                        </div>
+
+                                        <div className="flex justify-between items-center pt-2 border-t border-gray-200 mt-1">
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-[10px] font-bold text-gray-400">Pontos:</span>
+                                                <input type="number" value={customPoints} onChange={e => setCustomPoints(e.target.value)} className="w-10 text-xs font-bold text-slate-800 bg-white border border-gray-300 rounded px-1 text-center"/>
+                                            </div>
+                                            <button onClick={handleAdd} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md active:scale-95 flex items-center gap-1">
+                                                <Plus size={14}/> Criar
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <button onClick={onRotateCycle} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
+                                        <RefreshCw size={16}/> Encerrar Semana & Girar
                                     </button>
                                 </div>
                             </div>
-
-                            <button onClick={onRotateCycle} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
-                                <RefreshCw size={16}/> Encerrar Semana & Girar
-                            </button>
-                        </div>
-                    </div>
+                        </>
+                    )}
                 </div>
             );
-        };
+    };
 
         // --- APP ---
         function App() {
@@ -951,10 +930,19 @@
                         else setChores(snap.docs.map(d => ({ id: d.id, ...d.data() })));
                     });
                 
+                // <--- ADICIONAR ESTE BLOCO (LISTENER DA LISTA DE COMPRAS) ---
+                const unsubShopping = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('shopping_list')
+                    .onSnapshot(snap => {
+                        const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                        // Ordena: Pendentes primeiro, depois os comprados
+                        list.sort((a,b) => (a.checked === b.checked ? 0 : a.checked ? 1 : -1));
+                        setShoppingList(list);
+                    });
+                
                 const unsubChoreSettings = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('chores')
                     .onSnapshot(s => { if (s.exists) setWeekCycle(s.data().weekCycle || 0); });
 
-                return () => { unsubTx(); unsubBudgets(); unsubDreams(); unsubPrices(); unsubChores(); unsubChoreSettings(); };
+                return () => { unsubTx(); unsubBudgets(); unsubDreams(); unsubPrices(); unsubChores(); unsubShopping(); unsubChoreSettings(); }; // <--- ADICIONE unsubShopping() NO RETURN
             }, [user]);
 
 // --- BLOCO DE DADOS CORRIGIDO (v27) ---
@@ -2150,16 +2138,14 @@
                             </div>
                         )}
 
-                        {tab === 'market' && (
-                            <MarketView data={data} />
-                        )}
-
-                        {/* --- NOVO: ABA DE TAREFAS --- */}
+                        {/* --- NOVO: ABA DE TAREFAS UNIFICADA --- */}
                         {tab === 'chores' && (
                             <ChoresView 
                                 chores={chores} 
                                 userConfig={USER_CONFIG}
                                 weekCycle={weekCycle}
+                                data={data} 
+                                shoppingList={shoppingList} // <--- ADICIONAR ESTA PROPRIEDADE
                                 onToggle={toggleChore}
                                 onAdd={addChore}
                                 onDelete={deleteChore}
@@ -2487,26 +2473,57 @@
                     </div>
 
                     {/* Nav */}
-                    <div className="bg-white border-t px-6 py-3 flex justify-between items-center fixed bottom-0 w-full pb-8 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-40">
-                        <button onClick={() => setTab('home')} className={`flex flex-col items-center gap-1 w-12 ${tab === 'home' ? 'text-slate-900' : 'text-slate-300'}`}><Home size={24} strokeWidth={tab==='home'?2.5:2}/><span className="text-[10px] font-bold">Home</span></button>
-                        <button onClick={() => setTab('market')} className={`flex flex-col items-center gap-1 w-12 ${tab === 'market' ? 'text-slate-900' : 'text-slate-300'}`}><ShoppingCart size={24} strokeWidth={tab==='market'?2.5:2}/><span className="text-[10px] font-bold">Mercado</span></button>
-                        
-                        {/* --- NOVO BOTÃO TAREFAS --- */}
-                        <button onClick={() => setTab('chores')} className={`flex flex-col items-center gap-1 w-12 ${tab === 'chores' ? 'text-slate-900' : 'text-slate-300'}`}>
-                            <Broom size={24} strokeWidth={tab==='chores'?2.5:2}/>
-                            <span className="text-[10px] font-bold">Casa</span>
-                        </button>
-                        <div className="-mt-12 relative z-50">
-                            {menuOpen && (
-                                <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex flex-col gap-3 items-center animate-pop w-48">
-                                    <button onClick={() => fileInputRef.current.click()} className="w-full bg-indigo-100 text-indigo-700 p-3 rounded-full shadow-lg border border-indigo-200 flex items-center justify-center gap-2 font-bold text-xs"><Sparkles size={16}/> Arquivo com IA</button>
-                                    <button onClick={() => { setMenuOpen(false); setModalOpen(true); }} className="w-full bg-slate-900 text-white p-3 rounded-full shadow-lg flex items-center justify-center gap-2 font-bold text-xs"><FileText size={16}/> Manual</button>
-                                </div>
-                            )}
-                            <button onClick={() => setMenuOpen(!menuOpen)} className={`w-16 h-16 rounded-[1.2rem] bg-indigo-600 text-white flex items-center justify-center shadow-xl shadow-indigo-500/40 border-4 border-gray-50 transition-transform ${menuOpen ? 'rotate-45' : 'active:scale-95'}`}><Plus size={32}/></button>
+                    {/* MENU DE AÇÃO CENTRAL (FLUTUANTE NO TOPO DA BARRA) */}
+                    {menuOpen && (
+                        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-3 items-center animate-pop w-48">
+                            <button onClick={() => fileInputRef.current.click()} className="w-full bg-indigo-100 text-indigo-700 p-3 rounded-2xl shadow-xl border border-indigo-200 flex items-center justify-center gap-2 font-bold text-xs">
+                                <Sparkles size={16}/> Arquivo com IA
+                            </button>
+                            <button onClick={() => { setMenuOpen(false); setModalOpen(true); }} className="w-full bg-slate-900 text-white p-3 rounded-2xl shadow-xl flex items-center justify-center gap-2 font-bold text-xs">
+                                <FileText size={16}/> Lançar Manual
+                            </button>
                         </div>
-                        <button onClick={() => setTab('planning')} className={`flex flex-col items-center gap-1 w-12 ${tab === 'planning' ? 'text-slate-900' : 'text-slate-300'}`}><Target size={24} strokeWidth={tab==='planning'?2.5:2}/><span className="text-[10px] font-bold">Metas</span></button>
-                        <button onClick={() => setTab('reports')} className={`flex flex-col items-center gap-1 w-12 ${tab === 'reports' ? 'text-slate-900' : 'text-slate-300'}`}><BarChart3 size={24} strokeWidth={tab==='reports'?2.5:2}/><span className="text-[10px] font-bold">Análise</span></button>
+                    )}
+
+                    {/* BARRA DE NAVEGAÇÃO HUB (5 ITENS) */}
+                    {/* BARRA DE NAVEGAÇÃO HUB (5 ITENS) */}
+                    <div className="bg-white border-t border-gray-100 fixed bottom-0 w-full pb-8 pt-2 shadow-[0_-5px_30px_rgba(0,0,0,0.04)] z-40 px-4">
+                        <div className="grid grid-cols-5 items-end">
+                            
+                            {/* 1. FINANÇAS (Antiga Home) - Ícone de Carteira */}
+                            <button onClick={() => setTab('home')} className={`flex flex-col items-center gap-1 pb-2 ${tab === 'home' ? 'text-indigo-600' : 'text-slate-300 hover:text-slate-400'}`}>
+                                <Wallet size={24} strokeWidth={tab==='home'?2.5:2} className="transition-transform active:scale-90"/>
+                                <span className="text-[9px] font-bold">Finanças</span>
+                            </button>
+                            
+                            {/* 2. CASA (Tarefas + Mercado) - Ícone de Casa */}
+                            <button onClick={() => setTab('chores')} className={`flex flex-col items-center gap-1 pb-2 ${tab === 'chores' ? 'text-indigo-600' : 'text-slate-300 hover:text-slate-400'}`}>
+                                <Home size={24} strokeWidth={tab==='chores'?2.5:2} className="transition-transform active:scale-90"/>
+                                <span className="text-[9px] font-bold">Casa</span>
+                            </button>
+
+                            {/* 3. AÇÃO CENTRAL (+ Gigante) - Mantém igual */}
+                            <div className="relative -top-5 flex justify-center">
+                                <button 
+                                    onClick={() => setMenuOpen(!menuOpen)} 
+                                    className={`w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-xl shadow-indigo-500/40 border-4 border-gray-50 transition-transform ${menuOpen ? 'rotate-45' : 'active:scale-95'}`}
+                                >
+                                    <Plus size={32}/>
+                                </button>
+                            </div>
+                            
+                            {/* 4. METAS (Mantém igual) */}
+                            <button onClick={() => setTab('planning')} className={`flex flex-col items-center gap-1 pb-2 ${tab === 'planning' ? 'text-indigo-600' : 'text-slate-300 hover:text-slate-400'}`}>
+                                <Target size={24} strokeWidth={tab==='planning'?2.5:2} className="transition-transform active:scale-90"/>
+                                <span className="text-[9px] font-bold">Metas</span>
+                            </button>
+                            
+                            {/* 5. ANÁLISE (Mantém igual) */}
+                            <button onClick={() => setTab('reports')} className={`flex flex-col items-center gap-1 pb-2 ${tab === 'reports' ? 'text-indigo-600' : 'text-slate-300 hover:text-slate-400'}`}>
+                                <BarChart3 size={24} strokeWidth={tab==='reports'?2.5:2} className="transition-transform active:scale-90"/>
+                                <span className="text-[9px] font-bold">Análise</span>
+                            </button>
+                        </div>
                     </div>
 
                     <input type="file" ref={fileInputRef} onChange={handleUniversalUpload} accept="image/*,.pdf,.csv,.xlsx,.xls" className="hidden" />
