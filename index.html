@@ -808,6 +808,10 @@
             const [user, setUser] = useState(null);
             const [profile, setProfile] = useState(null);
             const [txs, setTxs] = useState([]);
+            
+            // --- CORREÇÃO: ADICIONE ESTA LINHA ABAIXO ---
+            const [shoppingList, setShoppingList] = useState([]); 
+            
             const [budgets, setBudgets] = useState(DEFAULT_BUDGETS);
             const [viewMode, setViewMode] = useState('personal'); // 'personal' | 'joint'
             const [tab, setTab] = useState('home');
@@ -971,13 +975,24 @@
                 // --- 2. FILTROS DE UNIVERSO (Extrato Dia a Dia) ---
                 const filterByUniverse = (t) => {
                      if (t.isSettlement) {
+                        // --- INÍCIO DO AJUSTE BLOCO 1 ---
+                        
+                        // 1. Captura pendências PRIMEIRO (Garante que a notificação apareça em qualquer modo)
+                        if (t.ownerId !== profile && t.status === 'pending') { 
+                            pendingSettlements.push(t); 
+                        }
+
+                        // 2. Se for modo conjunto, esconde da lista (pois o saldo é calculado matematicamente)
                         if (viewMode === 'joint') return false;
-                        // Acerto: Mostra se sou dono OU se é confirmado e sou o parceiro
+                        
+                        // 3. Lógica para Meu Mundo
                         if (t.ownerId === profile) return true; 
                         if (t.ownerId !== profile) {
-                            if (t.status === 'pending') { pendingSettlements.push(t); return false; }
+                            if (t.status === 'pending') return false; // Já capturado acima
                             return t.status === 'confirmed'; 
                         }
+                        return false;
+
                      }
                      if (viewMode === 'joint') return t.isShared && !t.isSettlement;                     
                      // Meu mundo: O que é meu privado OU o que é compartilhado mas EU paguei (saída de caixa)
@@ -1212,8 +1227,10 @@
                 });
 
                 return { 
-                    list: currentMonthList, fullList, bal, inc, exp, inv, coupleBal, 
-                    totalCoupleBal, // <--- Adicionado para uso no botão
+                    list: currentMonthList, fullList, bal, inc, exp, inv, 
+                    coupleBal,      // Saldo Travado (Seguro)
+                    rawCoupleBal,   // <--- NOVO: Saldo Cru (Para o botão de override)
+                    totalCoupleBal, // Saldo Global
                     pendingSettlements, 
                     planning, dreamsProgress, netWorth, economicExp,
                     // CORREÇÃO 1 e 2 refletidas aqui:
@@ -1537,7 +1554,55 @@
                 if(confirm("Apagar este sonho?")) await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('dreams').doc(id).delete();
             }
 
-            const deleteTx = async (id) => { if(confirm("Apagar este lançamento?")) await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc(id).delete(); };
+            const deleteTx = async (id) => { 
+                const tx = txs.find(t => t.id === id);
+                if(!tx) return;
+
+                // LÓGICA INTELIGENTE PARA ITENS COMPARTILHADOS (v36)
+                if (tx.isShared && !tx.isSettlement) {
+                    if(!confirm("⚠️ ATENÇÃO: Item Compartilhado\n\nExcluir este item vai alterar o saldo da dívida com seu parceiro.\n\nDeseja continuar?")) return;
+
+                    // Pergunta da Tara
+                    const isPaid = confirm("💰 PERGUNTA DE AJUSTE:\n\nEsse valor JÁ FOI PAGO/ACERTADO entre vocês na vida real?\n\n[OK] = SIM (Criar ajuste automático para não gerar crédito indevido)\n[CANCELAR] = NÃO (Apenas excluir e abater da dívida - Reembolso)");
+
+                    const batch = db.batch();
+                    const txRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc(id);
+                    
+                    batch.delete(txRef);
+
+                    // SE JÁ FOI PAGO (Opção A - TARA), cria o contra-peso
+                    if (isPaid) {
+                        const adjustmentAmount = Number(tx.amount) / 2; // Tara é sempre a metade (a parte da dívida)
+                        
+                        // Cria um Settlement de saída para anular a entrada que ocorreu no passado (Tara)
+                        const taraRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc();
+                        batch.set(taraRef, {
+                            title: `Ajuste (Tara): ${tx.title}`,
+                            amount: adjustmentAmount,
+                            type: tx.payer === 'me' ? 'expense' : 'income', // Inverte fluxo para anular
+                            category: 'Ajuste/Reembolso',
+                            date: new Date().toISOString().split('T')[0],
+                            isShared: false,
+                            isSettlement: true,
+                            status: 'confirmed', // Já nasce confirmado pois é técnico
+                            ownerId: profile, 
+                            userId: user.uid,
+                            createdAt: new Date().toISOString()
+                        });
+                        alert("Item excluído e Saldo Calibrado (Tara aplicada).");
+                    } else {
+                        alert("Item excluído. O saldo da dívida foi atualizado (gera crédito/débito).");
+                    }
+
+                    await batch.commit();
+                    return;
+                }
+
+                // DELETE NORMAL (Itens Pessoais)
+                if(confirm("Apagar este lançamento?")) {
+                    await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc(id).delete(); 
+                }
+            };
 
             // CORREÇÃO 3: Função aceita valor opcional para permitir "Quitar Tudo"
             // CORREÇÃO: Função simplificada para apenas PAGAR (Gera pendência)
@@ -1985,28 +2050,46 @@
                                 </h2>
                             </div>
 
-                             {/* LÓGICA DE BOTÕES DE ACERTO (Apenas Pagar) */}
-                             {viewMode === 'joint' && Math.abs(data.coupleBal) > 1 && dashboardMode === 'statement' && (
-                                <div className="flex flex-col items-center gap-1">
+                             {/* LÓGICA DE BOTÕES DE ACERTO (INTELIGENTE v36) */}
+                             {viewMode === 'joint' && dashboardMode === 'statement' && (
+                                <div className="flex flex-col items-center gap-1 animate-fade-in mt-4 relative z-50 pointer-events-auto">
+                                    
+                                    {/* CASO 1: Dívida Normal Visível (Mostra Botão Pagar) */}
                                     {data.coupleBal < 0 ? (
-                                        // CENÁRIO 1: EU DEVO (Botão de Pagar Ativo)
                                         <>
-                                            <button onClick={() => settleDebt(data.coupleBal)} className="mt-6 px-4 py-2 rounded-full text-xs font-bold border border-rose-500/30 bg-rose-900/30 text-rose-300 flex items-center gap-2 mx-auto active:scale-95 transition-all relative z-50 pointer-events-auto">
-                                                <ArrowRightLeft size={12} /> Pagar {formatCurrency(Math.abs(data.coupleBal))}
+                                            <button onClick={() => settleDebt(data.coupleBal)} className="px-5 py-2 rounded-full text-xs font-bold border border-rose-500/30 bg-rose-900/40 text-rose-300 flex items-center gap-2 shadow-lg active:scale-95 transition-all hover:bg-rose-900/60">
+                                                <ArrowRightLeft size={14} /> Pagar {formatCurrency(Math.abs(data.coupleBal))}
                                             </button>
                                             
-                                            {/* Só mostra opção de quitar total se o TOTAL também for dívida */}
-                                            {data.totalCoupleBal < 0 && Math.abs(data.totalCoupleBal - data.coupleBal) > 1 && (
-                                                <button onClick={() => settleDebt(data.totalCoupleBal)} className="text-[10px] text-slate-400 underline relative z-50 pointer-events-auto hover:text-white transition-colors">
+                                            {/* Opção Quitar Total */}
+                                            {data.totalCoupleBal < 0 && Math.abs(data.totalCoupleBal) > Math.abs(data.coupleBal) + 1 && (
+                                                <button onClick={() => settleDebt(data.totalCoupleBal)} className="mt-1 text-[10px] text-slate-400 underline hover:text-white transition-colors">
                                                     Ou quitar total ({formatCurrency(Math.abs(data.totalCoupleBal))})
                                                 </button>
                                             )}
                                         </>
                                     ) : (
-                                        // CENÁRIO 2: EU TENHO A RECEBER (Apenas Visualização - Aguardando o outro pagar)
-                                        <div className="mt-6 px-4 py-2 rounded-full text-xs font-bold border border-emerald-500/30 bg-emerald-900/20 text-emerald-400 flex items-center gap-2 mx-auto cursor-default opacity-80">
-                                            <ArrowRightLeft size={12} /> A Receber {formatCurrency(Math.abs(data.coupleBal))}
-                                        </div>
+                                        /* CASO 2: Não há dívida VISÍVEL (coupleBal = 0), mas existe dívida REAL (rawCoupleBal < 0) */
+                                        <>
+                                            {data.rawCoupleBal < 0 && data.coupleBal === 0 ? (
+                                                <div className="flex flex-col items-center animate-fade-in">
+                                                    <div className="px-4 py-1.5 rounded-full text-[10px] font-bold border border-emerald-500/30 bg-emerald-900/30 text-emerald-400 flex items-center gap-2 cursor-default mb-1">
+                                                        <Check size={12} /> Coberto por Crédito Anterior
+                                                    </div>
+                                                    {/* Botão de Override para Fantasmas */}
+                                                    <button onClick={() => settleDebt(data.rawCoupleBal)} className="text-[10px] text-rose-400 underline hover:text-rose-300 transition-colors">
+                                                        Pagar mês mesmo assim ({formatCurrency(Math.abs(data.rawCoupleBal))})
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                /* CASO 3: Crédito Real (Tenho a Receber) */
+                                                Math.abs(data.coupleBal) > 0 && (
+                                                    <div className="px-5 py-2 rounded-full text-xs font-bold border border-emerald-500/30 bg-emerald-900/30 text-emerald-400 flex items-center gap-2 cursor-default">
+                                                        <ArrowRightLeft size={14} /> A Receber {formatCurrency(Math.abs(data.coupleBal))}
+                                                    </div>
+                                                )
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             )}
@@ -2055,6 +2138,9 @@
                                                 
                                                 <div>
                                                     <p className="font-bold text-sm flex items-center gap-2">
+                                                        {/* ÍCONE DE CASAL (v36) */}
+                                                        {t.isShared && !t.isSettlement && <Users size={14} className="text-indigo-500 shrink-0" />}
+                                                        
                                                         {t.displayTitle || t.title}
                                                         {t.items && t.items.length > 0 && !selectionMode && (
                                                             <span className="bg-gray-100 text-gray-500 text-[9px] px-1.5 rounded-full flex items-center gap-0.5">
