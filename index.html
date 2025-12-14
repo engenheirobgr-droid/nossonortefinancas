@@ -139,13 +139,19 @@
             { id: 'nubank', name: 'Nubank', color: 'bg-purple-600' },
             { id: 'inter', name: 'Inter', color: 'bg-orange-500' },
             { id: 'itau', name: 'Itaú', color: 'bg-blue-600' },
-            { id: 'xp', name: 'XP', color: 'bg-black' },
-            { id: 'btg', name: 'BTG', color: 'bg-blue-800' },
-            { id: 'rico', name: 'Rico', color: 'bg-orange-600' },
-            { id: 'nuinvest', name: 'NuInvest', color: 'bg-purple-700' },
-            { id: 'caixa', name: 'Caixa', color: 'bg-blue-500' },
+            { id: 'bradesco', name: 'Bradesco', color: 'bg-red-600' }, // NOVO
             { id: 'bb', name: 'BB', color: 'bg-yellow-500' },
             { id: 'santander', name: 'Santander', color: 'bg-red-600' },
+            { id: 'caixa', name: 'Caixa', color: 'bg-blue-500' },
+            { id: 'btg', name: 'BTG', color: 'bg-blue-800' },
+            { id: 'xp', name: 'XP', color: 'bg-black' },
+            { id: 'rico', name: 'Rico', color: 'bg-orange-600' },
+            { id: 'clear', name: 'Clear', color: 'bg-blue-400' }, // NOVO
+            { id: 'genial', name: 'Genial', color: 'bg-blue-700' }, // NOVO
+            { id: 'c6', name: 'C6 Bank', color: 'bg-slate-800' }, // NOVO
+            { id: 'nomad', name: 'Nomad', color: 'bg-yellow-400' }, // NOVO
+            { id: 'wise', name: 'Wise', color: 'bg-lime-500' }, // NOVO
+            { id: 'avenue', name: 'Avenue', color: 'bg-slate-900' }, // NOVO
             { id: 'money', name: 'Dinheiro', color: 'bg-green-600' },
             { id: 'vr', name: 'VR/VA', color: 'bg-pink-500' },
         ];
@@ -452,7 +458,7 @@
             const [searchTerm, setSearchTerm] = useState('');
             // REMOVIDO: const [shoppingList, setShoppingList] = useState([]); <--- AGORA VEM DO FIREBASE
 
-            // INTELIGÊNCIA DE PREÇOS (Mantida igual)
+            // INTELIGÊNCIA DE PREÇOS (Refinada para Média Unitária)
             const productIntelligence = useMemo(() => {
                 const map = {};
                 data.fullList.forEach(tx => {
@@ -460,17 +466,32 @@
                         tx.items.forEach(item => {
                             const normalizedName = item.name.toLowerCase().trim();
                             if (!map[normalizedName]) map[normalizedName] = { name: item.name, history: [] };
-                            const marketName = tx.market || tx.title;
-                            map[normalizedName].history.push({ price: item.value, market: marketName, date: tx.date });
+                            
+                            // Se a IA pegou o unitPrice, usa ele. Se não, tenta deduzir pelo total (assumindo 1un se não tiver qty)
+                            // Isso evita misturar "Preço de 1kg" com "Preço de 0.5kg" na média
+                            const qty = item.qty || 1;
+                            const effectiveUnitPrice = item.unitPrice > 0 ? item.unitPrice : (item.value / qty);
+                            
+                            map[normalizedName].history.push({ 
+                                unitPrice: effectiveUnitPrice, // Preço de 1 UNIDADE/KG
+                                market: tx.market || tx.title, 
+                                unit: item.unit || 'un'
+                            });
                         });
                     }
                 });
                 return Object.values(map).map(p => {
-                    p.history.sort((a,b) => a.price - b.price);
+                    // Ordena pelo preço unitário para achar o "Melhor Lugar"
+                    p.history.sort((a,b) => a.unitPrice - b.unitPrice);
+                    
                     const best = p.history[0];
-                    p.bestPrice = best.price;
+                    p.bestPrice = best.unitPrice; // Melhor preço do KG encontrado
                     p.bestMarket = best.market;
-                    p.avgPrice = p.history.reduce((a, b) => a + b.price, 0) / p.history.length;
+                    p.unit = best.unit; 
+                    
+                    // Média: Soma de todos os preços unitários / qtd de compras
+                    p.avgPrice = p.history.reduce((a, b) => a + b.unitPrice, 0) / p.history.length;
+                    
                     return p;
                 }).sort((a,b) => a.name.localeCompare(b.name));
             }, [data.fullList]);
@@ -479,14 +500,33 @@
 
             // --- AÇÕES COM BANCO DE DADOS ---
             const addToCart = async (product) => {
+                // Pergunta a quantidade desejada
+                const defaultQty = "1";
+                const userQtyStr = prompt(
+                    `Quantos ${product.unit || 'un'} de "${product.name}" deseja comprar?\n\n` +
+                    `Preço Médio: ${formatCurrency(product.avgPrice)} /${product.unit || 'un'}\n` +
+                    `Melhor local: ${product.bestMarket} (${formatCurrency(product.bestPrice)})`, 
+                    defaultQty
+                );
+
+                if (userQtyStr === null) return; // Cancelou
+
+                const finalQty = parseFloat(userQtyStr.replace(',', '.')) || 1;
+                
+                // Cálculo da Estimativa: Quantidade * Preço Médio (conforme seu pedido)
+                const estimatedTotal = finalQty * product.avgPrice;
+
                 const newItem = {
                     name: product.name,
-                    price: product.bestPrice || 0,
-                    market: product.bestMarket || '?',
+                    plannedQty: finalQty, // Salvamos quanto queremos comprar
+                    unit: product.unit || 'un',
+                    price: estimatedTotal, // Valor estimado total
+                    avgUnitTest: product.avgPrice, // Guardamos a média usada para referência
+                    market: product.bestMarket || '?', // Sugestão de onde ir
                     checked: false,
                     createdAt: new Date().toISOString()
                 };
-                // Salva no Firestore
+                
                 await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('shopping_list').add(newItem);
                 setSearchTerm('');
             };
@@ -539,7 +579,16 @@
                                         </button>
                                         <div className="flex-1">
                                             <p className={`font-bold text-sm ${item.checked ? 'line-through' : ''}`}>{item.name}</p>
-                                            <p className="text-[10px] text-gray-500 flex items-center gap-1"><TrendingDown size={10} className="text-emerald-500"/> Melhor em: {item.market}</p>
+                                            
+                                            {/* LINHA DE DETALHE NOVA */}
+                                            <div className="flex justify-between items-center pr-2 mt-0.5">
+                                                <p className="text-[10px] text-indigo-500 font-bold">
+                                                    {item.plannedQty || 1} {item.unit} <span className="text-gray-400 font-normal">x {formatCurrency(item.price / (item.plannedQty || 1))} (méd)</span>
+                                                </p>
+                                                <p className="text-[10px] text-gray-400 flex items-center gap-1">
+                                                    <TrendingDown size={10} className="text-emerald-500"/> {item.market}
+                                                </p>
+                                            </div>
                                         </div>
                                         <div className="text-right">
                                             <p className="font-bold text-sm text-indigo-600">{item.price > 0 ? formatCurrency(item.price) : '-'}</p>
@@ -587,10 +636,17 @@
                                 <div key={idx} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl cursor-pointer group border border-transparent hover:border-gray-100" onClick={() => addToCart(prod)}>
                                     <div className="flex-1 pr-3 overflow-hidden">
                                         <p className="font-bold text-sm text-slate-700 truncate">{prod.name}</p>
-                                        <p className="text-[10px] text-gray-400">Média: {formatCurrency(prod.avgPrice)}</p>
+                                        <p className="text-[10px] text-gray-400">
+                                            Média: {formatCurrency(prod.avgPrice)} {prod.unit && prod.unit !== 'un' ? `/${prod.unit}` : ''}
+                                        </p>
                                     </div>
                                     <div className="text-right flex-shrink-0 min-w-[100px]">
-                                        <p className="font-bold text-sm text-emerald-600 leading-tight">{formatCurrency(prod.bestPrice)}</p>
+                                        <p className="font-bold text-sm text-emerald-600 leading-tight">
+                                            {formatCurrency(prod.bestPrice)}
+                                            <span className="text-[10px] text-emerald-400 font-normal ml-0.5">
+                                                {prod.unit && prod.unit !== 'un' ? `/${prod.unit}` : ''}
+                                            </span>
+                                        </p>
                                         <p className="text-[10px] text-gray-400 truncate max-w-[120px] ml-auto block">{prod.bestMarket || 'Sem local'}</p>
                                     </div>
                                     <div className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity bg-emerald-100 p-1.5 rounded-lg">
@@ -963,46 +1019,72 @@
 
                 if (isFutureView) {
                     const recurrenceMap = new Map();
-                    txs.forEach(t => { if (t.isRecurrent && !t.isSettlement) recurrenceMap.set(t.title, t); });
+                    // FASE 2: Removemos restrições de tipo. Se é recorrente e não é acerto, projeta (serve para Despesa e Receita)
+                    txs.forEach(t => { if (t.isRecurrent && !t.isSettlement) recurrenceMap.set(t.title.toLowerCase().trim(), t); });
+                    
                     recurrenceMap.forEach(template => {
-                        const existsInMonth = txs.some(t => t.date.startsWith(selectedMonth) && t.title === template.title);
+                        // FASE 2: Comparação robusta (ignora maiúsculas/minúsculas e espaços)
+                        const existsInMonth = txs.some(t => 
+                            t.date.startsWith(selectedMonth) && 
+                            t.title.toLowerCase().trim() === template.title.toLowerCase().trim()
+                        );
+
                         if (!existsInMonth) {
-                            fullList.push({ ...template, id: 'ghost_' + template.id, date: `${selectedMonth}-05`, isProjection: true, displayTitle: template.title + ' (Previsto)' });
+                            // Define o dia padrão como o dia original da recorrência ou dia 05 se falhar
+                            const day = template.date.split('-')[2] || '05';
+                            fullList.push({ 
+                                ...template, 
+                                id: 'ghost_' + template.id, 
+                                date: `${selectedMonth}-${day}`, 
+                                isProjection: true, 
+                                displayTitle: template.title + ' (Previsto)' 
+                            });
                         }
                     });
                 }
 
                 // --- 2. FILTROS DE UNIVERSO (Extrato Dia a Dia) ---
                 const filterByUniverse = (t) => {
+                     // ... (código existente da função filterByUniverse - NÃO MUDE NADA DENTRO DELA)
                      if (t.isSettlement) {
-                        // --- INÍCIO DO AJUSTE BLOCO 1 ---
-                        
-                        // 1. Captura pendências PRIMEIRO (Garante que a notificação apareça em qualquer modo)
-                        if (t.ownerId !== profile && t.status === 'pending') { 
-                            pendingSettlements.push(t); 
-                        }
-
-                        // 2. Se for modo conjunto, esconde da lista (pois o saldo é calculado matematicamente)
-                        if (viewMode === 'joint') return false;
-                        
-                        // 3. Lógica para Meu Mundo
-                        if (t.ownerId === profile) return true; 
-                        if (t.ownerId !== profile) {
-                            if (t.status === 'pending') return false; // Já capturado acima
-                            return t.status === 'confirmed'; 
-                        }
+                        // ...
                         return false;
-
                      }
                      if (viewMode === 'joint') return t.isShared && !t.isSettlement;                     
-                     // Meu mundo: O que é meu privado OU o que é compartilhado mas EU paguei (saída de caixa)
                      const myPrivate = t.ownerId === profile && !t.isShared;
                      const iPaidShared = t.ownerId === profile && t.payer === 'me' && t.isShared; 
                      return myPrivate || iPaidShared;
                 };
 
+                // --- FASE 3: CÁLCULO DE SALDO ACUMULADO (ROLLING BALANCE) ---
+                // Define o início do mês selecionado para cortar o histórico
+                const startOfSelectedMonth = `${selectedMonth}-01`;
+
+                // Filtra tudo que aconteceu ANTES deste mês, respeitando o mesmo filtro de mundo (Segurança Total)
+                const previousTxs = fullList
+                    .filter(t => t.date < startOfSelectedMonth && !t.isProjection) // Ignora futuro e projeções
+                    .filter(filterByUniverse); // Aplica a regra: Só soma o que é MEU (se pessoal) ou NOSSO (se conjunto)
+
+                // Calcula o saldo histórico
+                let previousBalance = 0;
+                previousTxs.forEach(t => {
+                    const val = Number(t.amount);
+                    if (t.type === 'income') previousBalance += val;
+                    else if (t.type === 'expense') previousBalance -= val;
+                    // Nota: Investimento sai do Caixa (Despesa Financeira), então subtrai
+                    else if (t.type === 'investment') previousBalance -= val; 
+                    
+                    // Tratamento de Acertos no Passado
+                    if (t.isSettlement) {
+                        if (t.ownerId === profile) previousBalance -= val; // Eu paguei = saiu
+                        else previousBalance += val; // Recebi = entrou
+                    }
+                });
+                // -----------------------------------------------------------
+
                 const currentMonthList = fullList
                     .filter(filterByUniverse)
+                    // ... (resto do código existente)
                     // Filtro visual: Se "Nosso Mundo" + "Dia a Dia", esconde aportes (foca custo de vida)
                     .filter(t => {
                         if (viewMode === 'joint' && dashboardMode === 'statement' && t.type === 'investment') return false;
@@ -1228,7 +1310,8 @@
 
                 return { 
                     list: currentMonthList, fullList, bal, inc, exp, inv, 
-                    coupleBal,      // Saldo Travado (Seguro)
+                    previousBalance,
+		    coupleBal,      // Saldo Travado (Seguro)
                     rawCoupleBal,   // <--- NOVO: Saldo Cru (Para o botão de override)
                     totalCoupleBal, // Saldo Global
                     pendingSettlements, 
@@ -1271,7 +1354,7 @@
                     return result.response.text();
                 };
                 try {
-                    const text = await tryModel("gemini-2.5-flash-preview-09-2025");
+                    const text = await tryModel("gemini-2.5-flash");
                     return JSON.parse(text.replace(/```json|```/g, '').trim());
                 } catch (e) {
                     try {
@@ -1301,8 +1384,10 @@
                     Sua missão: Ler este arquivo e encontrar despesas/receitas REAIS do mês de ${currentMonthName}.
                     
                     REGRAS CRÍTICAS:
-                    1. Se houver detalhamento de itens (ex: lista de produtos no mercado, pratos no restaurante), extraia-os no campo 'items'. Formato: items: [{name: 'Arroz', value: 20.00}, ...]. Se não houver, array vazio.
-                    2. Se for uma PLANILHA MATRIZ (meses nas colunas): IGNORE colunas de outros meses. Foque APENAS na coluna referente a ${currentMonthName} (ou mês atual).
+                    1. Se houver detalhamento de itens (ex: lista de produtos no mercado), extraia-os no campo 'items'. 
+                       IMPORTANTE: Tente identificar a QUANTIDADE (qty), PREÇO UNITÁRIO (unitPrice) e UNIDADE (unit - ex: kg, un, l).
+                       Formato: items: [{name: 'Queijo', value: 20.00, qty: 0.5, unitPrice: 40.00, unit: 'kg'}, ...].
+                    2. Se for uma PLANILHA MATRIZ (meses nas colunas): IGNORE colunas de outros meses. Foque APENAS na coluna referente a ${currentMonthName}.
                     3. IGNORE linhas de "Total", "Saldo", "Cartão de Crédito" (se for o pagamento da fatura, ok, mas evite duplicidade).
                     4. Tente identificar o nome do ESTABELECIMENTO (Loja, Mercado, etc) e coloque no campo 'market'.
                     5. Se for possível identificar o BANCO/CONTA de origem, coloque no campo 'bank' (ex: Nubank, Itaú).
@@ -1311,14 +1396,14 @@
                     {
                         "transactions": [
                             { 
-                                "date": "YYYY-MM-DD" (se não tiver dia exato, use dia 01 do mês atual), 
+                                "date": "YYYY-MM-DD", 
                                 "title": "Nome da despesa", 
-                                "amount": 0.00 (valor positivo float), 
-                                "type": "expense" (ou "income"), 
-                                "category": "Alimentação" (ou Transporte, Moradia, Lazer, Saúde, Outros),
-                                "market": "Nome do Mercado/Loja" (ou string vazia),
-                                "bank": "Nome do Banco" (ou string vazia),
-                                "items": [ {"name": "Item A", "value": 10.00} ] 
+                                "amount": 0.00, 
+                                "type": "expense", 
+                                "category": "Alimentação",
+                                "market": "Nome da Loja",
+                                "bank": "Nome do Banco",
+                                "items": [ {"name": "Item A", "value": 10.00, "qty": 1, "unitPrice": 10.00, "unit": "un"} ] 
                             }
                         ]
                     }
@@ -1458,7 +1543,9 @@
             // --- ACTIONS ---
             // NOVO: Função para carregar edição
             const handleEdit = (tx) => {
-                setEditingId(tx.id);
+                // FASE 2: Se for projeção (Fantasma), id vira null (cria novo), mas mantém os dados para facilitar o lançamento
+                setEditingId(tx.isProjection ? null : tx.id);
+                
                 setFTitle(tx.title);
                 setFAmount(tx.amount);
                 setFType(tx.type);
@@ -1488,6 +1575,12 @@
                 const batch = db.batch();
                 const collectionRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions');
 
+                // FASE 2: GERAÇÃO DE DNA (GroupId)
+                // Se for recorrente ou parcelado (mais de 1x), cria um ID de grupo único
+                const newGroupId = (fRecurrent || (isInstallment && installments > 1)) 
+                    ? `grp_${new Date().getTime()}_${Math.random().toString(36).substr(2, 9)}` 
+                    : null;
+
                 // Payload base (Dados comuns)
                 const payload = {
                     title: fTitle, amount: Number(fAmount), type: fType, category: fCat,
@@ -1500,12 +1593,16 @@
                     
                     // FASE 3: Novos Campos
                     isRecurrent: fRecurrent,
-                    dreamId: fType === 'investment' ? fDreamId : '' // Só salva vínculo se for investimento
+                    dreamId: fType === 'investment' ? fDreamId : '', // Só salva vínculo se for investimento
+                    groupId: newGroupId // <--- SALVA O DNA NO BANCO
                 };
 
                 if (editingId) {
                     const docRef = collectionRef.doc(editingId);
-                    batch.update(docRef, payload);
+                    // Na edição simples, mantemos o payload sem gerar novo grupo para não quebrar histórico existente
+                    // (Futuramente podemos tratar edição de série, mas por segurança mantemos simples agora)
+                    const { groupId, ...updatePayload } = payload; 
+                    batch.update(docRef, updatePayload);
                 } else {
                     if (isInstallment && installments > 1) {
                         const valPerInst = Number(fAmount) / installments;
@@ -1554,54 +1651,108 @@
                 if(confirm("Apagar este sonho?")) await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('dreams').doc(id).delete();
             }
 
+            // --- FASE 4: EXCLUSÃO INTELIGENTE (CASCATA + TARA) ---
             const deleteTx = async (id) => { 
                 const tx = txs.find(t => t.id === id);
                 if(!tx) return;
 
-                // LÓGICA INTELIGENTE PARA ITENS COMPARTILHADOS (v36)
-                if (tx.isShared && !tx.isSettlement) {
-                    if(!confirm("⚠️ ATENÇÃO: Item Compartilhado\n\nExcluir este item vai alterar o saldo da dívida com seu parceiro.\n\nDeseja continuar?")) return;
+                // --- 1. LÓGICA DE CASCATA (SÉRIES) ---
+                let docsToDelete = [id]; // Padrão: apagar só este
+                
+                // Se tiver DNA de grupo (criado na Fase 2), oferece opções
+                if (tx.groupId) {
+                    const action = prompt(
+                        "⚠️ ESTE ITEM FAZ PARTE DE UMA SÉRIE (Parcelado/Recorrente).\n\n" +
+                        "Como deseja excluir?\n" +
+                        "[1] Apenas este (Ajuste pontual)\n" +
+                        "[2] Daqui para frente (Cancelamento)\n" +
+                        "[3] A SÉRIE INTEIRA (Apagar tudo)\n\n" +
+                        "Digite o número da opção:"
+                    );
 
-                    // Pergunta da Tara
-                    const isPaid = confirm("💰 PERGUNTA DE AJUSTE:\n\nEsse valor JÁ FOI PAGO/ACERTADO entre vocês na vida real?\n\n[OK] = SIM (Criar ajuste automático para não gerar crédito indevido)\n[CANCELAR] = NÃO (Apenas excluir e abater da dívida - Reembolso)");
+                    if (!action) return; // Cancelou
 
-                    const batch = db.batch();
-                    const txRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc(id);
-                    
-                    batch.delete(txRef);
+                    if (action === '2' || action === '3') {
+                        // Busca todos os itens com o mesmo DNA no banco
+                        try {
+                            const snapshot = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions')
+                                .where('groupId', '==', tx.groupId).get();
+                            
+                            const groupDocs = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
+                            
+                            if (action === '2') {
+                                // Filtra: Mesma série E data maior ou igual a hoje
+                                docsToDelete = groupDocs.filter(d => d.date >= tx.date).map(d => d.id);
+                            } else if (action === '3') {
+                                // Todos
+                                docsToDelete = groupDocs.map(d => d.id);
+                            }
+                        } catch (err) {
+                            alert("Erro ao buscar série: " + err.message);
+                            return;
+                        }
+                    }
+                }
 
-                    // SE JÁ FOI PAGO (Opção A - TARA), cria o contra-peso
-                    if (isPaid) {
-                        const adjustmentAmount = Number(tx.amount) / 2; // Tara é sempre a metade (a parte da dívida)
+                if (!confirm(`Confirma a exclusão de ${docsToDelete.length} item(ns)?`)) return;
+
+                // --- 2. SEGURANÇA DE CASAL (HUMANIZAÇÃO/TARA) ---
+                // Verifica se o item é compartilhado e não é um acerto técnico
+                const isSharedTx = tx.isShared && !tx.isSettlement; 
+
+                const batch = db.batch();
+
+                if (isSharedTx) {
+                    const userResponse = confirm(
+                        `💰 SEGURANÇA DE DÍVIDA\n\n` +
+                        "Esse dinheiro SAIU da conta na vida real (foi pago)?\n\n" +
+                        "[OK] = SIM, eu paguei (Gera compensação para manter seu crédito)\n" +
+                        "[CANCELAR] = NÃO, foi erro ou estorno (Apaga e remove a dívida)"
+                    );
+
+                    // Se respondeu SIM (OK), aplicamos a TARA (Compensação)
+                    if (userResponse) {
+                        // Calcula valor total aproximado (segurança para lote)
+                        let totalValue = tx.amount; 
+                        // Se for lote, tenta somar o que temos em memória para ser mais preciso
+                        if (docsToDelete.length > 1) {
+                            const sumInMemory = docsToDelete.reduce((acc, delId) => {
+                                const t = txs.find(x => x.id === delId);
+                                return acc + (t ? Number(t.amount) : 0);
+                            }, 0);
+                            if(sumInMemory > 0) totalValue = sumInMemory;
+                            else totalValue = tx.amount * docsToDelete.length; // Fallback
+                        }
+
+                        const adjustmentAmount = totalValue / 2; // Dívida é metade
                         
-                        // Cria um Settlement de saída para anular a entrada que ocorreu no passado (Tara)
                         const taraRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc();
                         batch.set(taraRef, {
-                            title: `Ajuste (Tara): ${tx.title}`,
+                            title: `Ajuste (Tara): ${tx.title} ${docsToDelete.length > 1 ? '(Série)' : ''}`,
                             amount: adjustmentAmount,
-                            type: tx.payer === 'me' ? 'expense' : 'income', // Inverte fluxo para anular
+                            type: tx.payer === 'me' ? 'expense' : 'income', // Inverte fluxo para anular dívida
                             category: 'Ajuste/Reembolso',
                             date: new Date().toISOString().split('T')[0],
-                            isShared: false,
-                            isSettlement: true,
-                            status: 'confirmed', // Já nasce confirmado pois é técnico
+                            isShared: false, // Vira pessoal (técnico)
+                            isSettlement: true, // Marca como acerto
+                            status: 'confirmed',
                             ownerId: profile, 
                             userId: user.uid,
                             createdAt: new Date().toISOString()
                         });
-                        alert("Item excluído e Saldo Calibrado (Tara aplicada).");
+                        alert(`✅ Exclusão realizada.\nFoi gerado um ajuste de ${formatCurrency(adjustmentAmount)} para manter o saldo da dívida correto.`);
                     } else {
-                        alert("Item excluído. O saldo da dívida foi atualizado (gera crédito/débito).");
+                        alert("✅ Itens excluídos. A dívida referente a eles foi anulada.");
                     }
-
-                    await batch.commit();
-                    return;
                 }
 
-                // DELETE NORMAL (Itens Pessoais)
-                if(confirm("Apagar este lançamento?")) {
-                    await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc(id).delete(); 
-                }
+                // --- 3. EXECUÇÃO (BATCH DELETE) ---
+                docsToDelete.forEach(docId => {
+                    const ref = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc(docId);
+                    batch.delete(ref);
+                });
+
+                await batch.commit();
             };
 
             // CORREÇÃO 3: Função aceita valor opcional para permitir "Quitar Tudo"
@@ -1937,9 +2088,66 @@
                                                 <div className="bg-gray-50 p-3 border-t border-gray-200 text-xs animate-fade-in">
                                                     <p className="font-bold text-slate-400 mb-2 uppercase text-[10px]">Itens Detalhados</p>
                                                     {item.items && item.items.length > 0 ? item.items.map((sub, sIdx) => (
-                                                        <div key={sIdx} className="flex justify-between py-1 border-b border-gray-100 last:border-0 text-slate-600">
-                                                            <span>{sub.name}</span>
-                                                            <span>{formatCurrency(sub.value)}</span>
+                                                        <div key={sIdx} className="flex flex-col border-b border-gray-100 last:border-0 py-2 gap-2">
+                                                            <div className="flex justify-between text-slate-700 font-bold">
+                                                                <input 
+                                                                    type="text" 
+                                                                    value={sub.name} 
+                                                                    onChange={(e) => {
+                                                                        const n = [...reviewData];
+                                                                        n[idx].items[sIdx].name = e.target.value;
+                                                                        setReviewData(n);
+                                                                    }}
+                                                                    className="bg-transparent outline-none w-full"
+                                                                />
+                                                                <span>{formatCurrency(sub.value)}</span>
+                                                            </div>
+                                                            {/* NOVOS CAMPOS: QTD E PREÇO UNITÁRIO */}
+                                                            <div className="flex gap-2 items-center">
+                                                                <div className="flex items-center bg-white border border-gray-200 rounded px-1">
+                                                                    <span className="text-[9px] text-gray-400 mr-1">Qtd</span>
+                                                                    <input 
+                                                                        type="number" 
+                                                                        step="0.001"
+                                                                        value={sub.qty || ''} 
+                                                                        placeholder="1"
+                                                                        onChange={(e) => {
+                                                                            const n = [...reviewData];
+                                                                            n[idx].items[sIdx].qty = e.target.value;
+                                                                            // Opcional: Recalcular total do item se quiser (qty * unitPrice)
+                                                                            // Por segurança, deixamos manual por enquanto
+                                                                            setReviewData(n);
+                                                                        }}
+                                                                        className="w-12 text-[10px] font-bold outline-none bg-transparent"
+                                                                    />
+                                                                </div>
+                                                                <div className="flex items-center bg-white border border-gray-200 rounded px-1 flex-1">
+                                                                    <span className="text-[9px] text-gray-400 mr-1">R$ Unit</span>
+                                                                    <input 
+                                                                        type="number" 
+                                                                        step="0.01"
+                                                                        value={sub.unitPrice || ''} 
+                                                                        placeholder="0.00"
+                                                                        onChange={(e) => {
+                                                                            const n = [...reviewData];
+                                                                            n[idx].items[sIdx].unitPrice = e.target.value;
+                                                                            setReviewData(n);
+                                                                        }}
+                                                                        className="w-full text-[10px] font-bold outline-none bg-transparent"
+                                                                    />
+                                                                </div>
+                                                                <input 
+                                                                    type="text" 
+                                                                    value={sub.unit || ''} 
+                                                                    placeholder="un"
+                                                                    onChange={(e) => {
+                                                                         const n = [...reviewData];
+                                                                         n[idx].items[sIdx].unit = e.target.value;
+                                                                         setReviewData(n);
+                                                                    }}
+                                                                    className="w-8 text-[10px] text-center border-b border-gray-200 outline-none bg-transparent"
+                                                                />
+                                                            </div>
                                                         </div>
                                                     )) : <p className="text-gray-400 italic">Sem itens detectados</p>}
                                                     
@@ -1984,7 +2192,7 @@
                     )}
 
                     {/* Header - CORREÇÃO VISUAL v23 */}
-                    {/* Header - CORREÇÃO VISUAL v23 */}
+                    {/* Header - CORREÇÃO VISUAL v23 + FASE 3 (Saldo Acumulado) */}
                     <div className="bg-slate-900 text-white pt-8 pb-8 px-6 rounded-b-[2rem] shadow-xl shrink-0 z-30 relative">
                          <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-3">
@@ -1992,7 +2200,7 @@
                                 <div><div className="flex items-center gap-1.5 text-indigo-200 text-xs uppercase font-medium">{greeting.i} {greeting.t}</div><h1 className="font-bold text-lg">{USER_CONFIG[profile].name}</h1></div>
                             </div>
                             <div className="flex gap-2">
-                                {/* NOVO: Calendário Global movido para cá */}
+                                {/* Calendário Global */}
                                 <div className="relative p-2 bg-slate-800 rounded-full overflow-hidden cursor-pointer hover:bg-slate-700 transition-colors group">
                                     <input 
                                         type="month" 
@@ -2032,9 +2240,8 @@
                                 <p className="text-xs text-slate-400 font-bold uppercase mb-2 flex items-center justify-center gap-2">
                                     {dashboardMode === 'investment' 
                                         ? 'Patrimônio Total' 
-                                        : (viewMode === 'joint' ? 'Gastos Casal' : 'Saldo Projetado')
+                                        : (viewMode === 'joint' ? 'Caixa Casal (Acumulado)' : 'Saldo em Conta (Previsto)')
                                     }
-                                    {/* Apenas exibe o mês formatado, sem input aqui */}
                                     <span className="bg-slate-800 px-2 py-0.5 rounded text-[10px] text-emerald-400 flex items-center gap-1 border border-slate-700">
                                         {selectedMonth.split('-').reverse().join('/')}
                                     </span>
@@ -2043,14 +2250,26 @@
                                     {dashboardMode === 'investment' 
                                         ? formatCurrency(data.investData.totalCurrent) 
                                         : (viewMode === 'joint' 
-                                            ? formatCurrency(data.exp) 
-                                            : formatCurrency(data.bal)
+                                            ? formatCurrency(data.previousBalance + data.bal) 
+                                            : formatCurrency(data.previousBalance + data.bal) // FASE 3: Saldo Anterior + Resultado do Mês
                                         )
                                     }
                                 </h2>
+                                
+                                {/* FASE 3: Detalhe visual pequeno abaixo do saldo */}
+                                {dashboardMode === 'statement' && (
+                                    <p className="text-[10px] text-slate-500 mt-1 font-bold">
+                                        {data.previousBalance !== 0 && (
+                                            <>
+                                                Início: <span className={data.previousBalance >= 0 ? 'text-emerald-500' : 'text-rose-500'}>{formatCurrency(data.previousBalance)}</span>
+                                                {' '}{data.bal >= 0 ? '+' : ''}{formatCurrency(data.bal)} (Mês)
+                                            </>
+                                        )}
+                                    </p>
+                                )}
                             </div>
 
-                             {/* LÓGICA DE BOTÕES DE ACERTO (INTELIGENTE v36) */}
+                             {/* LÓGICA DE BOTÕES DE ACERTO (INTELIGENTE v36) - AGORA DENTRO DO HEADER */}
                              {viewMode === 'joint' && dashboardMode === 'statement' && (
                                 <div className="flex flex-col items-center gap-1 animate-fade-in mt-4 relative z-50 pointer-events-auto">
                                     
@@ -2685,7 +2904,8 @@
                                         <div className="text-center text-xs font-bold text-indigo-600 bg-indigo-50 p-2 rounded-lg mb-2">Total: {formatCurrency(fAmount)}</div>
                                     )}
                                     
-                                    <input type="text" list="titleOptions" value={fTitle} onChange={e => setFTitle(e.target.value)} placeholder="Descrição (ex: Almoço)" className="w-full bg-gray-50 p-4 rounded-xl font-bold outline-none focus:ring-2 focus:ring-slate-100" required />
+                                    {/* CORREÇÃO: onBlur adicionado para garantir salvamento */}
+                                    <input type="text" list="titleOptions" value={fTitle} onChange={e => setFTitle(e.target.value)} onBlur={e => setFTitle(e.target.value)} placeholder="Descrição (ex: Almoço)" className="w-full bg-gray-50 p-4 rounded-xl font-bold outline-none focus:ring-2 focus:ring-slate-100" required />
                                     <datalist id="titleOptions">{uniqueTitles.map(t => <option key={t} value={t} />)}</datalist>
                                     
                                     {/* DATA E CONTA */}
@@ -2696,17 +2916,26 @@
                                         </div>
                                         <div className="flex-1 flex items-center gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100">
                                             <Banknote size={18} className="text-gray-400"/>
-                                            <select value={fBank} onChange={e => setFBank(e.target.value)} className="bg-transparent font-bold text-sm w-full outline-none text-slate-600">
-                                                <option value="">Conta</option>
-                                                {BANKS.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                            </select>
+                                            {/* ALTERAÇÃO: Input com Datalist no lugar do Select */}
+                                            <input 
+                                                list="bankOptions" 
+                                                value={fBank} 
+                                                onChange={e => setFBank(e.target.value)} 
+                                                onBlur={e => setFBank(e.target.value)}
+                                                placeholder="Banco/Conta"
+                                                className="bg-transparent font-bold text-sm w-full outline-none text-slate-600"
+                                            />
+                                            <datalist id="bankOptions">
+                                                {BANKS.map(b => <option key={b.id} value={b.name} />)}
+                                            </datalist>
                                         </div>
                                     </div>
                                     
                                     {/* DETALHE CONTEXTUAL */}
                                     <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
                                         {fType === 'expense' ? <MapPin size={18} className="text-gray-400"/> : fType === 'income' ? <Briefcase size={18} className="text-gray-400"/> : <TrendingUp size={18} className="text-gray-400"/>}
-                                        <input type="text" list="marketOptions" value={fMarket} onChange={e => setFMarket(e.target.value)} placeholder={fType === 'expense' ? "Local / Mercado" : fType === 'income' ? "Origem / Pagador" : "Ativo (ex: PETR4)"} className="bg-transparent font-bold text-sm w-full outline-none text-slate-600"/>
+                                        {/* CORREÇÃO: onBlur adicionado */}
+                                        <input type="text" list="marketOptions" value={fMarket} onChange={e => setFMarket(e.target.value)} onBlur={e => setFMarket(e.target.value)} placeholder={fType === 'expense' ? "Local / Mercado" : fType === 'income' ? "Origem / Pagador" : "Ativo (ex: PETR4)"} className="bg-transparent font-bold text-sm w-full outline-none text-slate-600"/>
                                         <datalist id="marketOptions">{uniqueMarkets.map(m => <option key={m} value={m} />)}</datalist>
                                     </div>
 
