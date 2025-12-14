@@ -1010,7 +1010,14 @@
                 if (!profile) return null;
                 
                 let fullList = [...txs]; 
-                let pendingSettlements = [];
+                
+                // --- CORREÇÃO v41: Busca de Pendências Isolada e Segura ---
+                // Agora buscamos pendências em TODO o histórico, independente de mês ou filtro
+                const pendingSettlements = fullList.filter(t => 
+                    t.isSettlement && 
+                    t.status === 'pending' && 
+                    t.ownerId !== profile // Só mostro se EU preciso confirmar (ou seja, não fui eu que criei)
+                );
 
                 // --- 1. PROJEÇÃO (Mantido) ---
                 const today = new Date();
@@ -1018,36 +1025,31 @@
                 const isFutureView = selectedMonth > currentMonthStr;
 
                 if (isFutureView) {
+                    // ... (Lógica de projeção continua igual aqui ...)
                     const recurrenceMap = new Map();
-                    // FASE 2: Removemos restrições de tipo. Se é recorrente e não é acerto, projeta (serve para Despesa e Receita)
                     txs.forEach(t => { if (t.isRecurrent && !t.isSettlement) recurrenceMap.set(t.title.toLowerCase().trim(), t); });
                     
                     recurrenceMap.forEach(template => {
-                        // FASE 2: Comparação robusta (ignora maiúsculas/minúsculas e espaços)
                         const existsInMonth = txs.some(t => 
                             t.date.startsWith(selectedMonth) && 
                             t.title.toLowerCase().trim() === template.title.toLowerCase().trim()
                         );
-
                         if (!existsInMonth) {
-                            // Define o dia padrão como o dia original da recorrência ou dia 05 se falhar
                             const day = template.date.split('-')[2] || '05';
-                            fullList.push({ 
-                                ...template, 
-                                id: 'ghost_' + template.id, 
-                                date: `${selectedMonth}-${day}`, 
-                                isProjection: true, 
-                                displayTitle: template.title + ' (Previsto)' 
-                            });
+                            fullList.push({ ...template, id: 'ghost_' + template.id, date: `${selectedMonth}-${day}`, isProjection: true, displayTitle: template.title + ' (Previsto)' });
                         }
                     });
                 }
 
-                // --- 2. FILTROS DE UNIVERSO (Extrato Dia a Dia) ---
+                // --- 2. FILTROS DE UNIVERSO (Limpo e Seguro) ---
                 const filterByUniverse = (t) => {
-                     // ... (código existente da função filterByUniverse - NÃO MUDE NADA DENTRO DELA)
                      if (t.isSettlement) {
-                        // ...
+                        // Se for modo conjunto, esconde da lista (pois o saldo é calculado matematicamente no topo)
+                        if (viewMode === 'joint') return false;
+                        
+                        // Lógica para Meu Mundo: Mostra apenas acertos CONFIRMADOS
+                        if (t.ownerId === profile) return true; // Eu paguei/criei
+                        if (t.ownerId !== profile) return t.status === 'confirmed'; // Recebi e já confirmei
                         return false;
                      }
                      if (viewMode === 'joint') return t.isShared && !t.isSettlement;                     
@@ -1056,9 +1058,9 @@
                      return myPrivate || iPaidShared;
                 };
 
-                // --- FASE 3: CÁLCULO DE SALDO ACUMULADO (ROLLING BALANCE) ---
-                // Define o início do mês selecionado para cortar o histórico
+                // --- FASE 3: CÁLCULO DE SALDO ACUMULADO ---
                 const startOfSelectedMonth = `${selectedMonth}-01`;
+                // ... (resto do código igual)
 
                 // Filtra tudo que aconteceu ANTES deste mês, respeitando o mesmo filtro de mundo (Segurança Total)
                 const previousTxs = fullList
@@ -2183,6 +2185,30 @@
                                     <button 
                                         onClick={() => confirmSettlement(tx)}
                                         className="bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-sm active:scale-95 transition-transform flex items-center gap-2"
+                                    >
+                                        <Check size={14}/> Confirmar
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                     
+                    {/* CORREÇÃO v41: NOTIFICAÇÃO DE ACERTO PENDENTE (Restaurada) */}
+                    {data && data.pendingSettlements && data.pendingSettlements.length > 0 && (
+                        <div className="bg-amber-100 border-b border-amber-200 px-6 py-4 flex flex-col gap-3 animate-slide-up sticky top-0 z-50">
+                            <div className="flex items-center gap-2 text-amber-800 font-bold">
+                                <span className="bg-amber-200 p-1.5 rounded-full"><ArrowRightLeft size={16}/></span>
+                                <span>Confirmação Pendente</span>
+                            </div>
+                            {data.pendingSettlements.map(tx => (
+                                <div key={tx.id} className="bg-white/60 p-3 rounded-xl flex justify-between items-center shadow-sm">
+                                    <div>
+                                        <p className="text-xs text-amber-900 mb-0.5">{USER_CONFIG[tx.ownerId]?.name || 'Parceiro'} informou pagamento:</p>
+                                        <p className="font-bold text-lg text-amber-900">{formatCurrency(tx.amount)}</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => confirmSettlement(tx)}
+                                        className="bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-sm active:scale-95 transition-transform flex items-center gap-2 hover:bg-emerald-600"
                                     >
                                         <Check size={14}/> Confirmar
                                     </button>
