@@ -1041,21 +1041,32 @@
                     });
                 }
 
-                // --- 2. FILTROS DE UNIVERSO (Limpo e Seguro) ---
+                // --- 2. FILTROS DE UNIVERSO (Lógica Financeira Blindada v42) ---
                 const filterByUniverse = (t) => {
+                     // Lógica de Acertos (Settlements)
                      if (t.isSettlement) {
-                        // Se for modo conjunto, esconde da lista (pois o saldo é calculado matematicamente no topo)
-                        if (viewMode === 'joint') return false;
+                        if (viewMode === 'joint') return false; // Acerto não é despesa conjunta, é transferência
                         
-                        // Lógica para Meu Mundo: Mostra apenas acertos CONFIRMADOS
-                        if (t.ownerId === profile) return true; // Eu paguei/criei
-                        if (t.ownerId !== profile) return t.status === 'confirmed'; // Recebi e já confirmei
+                        // No pessoal, mostro se EU participei (paguei ou recebi confirmado)
+                        if (t.ownerId === profile) return true; 
+                        if (t.ownerId !== profile) return t.status === 'confirmed'; 
                         return false;
                      }
+                     
+                     // Modo Conjunto: Mostra tudo que é compartilhado (Centro de Custo da Casa)
                      if (viewMode === 'joint') return t.isShared && !t.isSettlement;                     
+                     
+                     // Modo Pessoal ("Meu Mundo"):
+                     // Regra 1: É meu e privado?
                      const myPrivate = t.ownerId === profile && !t.isShared;
-                     const iPaidShared = t.ownerId === profile && t.payer === 'me' && t.isShared; 
-                     return myPrivate || iPaidShared;
+                     
+                     // Regra 2: É compartilhado, mas saiu do MEU bolso? (Correção do Buraco Contábil)
+                     // Cenário A: Eu lancei e paguei "me"
+                     const iCreatedAndPaid = t.ownerId === profile && t.payer === 'me' && t.isShared;
+                     // Cenário B: O parceiro lançou, mas marcou "partner" (ou seja, EU paguei)
+                     const partnerCreatedAndIPaid = t.ownerId !== profile && t.payer === 'partner' && t.isShared;
+                     
+                     return myPrivate || iCreatedAndPaid || partnerCreatedAndIPaid;
                 };
 
                 // --- FASE 3: CÁLCULO DE SALDO ACUMULADO ---
@@ -2169,31 +2180,7 @@
                         </div>
                     )}
 
-		    {/* NOTIFICAÇÃO DE ACERTO PENDENTE */}
-                    {data && data.pendingSettlements && data.pendingSettlements.length > 0 && (
-                        <div className="bg-amber-100 border-b border-amber-200 px-6 py-4 flex flex-col gap-3 animate-slide-up sticky top-0 z-30">
-                            <div className="flex items-center gap-2 text-amber-800 font-bold">
-                                <span className="bg-amber-200 p-1.5 rounded-full"><ArrowRightLeft size={16}/></span>
-                                <span>Confirmação Pendente</span>
-                            </div>
-                            {data.pendingSettlements.map(tx => (
-                                <div key={tx.id} className="bg-white/60 p-3 rounded-xl flex justify-between items-center">
-                                    <div>
-                                        <p className="text-xs text-amber-900 mb-0.5">{USER_CONFIG[tx.ownerId]?.name} informou pagamento:</p>
-                                        <p className="font-bold text-lg text-amber-900">{formatCurrency(tx.amount)}</p>
-                                    </div>
-                                    <button 
-                                        onClick={() => confirmSettlement(tx)}
-                                        className="bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-sm active:scale-95 transition-transform flex items-center gap-2"
-                                    >
-                                        <Check size={14}/> Confirmar
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                     
-                    {/* CORREÇÃO v41: NOTIFICAÇÃO DE ACERTO PENDENTE (Restaurada) */}
+		    {/* CORREÇÃO v41: NOTIFICAÇÃO DE ACERTO PENDENTE (Restaurada) */}
                     {data && data.pendingSettlements && data.pendingSettlements.length > 0 && (
                         <div className="bg-amber-100 border-b border-amber-200 px-6 py-4 flex flex-col gap-3 animate-slide-up sticky top-0 z-50">
                             <div className="flex items-center gap-2 text-amber-800 font-bold">
@@ -2369,14 +2356,38 @@
                                                     </div>
                                                 ) : (
                                                     <div className="relative">
+                                                        {/* Ícone da Categoria */}
                                                         <span className="text-2xl bg-gray-50 w-10 h-10 flex items-center justify-center rounded-xl">
                                                             {t.type === 'income' ? '💰' : t.type === 'investment' ? '🚀' : t.isSettlement ? '🤝' : '🏷️'}
                                                         </span>
-                                                        {/* AVATAR DE QUEM PAGOU (Só aparece no Nosso Mundo) */}
-                                                        {viewMode === 'joint' && USER_CONFIG[t.ownerId] && (
-                                                            <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center text-[10px] ${USER_CONFIG[t.ownerId].color}`}>
-                                                                {USER_CONFIG[t.ownerId].avatar}
-                                                            </div>
+                                                        
+                                                        {/* LÓGICA VISUAL v42: QUEM PAGOU vs QUEM CRIOU */}
+                                                        {viewMode === 'joint' && (
+                                                            <>
+                                                                {/* 1. Avatar Grande (Quem Pagou de Verdade) */}
+                                                                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center text-[10px] overflow-hidden shadow-sm z-10">
+                                                                    {(() => {
+                                                                        // Quem é o pagador real?
+                                                                        const isCreatorPayer = t.payer === 'me';
+                                                                        const payerId = isCreatorPayer ? t.ownerId : (t.ownerId === 'bruno' ? 'maiara' : 'bruno');
+                                                                        const payerConfig = USER_CONFIG[payerId];
+                                                                        return (
+                                                                            <div className={`w-full h-full flex items-center justify-center ${payerConfig?.color || 'bg-gray-400'}`} title={`Pago por ${payerConfig?.name}`}>
+                                                                                {payerConfig?.avatar || '?'}
+                                                                            </div>
+                                                                        );
+                                                                    })()}
+                                                                </div>
+
+                                                                {/* 2. Avatar Pequeno (Quem Criou/Rastreio - Só aparece se for diferente do pagador) */}
+                                                                {t.payer === 'partner' && USER_CONFIG[t.ownerId] && (
+                                                                    <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center text-[8px] overflow-hidden shadow-sm z-20">
+                                                                         <div className={`w-full h-full flex items-center justify-center ${USER_CONFIG[t.ownerId].color} opacity-90`} title={`Lançado por ${USER_CONFIG[t.ownerId].name}`}>
+                                                                            {USER_CONFIG[t.ownerId].avatar}
+                                                                         </div>
+                                                                    </div>
+                                                                )}
+                                                            </>
                                                         )}
                                                     </div>
                                                 )}
