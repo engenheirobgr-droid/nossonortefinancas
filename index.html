@@ -1080,14 +1080,22 @@
 
                 // Calcula o saldo histórico
                 let previousBalance = 0;
+                // --- INÍCIO DA ALTERAÇÃO ---
+                let accumInvest = 0; // Novo rastreador
+
                 previousTxs.forEach(t => {
                     const val = Number(t.amount);
                     if (t.type === 'income') previousBalance += val;
                     else if (t.type === 'expense') previousBalance -= val;
-                    // Nota: Investimento sai do Caixa (Despesa Financeira), então subtrai
-                    else if (t.type === 'investment') previousBalance -= val; 
+                    
+                    // Investimento sai do caixa (realidade), mas somamos no acumulador
+                    else if (t.type === 'investment') {
+                        previousBalance -= val; 
+                        accumInvest += val;
+                    }
                     
                     // Tratamento de Acertos no Passado
+                // --- FIM DA ALTERAÇÃO ---
                     if (t.isSettlement) {
                         if (t.ownerId === profile) previousBalance -= val; // Eu paguei = saiu
                         else previousBalance += val; // Recebi = entrou
@@ -1097,13 +1105,11 @@
 
                 const currentMonthList = fullList
                     .filter(filterByUniverse)
-                    // ... (resto do código existente)
-                    // Filtro visual: Se "Nosso Mundo" + "Dia a Dia", esconde aportes (foca custo de vida)
-                    .filter(t => {
-                        if (viewMode === 'joint' && dashboardMode === 'statement' && t.type === 'investment') return false;
-                        return true;
-                    })
+                    // --- INÍCIO DA ALTERAÇÃO ---
+                    // REMOVIDO O FILTRO QUE ESCONDIA INVESTIMENTOS
+                    // Agora mostramos tudo para transparência total
                     .filter(t => t.date.startsWith(selectedMonth))
+                    // --- FIM DA ALTERAÇÃO ---
                     .map(t => {
                         // Se é um acerto e NÃO sou o dono (ou seja, sou quem recebeu), vejo como INCOME
                         if (t.isSettlement && t.ownerId !== profile) {
@@ -1261,9 +1267,17 @@
                 const profit = portfolioCurrentTotal - totalInvested;
                 const yieldPct = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
                 
-                // --- 6. PATRIMÔNIO REAL (Correção Item 2) ---
-                // Saldo Conta (Disponível) + Total Investido Atualizado
-                const netWorth = bal + portfolioCurrentTotal; 
+                // --- INÍCIO DA ALTERAÇÃO ---
+                // 1. Patrimônio Real (Meu Mundo): Soma Saldo Acumulado + Investimentos
+                const accumulatedCash = previousBalance + bal;
+                const netWorth = accumulatedCash + portfolioCurrentTotal; 
+
+                // 2. Dados para a Legenda (Nosso Mundo):
+                // Total investido que compõe o saldo (Histórico + Mês Atual)
+                const totalInvestInBalance = accumInvest + inv; 
+                // O "Gasto Líquido" é o Saldo Total descontando o que foi guardado
+                const operationalBalance = (previousBalance + bal) + totalInvestInBalance;
+                // --- FIM DA ALTERAÇÃO ---
 
                 // --- SONHOS e METAS (Mantido) ---
                 const filteredDreams = dreams.filter(d => {
@@ -1324,9 +1338,11 @@
                 return { 
                     list: currentMonthList, fullList, bal, inc, exp, inv, 
                     previousBalance,
-		    coupleBal,      // Saldo Travado (Seguro)
-                    rawCoupleBal,   // <--- NOVO: Saldo Cru (Para o botão de override)
-                    totalCoupleBal, // Saldo Global
+                    coupleBal, rawCoupleBal, totalCoupleBal, 
+                    // --- INÍCIO DA ALTERAÇÃO ---
+                    totalInvestInBalance, // Exporta para o Header
+                    operationalBalance,   // Exporta para o Header
+                    // --- FIM DA ALTERAÇÃO ---
                     pendingSettlements, 
                     planning, dreamsProgress, netWorth, economicExp,
                     // CORREÇÃO 1 e 2 refletidas aqui:
@@ -2262,24 +2278,41 @@
                                 <h2 className="text-4xl font-extrabold text-white tracking-tight">
                                     {dashboardMode === 'investment' 
                                         ? formatCurrency(data.investData.totalCurrent) 
-                                        : (viewMode === 'joint' 
-                                            ? formatCurrency(data.previousBalance + data.bal) 
-                                            : formatCurrency(data.previousBalance + data.bal) // FASE 3: Saldo Anterior + Resultado do Mês
-                                        )
+                                        // --- INÍCIO DA ALTERAÇÃO ---
+                                        : formatCurrency(data.previousBalance + data.bal) // Mostra a realidade contábil
+                                        // --- FIM DA ALTERAÇÃO ---
                                     }
                                 </h2>
                                 
-                                {/* FASE 3: Detalhe visual pequeno abaixo do saldo */}
+                                {/* --- INÍCIO DA ALTERAÇÃO: LEGENDA EXPLICATIVA --- */}
                                 {dashboardMode === 'statement' && (
-                                    <p className="text-[10px] text-slate-500 mt-1 font-bold">
-                                        {data.previousBalance !== 0 && (
-                                            <>
-                                                Início: <span className={data.previousBalance >= 0 ? 'text-emerald-500' : 'text-rose-500'}>{formatCurrency(data.previousBalance)}</span>
-                                                {' '}{data.bal >= 0 ? '+' : ''}{formatCurrency(data.bal)} (Mês)
-                                            </>
-                                        )}
-                                    </p>
+                                    viewMode === 'joint' && data.totalInvestInBalance > 0 ? (
+                                        <div className="flex items-center justify-center gap-3 mt-2 animate-fade-in">
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-[9px] font-bold text-slate-500 uppercase">Gasto Líquido</span>
+                                                <span className="text-xs font-bold text-rose-400">{formatCurrency(data.operationalBalance)}</span>
+                                            </div>
+                                            <div className="h-6 w-[1px] bg-slate-700"></div>
+                                            <div className="flex flex-col items-start">
+                                                <span className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> Aportes
+                                                </span>
+                                                <span className="text-xs font-bold text-indigo-400">-{formatCurrency(data.totalInvestInBalance)}</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        // Mantém o padrão antigo para "Meu Mundo" ou se não houver investimentos
+                                        <p className="text-[10px] text-slate-500 mt-1 font-bold">
+                                            {data.previousBalance !== 0 && (
+                                                <>
+                                                    Início: <span className={data.previousBalance >= 0 ? 'text-emerald-500' : 'text-rose-500'}>{formatCurrency(data.previousBalance)}</span>
+                                                    {' '}{data.bal >= 0 ? '+' : ''}{formatCurrency(data.bal)} (Mês)
+                                                </>
+                                            )}
+                                        </p>
+                                    )
                                 )}
+                                {/* --- FIM DA ALTERAÇÃO --- */}
                             </div>
 
                              {/* LÓGICA DE BOTÕES DE ACERTO (INTELIGENTE v36) - AGORA DENTRO DO HEADER */}
@@ -2647,18 +2680,37 @@
                                             </>
                                         ) : (
                                             <>
-                                                {/* NOVO: CARD DE PATRIMÔNIO TOTAL (Correção Item 2) */}
+                                                {/* --- INÍCIO DA ALTERAÇÃO: CARD INTELIGENTE --- */}
                                                 <div className="col-span-2 bg-gradient-to-r from-slate-800 to-slate-900 p-4 rounded-2xl border border-slate-700 shadow-lg mb-2">
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase mb-1 flex items-center gap-2">
-                                                        <Wallet size={12}/> Patrimônio Global
-                                                    </p>
-                                                    <p className="text-2xl font-extrabold text-white tracking-tight">
-                                                        {formatCurrency(data.analysis.health.totalNetWorth)}
-                                                    </p>
-                                                    <p className="text-[9px] text-slate-400 mt-1">
-                                                        Soma do Saldo em Conta ({formatCurrency(data.bal)}) + Investimentos ({formatCurrency(data.investData.totalCurrent)})
-                                                    </p>
+                                                    {viewMode === 'joint' ? (
+                                                        // VISÃO CASAL: Foco apenas no Acumulado (Investimentos)
+                                                        <>
+                                                            <p className="text-[10px] text-slate-400 font-bold uppercase mb-1 flex items-center gap-2">
+                                                                <Trophy size={12} className="text-yellow-400"/> Total Acumulado (Casal)
+                                                            </p>
+                                                            <p className="text-2xl font-extrabold text-white tracking-tight">
+                                                                {formatCurrency(data.investData.totalCurrent)}
+                                                            </p>
+                                                            <p className="text-[9px] text-slate-400 mt-1">
+                                                                Total bruto em carteira (Sem descontar gastos)
+                                                            </p>
+                                                        </>
+                                                    ) : (
+                                                        // VISÃO PESSOAL: Foco em Patrimônio Líquido (Caixa + Invest)
+                                                        <>
+                                                            <p className="text-[10px] text-slate-400 font-bold uppercase mb-1 flex items-center gap-2">
+                                                                <Wallet size={12}/> Patrimônio Global (Pessoal)
+                                                            </p>
+                                                            <p className="text-2xl font-extrabold text-white tracking-tight">
+                                                                {formatCurrency(data.analysis.health.totalNetWorth)}
+                                                            </p>
+                                                            <p className="text-[9px] text-slate-400 mt-1">
+                                                                Saldo em Conta ({formatCurrency(data.previousBalance + data.bal)}) + Investimentos ({formatCurrency(data.investData.totalCurrent)})
+                                                            </p>
+                                                        </>
+                                                    )}
                                                 </div>
+                                                {/* --- FIM DA ALTERAÇÃO --- */}
 
                                                 <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/5">
                                                     <p className="text-[10px] text-slate-300 font-bold uppercase mb-1">Liberdade Fin.</p>
