@@ -878,6 +878,10 @@
             // Dashboard Context Mode (Dia a Dia vs Investimentos) - Global para todas as abas
             const [dashboardMode, setDashboardMode] = useState('statement'); // 'statement' | 'investment'
 
+            // --- NOVO: MODO DE VISUALIZAÇÃO (REAL vs PREVISTO) ---
+            const [isForecast, setIsForecast] = useState(true); // Padrão: Previsão ligada
+            // -----------------------------------------------------
+
             const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
             const [menuOpen, setMenuOpen] = useState(false);
             const [modalOpen, setModalOpen] = useState(false);
@@ -1103,23 +1107,29 @@
                 });
                 // -----------------------------------------------------------
 
-                const currentMonthList = fullList
-                    .filter(filterByUniverse)
-                    // --- INÍCIO DA ALTERAÇÃO ---
-                    // REMOVIDO O FILTRO QUE ESCONDIA INVESTIMENTOS
-                    // Agora mostramos tudo para transparência total
-                    .filter(t => t.date.startsWith(selectedMonth))
-                    // --- FIM DA ALTERAÇÃO ---
-                    .map(t => {
-                        // Se é um acerto e NÃO sou o dono (ou seja, sou quem recebeu), vejo como INCOME
-                        if (t.isSettlement && t.ownerId !== profile) {
-                            return { ...t, type: 'income', displayTitle: 'Acerto Recebido' };
-                        }
-                        return t;
-                    });
+                
 
-                // --- 3. CÁLCULOS DE CAIXA (Saldos e Relatórios) ---
-                let inc = 0, exp = 0, inv = 0;
+            // --- INÍCIO DA ALTERAÇÃO ---
+            const todayStr = new Date().toISOString().split('T')[0];
+            const monthBaseList = fullList
+                .filter(filterByUniverse)
+                .filter(t => t.date.startsWith(selectedMonth));
+
+            // Cenário 1: PREVISTO (Tudo: Realizado + Futuro + Fantasmas)
+            const listForecast = monthBaseList.map(t => {
+                    if (t.isSettlement && t.ownerId !== profile) return { ...t, type: 'income', displayTitle: 'Acerto Recebido' };
+                    return t;
+            });
+
+            // Cenário 2: REALIZADO (Apenas passado/hoje e SEM projeções)
+            const listReal = listForecast.filter(t => !t.isProjection);
+
+            // Define qual lista usar baseado no botão
+            const currentMonthList = isForecast ? listForecast : listReal;
+            // --- FIM DA ALTERAÇÃO ---
+
+            // --- 3. CÁLCULOS DE CAIXA (Saldos e Relatórios) ---
+            let inc = 0, exp = 0, inv = 0;
                 let strictScopeInv = 0; // Nova métrica para Relatório (Correção 2)
                 let dailyCatMap = {}; let incomeCatMap = {}; let dailyBankFlow = {}; 
                 let monthlyDividends = 0;
@@ -1163,15 +1173,26 @@
                 const [selYear, selMonth] = selectedMonth.split('-').map(Number);
                 const lastDayOfMonth = new Date(selYear, selMonth, 0).toISOString().split('T')[0];
 
-                // Removemos o filtro de data daqui para calcular o GLOBAL também
-                fullList.filter(t => !t.isProjection).forEach(t => { 
+                // --- INÍCIO DA ALTERAÇÃO ---
+                fullList.forEach(t => { 
+                    // FILTRO MESTRE DO ACERTO:
                     const val = Number(t.amount);
-                    const isFuture = t.date > lastDayOfMonth; // Verifica se é futuro
+                    
+                    // CORREÇÃO: A definição de "Futuro" para o cálculo do saldo deve ser sempre "Depois deste mês".
+                    // Antes, o modo Realizado cortava no dia de "Hoje", ignorando contas manuais do fim do mês.
+                    const isFuture = t.date > lastDayOfMonth; 
+                    const isGhost = t.isProjection;
 
-                    // Lógica Econômica (Gasto Real) - Só conta se não for futuro, para não poluir a visão mensal
-                    if (!isFuture && t.ownerId === profile && t.type === 'expense') {
+                    // Se modo Real: Ignora APENAS fantasmas (Projeções automáticas).
+                    // Lançamentos manuais futuros (data > hoje) agora ENTRAM na conta, pois são dívidas firmadas.
+                    if (!isForecast && isGhost) return;
+
+                    // Lógica Econômica (Gasto Real)
+                    // (Removemos a trava de data aqui também para alinhar com o filtro acima)
+                    if (!isFuture && !isGhost && t.ownerId === profile && t.type === 'expense') {
                         if (t.isShared) economicExp += val / 2; else economicExp += val;
                     }
+                // --- FIM DA ALTERAÇÃO ---
 
                     if (t.isShared && !t.isSettlement) {
                         const half = val / 2;
@@ -1339,17 +1360,15 @@
                     list: currentMonthList, fullList, bal, inc, exp, inv, 
                     previousBalance,
                     coupleBal, rawCoupleBal, totalCoupleBal, 
-                    // --- INÍCIO DA ALTERAÇÃO ---
-                    totalInvestInBalance, // Exporta para o Header
-                    operationalBalance,   // Exporta para o Header
-                    // --- FIM DA ALTERAÇÃO ---
+                    totalInvestInBalance, 
+                    operationalBalance,   
                     pendingSettlements, 
                     planning, dreamsProgress, netWorth, economicExp,
-                    // CORREÇÃO 1 e 2 refletidas aqui:
                     analysis: { daily: { charts: dailyCharts, bankFlow: dailyBankFlow }, invest: { charts: investCharts, bankFlow: investBankFlow }, history: Object.values(historyMap).sort((a,b)=>a.month.localeCompare(b.month)).slice(-6), health: { savingsRate: inc > 0 ? ((inc - exp) / inc) * 100 : 0, burnRate: exp, coverage: exp > 0 ? (portfolioCurrentTotal / exp) : 0, freedom: exp > 0 ? (monthlyDividends / exp) * 100 : 0, investRate: inc > 0 ? (inv / inc) * 100 : 0, totalNetWorth: netWorth, totalOutflows: totalOutflows, strictScopeInv: strictScopeInv } },
                     investData: { totalInvested, totalCurrent: portfolioCurrentTotal, profit, yieldPct, byBank: investBankFlow, byType: investCatMap, dividends: monthlyDividends, portfolio: Object.values(portfolio).sort((a,b) => b.currentTotal - a.currentTotal) }
-		        };
-            }, [txs, profile, viewMode, budgets, selectedMonth, dashboardMode, currentPrices, dreams]);
+                };
+            // --- CORREÇÃO: ADICIONADO 'isForecast' NAS DEPENDÊNCIAS ABAIXO ---
+            }, [txs, profile, viewMode, budgets, selectedMonth, dashboardMode, currentPrices, dreams, isForecast]);
 
             // --- EXPORTAR EXCEL ---
             const exportData = () => {
@@ -2252,6 +2271,23 @@
                             <button onClick={() => setViewMode('joint')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${viewMode === 'joint' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400'}`}>Nosso Mundo</button>
                         </div>
                         
+                        {/* --- INÍCIO DA ALTERAÇÃO --- */}
+                        {dashboardMode === 'statement' && (
+                            <div className="flex justify-center mb-6">
+                                <button 
+                                    onClick={() => setIsForecast(!isForecast)}
+                                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold border transition-all ${isForecast 
+                                        ? 'bg-slate-800 border-indigo-500/50 text-indigo-300' 
+                                        : 'bg-slate-800 border-emerald-500/50 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+                                    }`}
+                                >
+                                    {isForecast ? <Sparkles size={12}/> : <CheckSquare size={12}/>}
+                                    {isForecast ? 'Visão: Previsão Mensal' : 'Visão: Realizado Hoje'}
+                                </button>
+                            </div>
+                        )}
+                        {/* --- FIM DA ALTERAÇÃO --- */}
+
                         {/* HOME FILTER */}
                         {['home', 'planning', 'reports'].includes(tab) && (
                             <div className="flex justify-center mb-6">
@@ -2269,12 +2305,26 @@
                                 <p className="text-xs text-slate-400 font-bold uppercase mb-2 flex items-center justify-center gap-2">
                                     {dashboardMode === 'investment' 
                                         ? 'Patrimônio Total' 
-                                        : (viewMode === 'joint' ? 'Caixa Casal (Acumulado)' : 'Saldo em Conta (Previsto)')
+                                        : (viewMode === 'joint' 
+                                            ? 'Caixa Casal (Acumulado)' 
+                                            // --- CORREÇÃO: Texto muda conforme o botão ---
+                                            : `Saldo em Conta (${isForecast ? 'Previsto' : 'Realizado'})`)
                                     }
                                     <span className="bg-slate-800 px-2 py-0.5 rounded text-[10px] text-emerald-400 flex items-center gap-1 border border-slate-700">
                                         {selectedMonth.split('-').reverse().join('/')}
                                     </span>
                                 </p>
+                                
+                                {/* --- INÍCIO DA ALTERAÇÃO --- */}
+                                {dashboardMode === 'statement' && (
+                                    <p className="text-[10px] text-slate-500 font-bold mb-1 opacity-80">
+                                        Início: <span className={data.previousBalance >= 0 ? 'text-emerald-500' : 'text-rose-500'}>{formatCurrency(data.previousBalance)}</span>
+                                        {' '}+ Mês: <span className={data.bal >= 0 ? 'text-emerald-500' : 'text-rose-500'}>{formatCurrency(data.bal)}</span>
+                                    </p>
+                                )}
+                                {/* --- FIM DA ALTERAÇÃO --- */}
+
+                                {/* SALDO GRANDE (REALIDADE CONTÁBIL) */}
                                 <h2 className="text-4xl font-extrabold text-white tracking-tight">
                                     {dashboardMode === 'investment' 
                                         ? formatCurrency(data.investData.totalCurrent) 
