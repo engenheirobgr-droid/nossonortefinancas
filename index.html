@@ -2264,7 +2264,7 @@
                     </div>
 
                     {/* Content (Onde entram as listas e cards futuros) */}
-                    <div className="flex-1 overflow-y-auto p-6 pb-24 scrollbar-hide relative">
+                    <div className="flex-1 overflow-y-auto p-6 pb-32 scrollbar-hide relative">
                         {/* BARRA FLUTUANTE DE EXCLUSÃO */}
                         {selectionMode && selectedIds.size > 0 && (
                             <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-pop">
@@ -2823,54 +2823,63 @@
                         </div>
                     )}
 
-                    {/* BARRA DE NAVEGAÇÃO HUB (5 ITENS) - VERSÃO DARK NÁUTICA */}
+                    {/* BARRA DE NAVEGAÇÃO HUB - VERSÃO COMPACTA & ELEGANTE */}
                     <div className="fixed bottom-0 w-full z-40">
-                        {/* Gradiente para suavizar o final da lista */}
-                        <div className="h-12 bg-gradient-to-t from-slate-900 to-transparent pointer-events-none absolute bottom-full w-full"></div>
+                        {/* Gradiente sutil para transição suave do conteúdo */}
+                        <div className="h-6 bg-gradient-to-t from-[#0f172a] to-transparent pointer-events-none absolute bottom-full w-full"></div>
                         
-                        <div className="bg-[#0f172a] border-t border-white/5 pb-6 pt-3 px-6 shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
+                        {/* Barra Principal: Altura reduzida e cor escura */}
+                        <div className="bg-[#0f172a] border-t border-white/10 pb-5 pt-2 px-6 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
                             <div className="grid grid-cols-5 items-end relative">
                                 
                                 {/* 1. FINANÇAS */}
-                                <button onClick={() => setTab('home')} className={`flex flex-col items-center gap-1 pb-1 transition-colors ${tab === 'home' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
-                                    <Wallet size={22} strokeWidth={tab==='home'?2.5:2} className="transition-transform active:scale-90"/>
-                                    <span className="text-[9px] font-bold tracking-wide">Finanças</span>
+                                <button onClick={() => setTab('home')} className={`flex flex-col items-center gap-1 group ${tab === 'home' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
+                                    <div className={`p-1 rounded-full transition-all ${tab === 'home' ? 'bg-emerald-400/10' : ''}`}>
+                                        <Wallet size={20} strokeWidth={tab==='home'?2.5:2} className="group-active:scale-90 transition-transform"/>
+                                    </div>
+                                    <span className="text-[9px] font-medium tracking-wide opacity-90">Norte</span>
                                 </button>
                                 
                                 {/* 2. CASA */}
-                                <button onClick={() => setTab('chores')} className={`flex flex-col items-center gap-1 pb-1 transition-colors ${tab === 'chores' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
-                                    <Home size={22} strokeWidth={tab==='chores'?2.5:2} className="transition-transform active:scale-90"/>
-                                    <span className="text-[9px] font-bold tracking-wide">Casa</span>
+                                <button onClick={() => setTab('chores')} className={`flex flex-col items-center gap-1 group ${tab === 'chores' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
+                                    <div className={`p-1 rounded-full transition-all ${tab === 'chores' ? 'bg-emerald-400/10' : ''}`}>
+                                        <Home size={20} strokeWidth={tab==='chores'?2.5:2} className="group-active:scale-90 transition-transform"/>
+                                    </div>
+                                    <span className="text-[9px] font-medium tracking-wide opacity-90">Casa</span>
                                 </button>
 
-                                {/* 3. AÇÃO CENTRAL (BÚSSOLA DE NAVEGAÇÃO) */}
-                                <div className="relative -top-8 flex justify-center">
+                                {/* 3. BÚSSOLA CENTRAL (PREMIUM & COMPACTA) */}
+                                <div className="relative -top-5 flex justify-center">
                                     <button 
                                         onClick={() => setMenuOpen(!menuOpen)} 
-                                        className={`w-16 h-16 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.3)] border-4 border-[#0f172a] bg-gradient-to-br from-slate-800 to-slate-900 text-emerald-400 transition-transform ${menuOpen ? 'scale-95' : 'active:scale-95 hover:scale-105'}`}
+                                        /* ALTERAÇÃO AQUI: Troquei a sombra exagerada por shadow-lg shadow-black/50 que é mais limpa e firme */
+                                        className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg shadow-black/50 border-[3px] border-[#0f172a] bg-gradient-to-b from-slate-700 to-slate-900 transition-all ${menuOpen ? 'scale-95 ring-2 ring-emerald-500/50' : 'active:scale-95 hover:-translate-y-1'}`}
                                     >
-                                        {/* Desenho da Bússola com SVG Manual para elegância */}
-                                        <div className={`relative w-full h-full flex items-center justify-center transition-transform duration-500 ${menuOpen ? 'rotate-90' : ''}`}>
-                                            <div className="absolute inset-1 border border-white/10 rounded-full"></div>
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <Compass size={32} strokeWidth={1.5} className="text-emerald-400 drop-shadow-lg"/>
-                                            </div>
-                                            {/* Detalhe Norte Vermelho */}
-                                            <div className="absolute top-3 w-1 h-1 bg-rose-500 rounded-full shadow-[0_0_5px_rgba(244,63,94,0.8)]"></div>
-                                        </div>
+                                        {/* Anel Externo Dourado/Metálico */}
+                                        <div className="absolute inset-0.5 rounded-full border border-white/20"></div>
+                                        
+                                        {/* Ícone da Bússola - Removi o drop-shadow extra do ícone para limpar o visual */}
+                                        <Compass size={26} strokeWidth={1.5} className={`text-emerald-400 transition-transform duration-500 ${menuOpen ? 'rotate-90' : ''}`}/>
+                                        
+                                        {/* Detalhe: Ponto Central */}
+                                        <div className="absolute w-1 h-1 bg-white rounded-full"></div>
                                     </button>
                                 </div>
                                 
                                 {/* 4. METAS */}
-                                <button onClick={() => setTab('planning')} className={`flex flex-col items-center gap-1 pb-1 transition-colors ${tab === 'planning' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
-                                    <Target size={22} strokeWidth={tab==='planning'?2.5:2} className="transition-transform active:scale-90"/>
-                                    <span className="text-[9px] font-bold tracking-wide">Metas</span>
+                                <button onClick={() => setTab('planning')} className={`flex flex-col items-center gap-1 group ${tab === 'planning' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
+                                    <div className={`p-1 rounded-full transition-all ${tab === 'planning' ? 'bg-emerald-400/10' : ''}`}>
+                                        <Target size={20} strokeWidth={tab==='planning'?2.5:2} className="group-active:scale-90 transition-transform"/>
+                                    </div>
+                                    <span className="text-[9px] font-medium tracking-wide opacity-90">Metas</span>
                                 </button>
                                 
                                 {/* 5. ANÁLISE */}
-                                <button onClick={() => setTab('reports')} className={`flex flex-col items-center gap-1 pb-1 transition-colors ${tab === 'reports' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
-                                    <BarChart3 size={22} strokeWidth={tab==='reports'?2.5:2} className="transition-transform active:scale-90"/>
-                                    <span className="text-[9px] font-bold tracking-wide">Análise</span>
+                                <button onClick={() => setTab('reports')} className={`flex flex-col items-center gap-1 group ${tab === 'reports' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
+                                    <div className={`p-1 rounded-full transition-all ${tab === 'reports' ? 'bg-emerald-400/10' : ''}`}>
+                                        <BarChart3 size={20} strokeWidth={tab==='reports'?2.5:2} className="group-active:scale-90 transition-transform"/>
+                                    </div>
+                                    <span className="text-[9px] font-medium tracking-wide opacity-90">Análise</span>
                                 </button>
                             </div>
                         </div>
