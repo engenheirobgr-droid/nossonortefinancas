@@ -907,6 +907,9 @@
 
             // --- NOVO: MODO DE VISUALIZAÇÃO (REAL vs PREVISTO) ---
             const [isForecast, setIsForecast] = useState(true); // Padrão: Previsão ligada
+
+            // --- NOVO: ESTADO PARA O HEADER DA OPÇÃO 2 ---
+            const [headerOpen, setHeaderOpen] = useState(false);
             // -----------------------------------------------------
 
             const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
@@ -2142,17 +2145,17 @@
                         </div>
                     )}
 
-                    {/* --- NOVO HEADER NÁUTICO (ITENS 1, 2, 4, 9) --- */}
-                    <div className="pt-4 pb-0 px-5 shrink-0 z-30 relative text-white">
-                        {/* Bússola de Fundo Decorativa */}
+                    {/* --- HEADER INTEGRADO COM ABAS (OPÇÃO 3 - CORRIGIDA) --- */}
+                    <div className="pt-6 pb-2 px-6 shrink-0 z-30 relative text-white">
+                        {/* Bússola de Fundo */}
                         <div className="compass-bg">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5">
                                 <circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z"/>
                             </svg>
                         </div>
 
-                        {/* Topo: Perfil e Ações */}
-                        <div className="flex justify-between items-center mb-1 relative z-10">
+                        {/* Linha 1: Perfil e Ferramentas */}
+                        <div className="flex justify-between items-center mb-4 relative z-10">
                             <div className="flex items-center gap-3">
                                 <div className={`w-9 h-9 rounded-full flex items-center justify-center text-lg ring-2 ring-indigo-500/50 shadow-lg ${USER_CONFIG[profile].color}`}>
                                     {USER_CONFIG[profile].avatar}
@@ -2163,99 +2166,93 @@
                                 </div>
                             </div>
                             
-                            <div className="flex gap-3 text-indigo-200 items-center">
-                                {/* ITEM 4: CALENDÁRIO ORGANIZADO */}
+                            <div className="flex gap-2 text-indigo-200 items-center">
                                 <div className="relative p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors border border-white/10 group cursor-pointer">
                                     <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer z-50 w-full h-full"/>
-                                    <Calendar size={20} className="text-slate-300 group-hover:text-emerald-400 transition-colors"/>
+                                    <Calendar size={18} className="text-slate-300 group-hover:text-emerald-400 transition-colors"/>
                                 </div>
-                                
-                                {/* BOTÃO DE SELEÇÃO (Recuperado) */}
-                                <button 
-                                    onClick={() => { setSelectionMode(!selectionMode); setSelectedIds(new Set()); }} 
-                                    className={`p-2 rounded-full transition-all border ${selectionMode ? 'bg-emerald-500 text-white border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'}`}
-                                >
-                                    <CheckSquare size={20}/>
+                                <button onClick={() => { setSelectionMode(!selectionMode); setSelectedIds(new Set()); }} className={`p-2 rounded-full transition-all border ${selectionMode ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'}`}>
+                                    <CheckSquare size={18}/>
                                 </button>
-
-                                <button onClick={() => setSettingsModal(true)} className="p-2 hover:text-white transition-colors"><Settings size={22} /></button>
-                                <button onClick={() => { localStorage.removeItem('fincontrol_profile'); setProfile(null); }} className="p-2 hover:text-white transition-colors"><LogOut size={22} /></button>
+                                <button onClick={() => setSettingsModal(true)} className="p-2 hover:text-white transition-colors"><Settings size={20} /></button>
                             </div>
                         </div>
 
-                        {/* ITEM 1 e 2: BOTÕES MEU NORTE / NOSSO NORTE */}
-                        <div className="flex justify-center mb-2 relative z-10">
-                            <div className="bg-[#1e293b]/80 backdrop-blur-md p-1 rounded-full flex border border-white/10 shadow-xl w-full max-w-[200px] relative">
-                                <div className={`absolute top-1 bottom-1 w-[48%] bg-indigo-600 rounded-full transition-all duration-300 ${viewMode === 'joint' ? 'left-[50%]' : 'left-1'}`}></div>
-                                
-                                <button onClick={() => setViewMode('personal')} className={`flex-1 py-1.5 text-[10px] font-bold rounded-full relative z-10 transition-colors flex items-center justify-center gap-2 ${viewMode === 'personal' ? 'text-white' : 'text-slate-400'}`}>
-                                    <div className="bg-white/10 p-0.5 rounded-full"><User size={10}/></div> Meu Norte
-                                </button>
-                                <button onClick={() => setViewMode('joint')} className={`flex-1 py-1.5 text-[10px] font-bold rounded-full relative z-10 transition-colors flex items-center justify-center gap-2 ${viewMode === 'joint' ? 'text-white' : 'text-slate-400'}`}>
-                                    <div className="bg-white/10 p-0.5 rounded-full"><Users size={10}/></div> Nosso Norte
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* BOTÕES TEXTO: DIA A DIA / INVESTIMENTOS */}
-                        <div className="flex justify-center gap-6 text-xs font-bold text-slate-400 mb-2 relative z-10">
-                            <button onClick={() => setDashboardMode('statement')} className={`transition-colors ${dashboardMode === 'statement' ? 'text-white border-b-2 border-indigo-500 pb-0.5' : 'hover:text-slate-300'}`}>Dia a dia</button>
-                            <button onClick={() => setDashboardMode('investment')} className={`transition-colors ${dashboardMode === 'investment' ? 'text-white border-b-2 border-indigo-500 pb-0.5' : 'hover:text-slate-300'}`}>Investimentos</button>
-                        </div>
-                    </div>
-
-                    {/* --- ITEM 3, 5, 6: CARD PRINCIPAL REORGANIZADO --- */}
-                    <div className="px-5 mb-4 relative z-20 shrink-0">
-                        {/* ... (conteúdo do card de saldo mantido igual, não altere o interior dele) ... */}
-                        <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-3xl p-4 text-white shadow-2xl border border-white/5 relative overflow-hidden">
+                        {/* Linha 2: O Card com Abas Integradas */}
+                        <div className="relative z-10">
                             
-                            <div className="absolute top-0 right-0 p-4 opacity-10"><MapPin size={60}/></div>
+                            {/* ABAS DE ESCOPO */}
+                            <div className="flex px-2 gap-1 translate-y-[1px]">
+                                <button onClick={() => setViewMode('personal')} className={`px-4 py-2 rounded-t-xl text-[10px] font-bold uppercase tracking-wider transition-all border-t border-x ${viewMode === 'personal' ? 'bg-[#1e293b] text-white border-white/10 pb-3 relative z-20' : 'bg-slate-800/40 text-slate-500 border-transparent hover:bg-slate-700/50 hover:text-slate-300'}`}>
+                                    Meu Norte
+                                </button>
+                                <button onClick={() => setViewMode('joint')} className={`px-4 py-2 rounded-t-xl text-[10px] font-bold uppercase tracking-wider transition-all border-t border-x ${viewMode === 'joint' ? 'bg-[#1e293b] text-white border-white/10 pb-3 relative z-20' : 'bg-slate-800/40 text-slate-500 border-transparent hover:bg-slate-700/50 hover:text-slate-300'}`}>
+                                    Nosso Norte
+                                </button>
+                            </div>
 
-                            <div className="relative z-10">
-                                {/* ITEM 6: PREVISTO VS REAL (Botão Pílula no topo do card) */}
-                                <div className="flex justify-between items-start mb-1">
-                                    <div className="flex items-center gap-2 bg-[#0f172a]/50 p-1 rounded-lg border border-white/5">
-                                        <button onClick={() => setIsForecast(false)} className={`px-2 py-0.5 rounded text-[9px] font-bold transition-colors ${!isForecast ? 'bg-indigo-500 text-white' : 'text-slate-400'}`}>Real</button>
-                                        <button onClick={() => setIsForecast(true)} className={`px-2 py-0.5 rounded text-[9px] font-bold transition-colors ${isForecast ? 'bg-indigo-500 text-white' : 'text-slate-400'}`}>Previsto</button>
-                                    </div>
+                            {/* CORPO DO CARD */}
+                            <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-b-2xl rounded-tr-2xl p-5 text-white shadow-2xl border border-white/10 relative overflow-hidden h-[150px] z-10">
+                                {/* Decoração */}
+                                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"><Compass size={120}/></div>
+
+                                <div className="relative z-10 h-full flex flex-col justify-between">
                                     
-                                    {/* ITEM 5: BOTÃO VISUALIZAR/ESCONDER */}
-                                    <button onClick={() => setHideValues(!hideValues)} className="text-slate-400 hover:text-white bg-white/5 p-1.5 rounded-full">
-                                        {hideValues ? <EyeOff size={14}/> : <Eye size={14}/>}
-                                    </button>
-                                </div>
-
-                                {/* ITEM 3: SALDO ACUMULADO COM TOTAL */}
-                                <h2 className="text-3xl font-extrabold tracking-tight mb-1">
-                                    {hideValues ? '••••••' : (
-                                        dashboardMode === 'investment' 
-                                            ? formatCurrency(data.investData.totalCurrent) 
-                                            : formatCurrency(data.previousBalance + data.bal)
-                                    )}
-                                </h2>
-                                <p className="text-xs text-slate-400 mb-6">Saldo Acumulado Disponível</p>
-                                
-                                {/* ITEM 3: ANTERIOR / ATUAL / DETALHES */}
-                                <div className="space-y-3">
-                                    {dashboardMode === 'statement' && (
-                                        <div className="flex justify-between text-[10px] text-slate-400 border-b border-white/5 pb-2">
-                                            <span>Mês Anterior: <span className="text-white font-bold">{hideValues ? '•••' : formatCurrency(data.previousBalance)}</span></span>
-                                            <span>Mês Atual: <span className={`font-bold ${data.bal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{hideValues ? '•••' : (data.bal >= 0 ? '+' : '') + formatCurrency(data.bal)}</span></span>
+                                    {/* TOPO DO CARD: Controles Principais */}
+                                    <div className="flex justify-between items-start">
+                                        
+                                        {/* ESQUERDA: Switch de Contexto (Dia a dia / Investimentos) */}
+                                        <div className="flex bg-[#0f172a]/60 rounded-lg p-1 border border-white/5">
+                                            <button onClick={() => setDashboardMode('statement')} className={`px-3 py-1 rounded-md text-[9px] font-bold transition-all ${dashboardMode === 'statement' ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
+                                                Dia a dia
+                                            </button>
+                                            <button onClick={() => setDashboardMode('investment')} className={`px-3 py-1 rounded-md text-[9px] font-bold transition-all ${dashboardMode === 'investment' ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
+                                                Investimentos
+                                            </button>
                                         </div>
-                                    )}
 
-                                    <div className="grid grid-cols-3 gap-2 pt-1">
+                                        {/* DIREITA: Ferramentas (Real/Previsto + Olho) */}
+                                        <div className="flex items-center gap-2">
+                                            {/* Switch Real / Previsto (RESTAURADO) */}
+                                            <div className="flex bg-[#0f172a]/60 rounded-lg p-1 border border-white/5">
+                                                <button onClick={() => setIsForecast(false)} className={`px-2 py-0.5 rounded text-[8px] font-bold transition-colors ${!isForecast ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`} title="Ver Realizado">
+                                                    Real
+                                                </button>
+                                                <button onClick={() => setIsForecast(true)} className={`px-2 py-0.5 rounded text-[8px] font-bold transition-colors ${isForecast ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`} title="Ver Previsto">
+                                                    Prev
+                                                </button>
+                                            </div>
+
+                                            {/* Botão Olho */}
+                                            <button onClick={() => setHideValues(!hideValues)} className="text-slate-500 hover:text-white transition-colors p-1.5 bg-[#0f172a]/60 rounded-lg border border-white/5">
+                                                {hideValues ? <EyeOff size={12}/> : <Eye size={12}/>}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Meio: Saldo e Stats lado a lado */}
+                                    <div className="flex justify-between items-end mt-2">
                                         <div>
-                                            <p className="text-[9px] text-emerald-400 font-bold mb-0.5">Receita</p>
-                                            <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.inc)}</p>
+                                            <p className="text-[10px] text-slate-400 mb-0.5 font-bold uppercase tracking-wide">Saldo Disponível</p>
+                                            <h2 className="text-3xl font-bold tracking-tight text-white leading-none">
+                                                {hideValues ? '••••••' : (
+                                                    dashboardMode === 'investment' 
+                                                        ? formatCurrency(data.investData.totalCurrent) 
+                                                        : formatCurrency(data.previousBalance + data.bal)
+                                                )}
+                                            </h2>
                                         </div>
-                                        <div className="text-center border-l border-white/10 border-r">
-                                            <p className="text-[9px] text-rose-400 font-bold mb-0.5">Despesa</p>
-                                            <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.exp)}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[9px] text-indigo-400 font-bold mb-0.5">Aporte</p>
-                                            <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.inv)}</p>
+
+                                        {/* Stats Verticais Compactos */}
+                                        <div className="text-right flex flex-col gap-1">
+                                            <div className="flex items-center justify-end gap-2 text-[10px]">
+                                                <span className="font-bold text-emerald-400">{hideValues ? '•••' : formatCurrency(data.inc)}</span>
+                                                <div className="bg-emerald-500/20 p-1 rounded text-emerald-400"><TrendingUp size={10}/></div>
+                                            </div>
+                                            <div className="flex items-center justify-end gap-2 text-[10px]">
+                                                <span className="font-bold text-rose-400">{hideValues ? '•••' : formatCurrency(data.exp)}</span>
+                                                <div className="bg-rose-500/20 p-1 rounded text-rose-400"><TrendingDown size={10}/></div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
