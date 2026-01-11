@@ -37,23 +37,24 @@
     <style>
         body { -webkit-tap-highlight-color: transparent; user-select: none; font-family: sans-serif; }
         
-        /* --- TEMA NÁUTICO --- */
+        /* --- TEMA IMAGEM REAL --- */
         body {
-            background: linear-gradient(180deg, #0f172a 0%, #1e293b 40%, #f0f9ff 100%);
-            background-attachment: fixed;
+            /* Puxa a imagem salva na mesma pasta */
+            background-image: url('fundo.jpg');
+            background-size: cover;       /* Estica para cobrir a tela toda */
+            background-position: center top; /* Centraliza, priorizando o topo (bússola) */
+            background-repeat: no-repeat;
+            background-attachment: fixed; /* Efeito parallax (imagem parada ao rolar) */
+            
+            /* Cor de fundo de segurança (caso a imagem demore a carregar) */
+            background-color: #0f172a; 
+            
+            /* Texto claro para contraste com o fundo escuro */
+            color: #e2e8f0; 
+            min-height: 100vh;
         }
-        .compass-bg {
-            position: fixed;
-            top: -5%;
-            left: -20%;
-            width: 140%;
-            height: auto;
-            opacity: 0.05;
-            z-index: 0;
-            pointer-events: none;
-            color: white;
-        }
-        /* ------------------- */
+
+        /* Classes utilitárias */
 
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
@@ -67,7 +68,7 @@
         .safe-pb { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
     </style>
 </head>
-<body class="bg-gray-50 text-slate-800 h-screen overflow-hidden">
+
     <div id="root" class="h-full w-full"></div>
 
     <script type="text/babel" data-type="module">
