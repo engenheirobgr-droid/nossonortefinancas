@@ -2143,77 +2143,111 @@
                     )}
 
                     {/* --- NOVO HEADER NÁUTICO (ITENS 1, 2, 4, 9) --- */}
-                    {/* Bússola de Fundo Decorativa */}
+                    <div className="pt-4 pb-0 px-5 shrink-0 z-30 relative text-white">
+                        {/* Bússola de Fundo Decorativa */}
                         <div className="compass-bg">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5">
                                 <circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z"/>
                             </svg>
                         </div>
 
-                        {/* Topo: Perfil e Ações + Seletor Compacto */}
-                        <div className="flex flex-col gap-4 mb-2 relative z-10">
-                            {/* LINHA 1: Perfil e Ações */}
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-lg ring-2 ring-indigo-500/50 shadow-lg ${USER_CONFIG[profile].color}`}>
-                                        {USER_CONFIG[profile].avatar}
-                                    </div>
-                                    <div>
-                                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{greeting.t},</p>
-                                        <h1 className="font-bold text-lg leading-none">{USER_CONFIG[profile].name}</h1>
-                                    </div>
+                        {/* Topo: Perfil e Ações */}
+                        <div className="flex justify-between items-center mb-1 relative z-10">
+                            <div className="flex items-center gap-3">
+                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-lg ring-2 ring-indigo-500/50 shadow-lg ${USER_CONFIG[profile].color}`}>
+                                    {USER_CONFIG[profile].avatar}
+                                </div>
+                                <div>
+                                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{greeting.t},</p>
+                                    <h1 className="font-bold text-lg leading-none">{USER_CONFIG[profile].name}</h1>
+                                </div>
+                            </div>
+                            
+                            <div className="flex gap-3 text-indigo-200 items-center">
+                                {/* ITEM 4: CALENDÁRIO ORGANIZADO */}
+                                <div className="relative p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors border border-white/10 group cursor-pointer">
+                                    <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer z-50 w-full h-full"/>
+                                    <Calendar size={20} className="text-slate-300 group-hover:text-emerald-400 transition-colors"/>
                                 </div>
                                 
-                                <div className="flex gap-2 text-indigo-200 items-center">
-                                    <div className="relative p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors border border-white/10 group cursor-pointer">
-                                        <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer z-50 w-full h-full"/>
-                                        <Calendar size={18} className="text-slate-300 group-hover:text-emerald-400 transition-colors"/>
-                                    </div>
-                                    <button onClick={() => { setSelectionMode(!selectionMode); setSelectedIds(new Set()); }} className={`p-2 rounded-full transition-all border ${selectionMode ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'}`}>
-                                        <CheckSquare size={18}/>
-                                    </button>
-                                    <button onClick={() => setSettingsModal(true)} className="p-2 hover:text-white transition-colors"><Settings size={20} /></button>
-                                </div>
-                            </div>
+                                {/* BOTÃO DE SELEÇÃO (Recuperado) */}
+                                <button 
+                                    onClick={() => { setSelectionMode(!selectionMode); setSelectedIds(new Set()); }} 
+                                    className={`p-2 rounded-full transition-all border ${selectionMode ? 'bg-emerald-500 text-white border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'}`}
+                                >
+                                    <CheckSquare size={20}/>
+                                </button>
 
-                            {/* LINHA 2: Segmented Control (Meu/Nosso) + Abas de Contexto */}
-                            <div className="flex justify-between items-center">
-                                {/* Segmented Control Compacto */}
-                                <div className="bg-[#1e293b] p-0.5 rounded-lg flex border border-white/10 shadow-sm w-48 relative">
-                                    <div className={`absolute top-0.5 bottom-0.5 w-[48%] bg-slate-600/80 rounded-md transition-all duration-300 shadow-sm ${viewMode === 'joint' ? 'left-[50%]' : 'left-0.5'}`}></div>
-                                    <button onClick={() => setViewMode('personal')} className={`flex-1 py-1 text-[10px] font-bold rounded-md relative z-10 transition-colors flex items-center justify-center gap-1.5 ${viewMode === 'personal' ? 'text-white' : 'text-slate-400'}`}>
-                                        <User size={10}/> Meu Norte
-                                    </button>
-                                    <button onClick={() => setViewMode('joint')} className={`flex-1 py-1 text-[10px] font-bold rounded-md relative z-10 transition-colors flex items-center justify-center gap-1.5 ${viewMode === 'joint' ? 'text-white' : 'text-slate-400'}`}>
-                                        <Users size={10}/> Nosso Norte
-                                    </button>
-                                </div>
-
-                                {/* Abas de Contexto (Texto Simples) */}
-                                <div className="flex gap-3 text-[10px] font-bold">
-                                    <button onClick={() => setDashboardMode('statement')} className={`transition-colors px-2 py-1 rounded ${dashboardMode === 'statement' ? 'text-white bg-white/10' : 'text-slate-500 hover:text-slate-300'}`}>Dia a dia</button>
-                                    <button onClick={() => setDashboardMode('investment')} className={`transition-colors px-2 py-1 rounded ${dashboardMode === 'investment' ? 'text-white bg-white/10' : 'text-slate-500 hover:text-slate-300'}`}>Investimentos</button>
-                                </div>
+                                <button onClick={() => setSettingsModal(true)} className="p-2 hover:text-white transition-colors"><Settings size={22} /></button>
+                                <button onClick={() => { localStorage.removeItem('fincontrol_profile'); setProfile(null); }} className="p-2 hover:text-white transition-colors"><LogOut size={22} /></button>
                             </div>
                         </div>
-                    
 
-       {/* --- ITEM 3, 5, 6: CARD PRINCIPAL REORGANIZADO (COMPACTO) --- */}
-                    <div className="px-5 mb-2 relative z-20 shrink-0">
-                        <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl p-4 text-white shadow-xl border border-white/5 relative overflow-hidden h-[140px] flex items-center">
+                        {/* ITEM 1 e 2: NAVEGAÇÃO MODERNIZADA (NANO-GLASS) */}
+                        <div className="flex justify-between items-center mb-4 relative z-10 gap-2">
                             
-                            <div className="absolute top-0 right-0 p-4 opacity-5"><MapPin size={80}/></div>
+                            {/* ESQUERDA: Seletor de Escopo (Pílula Flutuante) */}
+                            <div className="bg-slate-900/30 backdrop-blur-md p-1 rounded-full flex border border-white/10 shadow-inner w-44 relative">
+                                {/* Fundo Animado (Active State) */}
+                                <div className={`absolute top-1 bottom-1 w-[48%] bg-indigo-500 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(99,102,241,0.4)] ${viewMode === 'joint' ? 'left-[50%]' : 'left-1'}`}></div>
+                                
+                                <button onClick={() => setViewMode('personal')} className={`flex-1 py-1 text-[10px] font-bold rounded-full relative z-10 transition-colors flex items-center justify-center gap-1.5 ${viewMode === 'personal' ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}>
+                                    <User size={10}/> Meu Norte
+                                </button>
+                                <button onClick={() => setViewMode('joint')} className={`flex-1 py-1 text-[10px] font-bold rounded-full relative z-10 transition-colors flex items-center justify-center gap-1.5 ${viewMode === 'joint' ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}>
+                                    <Users size={10}/> Nosso Norte
+                                </button>
+                            </div>
 
-                            <div className="relative z-10 w-full flex justify-between items-center gap-4">
-                                {/* COLUNA ESQUERDA: Saldo Principal */}
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Saldo Disponível</p>
-                                        <button onClick={() => setHideValues(!hideValues)} className="text-slate-500 hover:text-white transition-colors">
-                                            {hideValues ? <EyeOff size={10}/> : <Eye size={10}/>}
+                            {/* DIREITA: Seletor de Contexto (Outline Clean) */}
+                            <div className="bg-slate-900/30 backdrop-blur-md p-1 rounded-full flex border border-white/10 shadow-inner text-[10px] font-bold relative">
+                                {/* Fundo Animado (Active State) */}
+                                <div className={`absolute top-1 bottom-1 w-[48%] bg-slate-700/80 rounded-full transition-all duration-300 ${dashboardMode === 'investment' ? 'left-[49%]' : 'left-1'}`}></div>
+
+                                <button onClick={() => setDashboardMode('statement')} className={`px-4 py-1 rounded-full relative z-10 transition-all ${dashboardMode === 'statement' ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}>
+                                    Dia a dia
+                                </button>
+                                <button onClick={() => setDashboardMode('investment')} className={`px-4 py-1 rounded-full relative z-10 transition-all ${dashboardMode === 'investment' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'}`}>
+                                    Investir
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* --- ITEM 3, 5, 6: CARD PRINCIPAL REORGANIZADO --- */}
+
+                    {/* --- ITEM 3, 5, 6: CARD PRINCIPAL REORGANIZADO --- */}
+                    <div className="px-5 mb-4 relative z-20 shrink-0">
+                        {/* ... (conteúdo do card de saldo mantido igual, não altere o interior dele) ... */}
+                        <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-3xl p-4 text-white shadow-2xl border border-white/5 relative overflow-hidden">
+                            
+                            <div className="absolute top-0 right-0 p-4 opacity-10"><MapPin size={60}/></div>
+
+                            <div className="relative z-10">
+                                {/* ITEM 6: PREVISTO VS REAL (Botão Pílula no topo do card) */}
+                                <div className="flex justify-between items-start mb-1">
+                                    <div className="flex items-center gap-2 bg-[#0f172a]/50 p-1 rounded-lg border border-white/5">
+                                        <button onClick={() => setIsForecast(false)} className={`px-2 py-0.5 rounded text-[9px] font-bold transition-colors ${!isForecast ? 'bg-indigo-500 text-white' : 'text-slate-400'}`}>Real</button>
+                                        <button onClick={() => setIsForecast(true)} className={`px-2 py-0.5 rounded text-[9px] font-bold transition-colors ${isForecast ? 'bg-indigo-500 text-white' : 'text-slate-400'}`}>Previsto</button>
+                                    </div>
+                                    
+                                    {/* ITEM 5: DATA E BOTÃO VISUALIZAR/ESCONDER */}
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-white/5 px-2 py-1 rounded-md border border-white/5">
+                                            {selectedMonth.split('-')[1]}/{selectedMonth.split('-')[0]}
+                                        </span>
+                                        <button onClick={() => setHideValues(!hideValues)} className="text-slate-400 hover:text-white bg-white/5 p-1.5 rounded-full border border-white/5">
+                                            {hideValues ? <EyeOff size={14}/> : <Eye size={14}/>}
                                         </button>
                                     </div>
-                                    <h2 className="text-2xl font-bold tracking-tight mb-2 text-white">
+                                </div>
+
+                                {/* ITEM 3: SALDO ACUMULADO COM TOTAL */}
+
+                                {/* ITEM 3: SALDO ACUMULADO COM TOTAL */}
+                                {/* ITEM 3: SALDO ACUMULADO COM TOTAL E VARIAÇÃO */}
+                                <div className="flex items-center gap-2 mb-1">
+                                    <h2 className="text-3xl font-extrabold tracking-tight">
                                         {hideValues ? '••••••' : (
                                             dashboardMode === 'investment' 
                                                 ? formatCurrency(data.investData.totalCurrent) 
@@ -2221,29 +2255,56 @@
                                         )}
                                     </h2>
                                     
-                                    {/* Toggle Real/Previsto (Pílula Micro) */}
-                                    <div className="inline-flex bg-[#0f172a]/80 p-0.5 rounded border border-white/5">
-                                        <button onClick={() => setIsForecast(false)} className={`px-2 py-0.5 rounded-[3px] text-[8px] font-bold transition-colors ${!isForecast ? 'bg-indigo-500 text-white' : 'text-slate-500'}`}>Real</button>
-                                        <button onClick={() => setIsForecast(true)} className={`px-2 py-0.5 rounded-[3px] text-[8px] font-bold transition-colors ${isForecast ? 'bg-indigo-500 text-white' : 'text-slate-500'}`}>Previsto</button>
-                                    </div>
-                                </div>
+                                    {/* NOVO: Badge de Variação % */}
+                                    {!hideValues && (
+                                        (() => {
+                                            // Lógica Dia a Dia: Variação do Mês sobre o Saldo Anterior
+                                            // Se for Investimento: Mostra Rentabilidade da Carteira
+                                            let pct = 0;
+                                            let isPositive = true;
 
-                                {/* COLUNA DIREITA: Mini Stats (Vertical Compacto) */}
-                                <div className="flex flex-col gap-2 border-l border-white/10 pl-4 min-w-[100px]">
-                                    {/* Receita */}
-                                    <div className="flex justify-between items-center text-[10px]">
-                                        <span className="text-emerald-400 flex items-center gap-1"><TrendingUp size={10}/> Entrou</span>
-                                        <span className="font-bold">{hideValues ? '•••' : formatCurrency(data.inc)}</span>
-                                    </div>
-                                    {/* Despesa */}
-                                    <div className="flex justify-between items-center text-[10px]">
-                                        <span className="text-rose-400 flex items-center gap-1"><TrendingDown size={10}/> Saiu</span>
-                                        <span className="font-bold">{hideValues ? '•••' : formatCurrency(data.exp)}</span>
-                                    </div>
-                                    {/* Investido */}
-                                    <div className="flex justify-between items-center text-[10px]">
-                                        <span className="text-indigo-400 flex items-center gap-1"><PieChart size={10}/> Aporte</span>
-                                        <span className="font-bold">{hideValues ? '•••' : formatCurrency(data.inv)}</span>
+                                            if (dashboardMode === 'statement') {
+                                                // Quanto o saldo variou este mês em relação ao montante inicial
+                                                pct = data.previousBalance !== 0 ? (data.bal / Math.abs(data.previousBalance)) * 100 : 0;
+                                                isPositive = data.bal >= 0;
+                                            } else {
+                                                pct = data.investData.yieldPct;
+                                                isPositive = pct >= 0;
+                                            }
+
+                                            return (
+                                                <div className={`px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-0.5 border ${isPositive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+                                                    {isPositive ? <TrendingUp size={10}/> : <TrendingDown size={10}/>}
+                                                    {Math.abs(pct).toFixed(1)}%
+                                                </div>
+                                            );
+                                        })()
+                                    )}
+                                </div>
+                                <p className="text-xs text-slate-400 mb-6">Saldo Acumulado Disponível</p>
+                                
+                                {/* ITEM 3: ANTERIOR / ATUAL / DETALHES */}
+                                <div className="space-y-3">
+                                    {dashboardMode === 'statement' && (
+                                        <div className="flex justify-between text-[10px] text-slate-400 border-b border-white/5 pb-2">
+                                            <span>Mês Anterior: <span className="text-white font-bold">{hideValues ? '•••' : formatCurrency(data.previousBalance)}</span></span>
+                                            <span>Mês Atual: <span className={`font-bold ${data.bal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{hideValues ? '•••' : (data.bal >= 0 ? '+' : '') + formatCurrency(data.bal)}</span></span>
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-3 gap-2 pt-1">
+                                        <div>
+                                            <p className="text-[9px] text-emerald-400 font-bold mb-0.5">Receita</p>
+                                            <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.inc)}</p>
+                                        </div>
+                                        <div className="text-center border-l border-white/10 border-r">
+                                            <p className="text-[9px] text-rose-400 font-bold mb-0.5">Despesa</p>
+                                            <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.exp)}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[9px] text-indigo-400 font-bold mb-0.5">Aporte</p>
+                                            <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.inv)}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -2810,63 +2871,57 @@
                         </div>
                     )}
 
-                    {/* BARRA DE NAVEGAÇÃO HUB - VERSÃO COMPACTA & ELEGANTE */}
+                    {/* BARRA DE NAVEGAÇÃO HUB - VERSÃO SLIM (Menos espaço) */}
                     <div className="fixed bottom-0 w-full z-40">
                         {/* Gradiente sutil para transição suave do conteúdo */}
                         <div className="h-6 bg-gradient-to-t from-[#0f172a] to-transparent pointer-events-none absolute bottom-full w-full"></div>
                         
-                        {/* Barra Principal: Altura reduzida e cor escura */}
-                        <div className="bg-[#0f172a] border-t border-white/10 pb-5 pt-2 px-6 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+                        {/* Barra Principal: Altura Reduzida (pb-2) */}
+                        <div className="bg-[#0f172a] border-t border-white/10 pb-2 pt-2 px-6 shadow-2xl">
                             <div className="grid grid-cols-5 items-end relative">
                                 
                                 {/* 1. FINANÇAS */}
-                                <button onClick={() => setTab('home')} className={`flex flex-col items-center gap-1 group ${tab === 'home' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
+                                <button onClick={() => setTab('home')} className={`flex flex-col items-center gap-0.5 group ${tab === 'home' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
                                     <div className={`p-1 rounded-full transition-all ${tab === 'home' ? 'bg-emerald-400/10' : ''}`}>
-                                        <Wallet size={20} strokeWidth={tab==='home'?2.5:2} className="group-active:scale-90 transition-transform"/>
+                                        <Wallet size={18} strokeWidth={tab==='home'?2.5:2} className="group-active:scale-90 transition-transform"/>
                                     </div>
-                                    <span className="text-[9px] font-medium tracking-wide opacity-90">Norte</span>
+                                    <span className="text-[8px] font-medium tracking-wide opacity-90">Norte</span>
                                 </button>
                                 
                                 {/* 2. CASA */}
-                                <button onClick={() => setTab('chores')} className={`flex flex-col items-center gap-1 group ${tab === 'chores' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
+                                <button onClick={() => setTab('chores')} className={`flex flex-col items-center gap-0.5 group ${tab === 'chores' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
                                     <div className={`p-1 rounded-full transition-all ${tab === 'chores' ? 'bg-emerald-400/10' : ''}`}>
-                                        <Home size={20} strokeWidth={tab==='chores'?2.5:2} className="group-active:scale-90 transition-transform"/>
+                                        <Home size={18} strokeWidth={tab==='chores'?2.5:2} className="group-active:scale-90 transition-transform"/>
                                     </div>
-                                    <span className="text-[9px] font-medium tracking-wide opacity-90">Casa</span>
+                                    <span className="text-[8px] font-medium tracking-wide opacity-90">Casa</span>
                                 </button>
 
-                                {/* 3. BÚSSOLA CENTRAL (PREMIUM & COMPACTA) */}
-                                <div className="relative -top-5 flex justify-center">
+                                {/* 3. BÚSSOLA CENTRAL (Menor e mais discreta) */}
+                                <div className="relative -top-4 flex justify-center">
                                     <button 
                                         onClick={() => setMenuOpen(!menuOpen)} 
-                                        /* ALTERAÇÃO AQUI: Troquei a sombra exagerada por shadow-lg shadow-black/50 que é mais limpa e firme */
-                                        className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg shadow-black/50 border-[3px] border-[#0f172a] bg-gradient-to-b from-slate-700 to-slate-900 transition-all ${menuOpen ? 'scale-95 ring-2 ring-emerald-500/50' : 'active:scale-95 hover:-translate-y-1'}`}
+                                        className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg shadow-black/50 border-[3px] border-[#0f172a] bg-gradient-to-b from-slate-700 to-slate-900 transition-all ${menuOpen ? 'scale-95 ring-2 ring-emerald-500/50' : 'active:scale-95 hover:-translate-y-1'}`}
                                     >
-                                        {/* Anel Externo Dourado/Metálico */}
                                         <div className="absolute inset-0.5 rounded-full border border-white/20"></div>
-                                        
-                                        {/* Ícone da Bússola - Removi o drop-shadow extra do ícone para limpar o visual */}
-                                        <Compass size={26} strokeWidth={1.5} className={`text-emerald-400 transition-transform duration-500 ${menuOpen ? 'rotate-90' : ''}`}/>
-                                        
-                                        {/* Detalhe: Ponto Central */}
+                                        <Compass size={22} strokeWidth={1.5} className={`text-emerald-400 transition-transform duration-500 ${menuOpen ? 'rotate-90' : ''}`}/>
                                         <div className="absolute w-1 h-1 bg-white rounded-full"></div>
                                     </button>
                                 </div>
                                 
                                 {/* 4. METAS */}
-                                <button onClick={() => setTab('planning')} className={`flex flex-col items-center gap-1 group ${tab === 'planning' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
+                                <button onClick={() => setTab('planning')} className={`flex flex-col items-center gap-0.5 group ${tab === 'planning' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
                                     <div className={`p-1 rounded-full transition-all ${tab === 'planning' ? 'bg-emerald-400/10' : ''}`}>
-                                        <Target size={20} strokeWidth={tab==='planning'?2.5:2} className="group-active:scale-90 transition-transform"/>
+                                        <Target size={18} strokeWidth={tab==='planning'?2.5:2} className="group-active:scale-90 transition-transform"/>
                                     </div>
-                                    <span className="text-[9px] font-medium tracking-wide opacity-90">Metas</span>
+                                    <span className="text-[8px] font-medium tracking-wide opacity-90">Metas</span>
                                 </button>
                                 
                                 {/* 5. ANÁLISE */}
-                                <button onClick={() => setTab('reports')} className={`flex flex-col items-center gap-1 group ${tab === 'reports' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
+                                <button onClick={() => setTab('reports')} className={`flex flex-col items-center gap-0.5 group ${tab === 'reports' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
                                     <div className={`p-1 rounded-full transition-all ${tab === 'reports' ? 'bg-emerald-400/10' : ''}`}>
-                                        <BarChart3 size={20} strokeWidth={tab==='reports'?2.5:2} className="group-active:scale-90 transition-transform"/>
+                                        <BarChart3 size={18} strokeWidth={tab==='reports'?2.5:2} className="group-active:scale-90 transition-transform"/>
                                     </div>
-                                    <span className="text-[9px] font-medium tracking-wide opacity-90">Análise</span>
+                                    <span className="text-[8px] font-medium tracking-wide opacity-90">Análise</span>
                                 </button>
                             </div>
                         </div>
