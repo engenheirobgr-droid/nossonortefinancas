@@ -2183,31 +2183,62 @@
                             </div>
                         </div>
 
-                        {/* ITEM 1 e 2: NAVEGAÇÃO MODERNIZADA (NANO-GLASS) */}
-                        <div className="flex justify-between items-center mb-4 relative z-10 gap-2">
+                        {/* ITEM 1 e 2: NAVEGAÇÃO "SLIDING DEPTH" (EFEITO SOMBRA) */}
+                        <div className="flex justify-between items-center mb-4 relative z-10 gap-3">
                             
-                            {/* ESQUERDA: Seletor de Escopo (Pílula Flutuante) */}
-                            <div className="bg-slate-900/30 backdrop-blur-md p-1 rounded-full flex border border-white/10 shadow-inner w-44 relative">
-                                {/* Fundo Animado (Active State) */}
-                                <div className={`absolute top-1 bottom-1 w-[48%] bg-indigo-500 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(99,102,241,0.4)] ${viewMode === 'joint' ? 'left-[50%]' : 'left-1'}`}></div>
+                            {/* ESQUERDA: Alternador de Escopo (Meu vs Nosso) */}
+                            {/* O container cinza escuro cria o efeito de "fundo/sombra" */}
+                            <div className="relative bg-[#0f172a]/60 p-1 rounded-full flex items-center border border-white/5 shadow-[inset_0_2px_6px_rgba(0,0,0,0.5)] w-48 h-9 overflow-hidden">
                                 
-                                <button onClick={() => setViewMode('personal')} className={`flex-1 py-1 text-[10px] font-bold rounded-full relative z-10 transition-colors flex items-center justify-center gap-1.5 ${viewMode === 'personal' ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}>
-                                    <User size={10}/> Meu Norte
+                                {/* A Pílula que Desliza (O Destaque) */}
+                                <div 
+                                    className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-indigo-500 rounded-full shadow-[0_4px_12px_rgba(99,102,241,0.5)] transition-all duration-300 ease-out z-0 
+                                    ${viewMode === 'joint' ? 'left-[50%]' : 'left-1'}`}
+                                ></div>
+
+                                {/* Botão 1: Meu Norte */}
+                                <button 
+                                    onClick={() => setViewMode('personal')} 
+                                    className={`flex-1 relative z-10 text-[10px] font-bold flex items-center justify-center gap-1.5 transition-colors duration-300 
+                                    ${viewMode === 'personal' ? 'text-white drop-shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
+                                >
+                                    <User size={10} strokeWidth={3} /> MEU NORTE
                                 </button>
-                                <button onClick={() => setViewMode('joint')} className={`flex-1 py-1 text-[10px] font-bold rounded-full relative z-10 transition-colors flex items-center justify-center gap-1.5 ${viewMode === 'joint' ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}>
-                                    <Users size={10}/> Nosso Norte
+
+                                {/* Botão 2: Nosso Norte */}
+                                <button 
+                                    onClick={() => setViewMode('joint')} 
+                                    className={`flex-1 relative z-10 text-[10px] font-bold flex items-center justify-center gap-1.5 transition-colors duration-300 
+                                    ${viewMode === 'joint' ? 'text-white drop-shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
+                                >
+                                    <Users size={10} strokeWidth={3} /> NOSSO NORTE
                                 </button>
                             </div>
 
-                            {/* DIREITA: Seletor de Contexto (Outline Clean) */}
-                            <div className="bg-slate-900/30 backdrop-blur-md p-1 rounded-full flex border border-white/10 shadow-inner text-[10px] font-bold relative">
-                                {/* Fundo Animado (Active State) */}
-                                <div className={`absolute top-1 bottom-1 w-[48%] bg-slate-700/80 rounded-full transition-all duration-300 ${dashboardMode === 'investment' ? 'left-[49%]' : 'left-1'}`}></div>
+                            {/* DIREITA: Alternador de Contexto (Dia a dia vs Investir) */}
+                            <div className="relative bg-[#0f172a]/60 p-1 rounded-full flex items-center border border-white/5 shadow-[inset_0_2px_6px_rgba(0,0,0,0.5)] h-9">
+                                
+                                {/* Pílula Deslizante Contexto */}
+                                <div 
+                                    className={`absolute top-1 bottom-1 bg-slate-700/80 border border-white/10 rounded-full transition-all duration-300 ease-out z-0
+                                    ${dashboardMode === 'statement' 
+                                        ? 'left-1 w-[80px]' 
+                                        : 'left-[84px] w-[88px]' /* Ajuste fino da largura baseada no texto */
+                                    }`}
+                                ></div>
 
-                                <button onClick={() => setDashboardMode('statement')} className={`px-4 py-1 rounded-full relative z-10 transition-all ${dashboardMode === 'statement' ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}>
+                                <button 
+                                    onClick={() => setDashboardMode('statement')} 
+                                    className={`relative z-10 px-4 text-[10px] font-bold transition-colors duration-300
+                                    ${dashboardMode === 'statement' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                                >
                                     Dia a dia
                                 </button>
-                                <button onClick={() => setDashboardMode('investment')} className={`px-4 py-1 rounded-full relative z-10 transition-all ${dashboardMode === 'investment' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'}`}>
+                                <button 
+                                    onClick={() => setDashboardMode('investment')} 
+                                    className={`relative z-10 px-4 text-[10px] font-bold transition-colors duration-300
+                                    ${dashboardMode === 'investment' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}
+                                >
                                     Investir
                                 </button>
                             </div>
