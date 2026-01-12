@@ -35,25 +35,46 @@
     <meta name="theme-color" content="#0f172a">
     
     <style>
-        /* --- TEMA FINAL: IMAGEM FIXA --- */
+        /* --- TEMA NÁUTICO DARK (FUNDO + VIDRO) --- */
         body {
             margin: 0;
             padding: 0;
-            /* Imagem de fundo */
+            /* Imagem de fundo fixa e centralizada */
             background-image: url('fundo.jpg');
-            background-size: cover;       /* Cobre toda a tela sem distorcer */
-            background-position: center center; /* Centraliza a imagem */
-            background-attachment: fixed; /* A imagem fica PARADA enquanto você rola o app */
+            background-size: cover;       /* Cobre a tela toda */
+            background-position: center top; /* Foca no topo (onde está a bússola) */
+            background-attachment: fixed; /* O fundo fica PARADO ao rolar */
             background-repeat: no-repeat;
             
-            /* Cor de fundo de segurança */
-            background-color: #0f172a; 
-            color: #e2e8f0;
+            background-color: #0f172a; /* Azul escuro de segurança */
+            color: #e2e8f0; /* Texto claro padrão */
             
-            /* Trava o corpo na altura da tela para evitar rolagem dupla */
-            height: 100vh;
+            /* Garante que o app ocupe 100% da altura sem rolagens duplas */
+            min-height: 100vh;
             width: 100vw;
-            overflow: hidden; 
+            overflow-x: hidden; 
+        }
+
+        /* --- A MÁGICA DA TRANSPARÊNCIA (GLASSMORPHISM) --- */
+        /* Isso transforma automaticamente os cards brancos em vidro escuro */
+        .bg-white, .bg-gray-50, .bg-slate-900 {
+            background-color: rgba(15, 23, 42, 0.75) !important; /* Azul escuro 75% opaco */
+            backdrop-filter: blur(8px); /* Desfoque do fundo (efeito vidro) */
+            border-color: rgba(255, 255, 255, 0.1) !important; /* Bordas sutis */
+            color: #f8fafc !important; /* Força texto claro */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        /* Ajusta textos que eram escuros para ficarem claros */
+        .text-slate-800, .text-slate-700, .text-gray-600, .text-gray-500 {
+            color: #cbd5e1 !important;
+        }
+        
+        /* Mantém botões coloridos (ex: verde, vermelho) brilhantes */
+        button[class*="bg-emerald"], button[class*="bg-indigo"], button[class*="bg-rose"] {
+            opacity: 1 !important;
+            color: white !important;
+            background-color: inherit; /* Respeita a cor original do botão */
         }
 
         .scrollbar-hide::-webkit-scrollbar { display: none; }
