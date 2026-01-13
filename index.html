@@ -89,6 +89,29 @@
             text-shadow: 0 2px 4px rgba(0,0,0,0.8); /* Sombra mais forte para ler em cima da bússola */
         }
 
+        /* --- CORREÇÃO DE VISIBILIDADE (MODAIS E FORMULÁRIOS) --- */
+        /* Garante que o modal de lançamento seja SÓLIDO (sem transparência) para leitura */
+        .modal-solid {
+            background: #1e293b !important; /* Slate 800 Sólido (Azul Noturno) */
+            backdrop-filter: none !important; /* Remove o vidro */
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        /* Inputs Sólidos: Fundo bem escuro para o texto branco brilhar */
+        .input-solid {
+            background: #020617 !important; /* Slate 950 (Quase preto) */
+            border: 1px solid rgba(255,255,255,0.15) !important;
+            color: #ffffff !important;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .input-solid:focus {
+            border-color: #6366f1 !important; /* Indigo Focus */
+            background: #0f172a !important; /* Clareia levemente no foco */
+        }
+        .input-solid::placeholder {
+            color: #64748b !important; /* Slate 500 */
+        }
+
         /* Textos secundários: Clareados para evitar que sumam no fundo escuro */
         .text-slate-800, .text-slate-700, .text-gray-600, .text-gray-500, .text-gray-400 {
             color: #cbd5e1 !important; /* Slate-300 (Cinza Gelo) */
@@ -1041,6 +1064,8 @@
             // --- NOVO: ESTADOS PARA TAREFAS ---
             const [chores, setChores] = useState([]);
             const [weekCycle, setWeekCycle] = useState(0); // 0 = Par, 1 = Ímpar
+            // Estado para controlar os menus dropdown do topo ('scope' | 'context' | null)
+            const [activeDropdown, setActiveDropdown] = useState(null);
 
             // NOVOS ESTADOS PARA INVESTIMENTOS (CARTEIRA)
             const [currentPrices, setCurrentPrices] = useState({}); // Mapa: Ticker -> Preço Atual
@@ -2215,184 +2240,211 @@
                         </div>
                     )}
 
-                    {/* --- NOVO HEADER NÁUTICO (ITENS 1, 2, 4, 9) --- */}
-                    <div className="pt-4 pb-0 px-5 shrink-0 z-30 relative text-white">
+                    {/* --- HEADER LIMPO & MODERNO --- */}
+                    <div className="pt-6 pb-2 px-5 shrink-0 z-30 relative text-white">
                         
-                        {/* Topo: Perfil e Ações */}
-                        <div className="flex justify-between items-center mb-1 relative z-10">
+                        {/* Linha 1: Perfil e Botões de Configuração */}
+                        <div className="flex justify-between items-center mb-6 relative z-10">
                             <div className="flex items-center gap-3">
-                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-lg ring-2 ring-indigo-500/50 shadow-lg ${USER_CONFIG[profile].color}`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ring-2 ring-indigo-500/50 shadow-lg ${USER_CONFIG[profile].color}`}>
                                     {USER_CONFIG[profile].avatar}
                                 </div>
                                 <div>
                                     <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{greeting.t},</p>
-                                    <h1 className="font-bold text-lg leading-none">{USER_CONFIG[profile].name}</h1>
+                                    <h1 className="font-bold text-xl leading-none">{USER_CONFIG[profile].name}</h1>
                                 </div>
                             </div>
                             
-                            <div className="flex gap-3 text-indigo-200 items-center">
-                                {/* ITEM 4: CALENDÁRIO ORGANIZADO */}
-                                <div className="relative p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors border border-white/10 group cursor-pointer">
+                            <div className="flex gap-2 text-indigo-200 items-center">
+                                {/* ITEM RESTAURADO: Calendário no Topo */}
+                                <div className="relative w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors group cursor-pointer">
                                     <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer z-50 w-full h-full"/>
-                                    <Calendar size={20} className="text-slate-300 group-hover:text-emerald-400 transition-colors"/>
+                                    <Calendar size={18} className="text-slate-300 group-hover:text-emerald-400 transition-colors"/>
                                 </div>
-                                
-                                {/* BOTÃO DE SELEÇÃO (Recuperado) */}
+
+                                {/* Botão Seleção em Massa */}
                                 <button 
                                     onClick={() => { setSelectionMode(!selectionMode); setSelectedIds(new Set()); }} 
-                                    className={`p-2 rounded-full transition-all border ${selectionMode ? 'bg-emerald-500 text-white border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'}`}
+                                    className={`w-9 h-9 flex items-center justify-center rounded-full transition-all border ${selectionMode ? 'bg-emerald-500 text-white border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'}`}
                                 >
-                                    <CheckSquare size={20}/>
+                                    <CheckSquare size={18}/>
                                 </button>
-
-                                <button onClick={() => setSettingsModal(true)} className="p-2 hover:text-white transition-colors"><Settings size={22} /></button>
-                                <button onClick={() => { localStorage.removeItem('fincontrol_profile'); setProfile(null); }} className="p-2 hover:text-white transition-colors"><LogOut size={22} /></button>
+                                <button onClick={() => setSettingsModal(true)} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"><Settings size={18} /></button>
+                                <button onClick={() => { localStorage.removeItem('fincontrol_profile'); setProfile(null); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"><LogOut size={18} /></button>
                             </div>
                         </div>
 
-                        {/* ITEM 1 e 2: NAVEGAÇÃO MINIMALISTA (ÍCONES + DIVISOR) */}
-                        <div className="flex justify-between items-center mb-6 relative z-10 px-2">
+                        {/* Linha 2: DOIS BOTÕES MESTRES (Dropdowns) */}
+                        <div className="flex gap-3 mb-2 relative z-20">
                             
-                            {/* LADO ESQUERDO: ESCOPO (MEU / NOSSO) */}
-                            <div className="flex items-center gap-4">
+                            {/* BOTÃO 1: ESCOPO (Meu Norte / Nosso Norte) */}
+                            <div className="relative flex-1">
                                 <button 
-                                    onClick={() => setViewMode('personal')} 
-                                    className={`flex items-center gap-1.5 text-xs font-bold transition-all ${viewMode === 'personal' ? 'text-white scale-105' : 'text-slate-500 hover:text-slate-300'}`}
+                                    onClick={() => setActiveDropdown(activeDropdown === 'scope' ? null : 'scope')}
+                                    className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border backdrop-blur-md transition-all ${activeDropdown === 'scope' ? 'bg-slate-800 border-indigo-500/50 text-white' : 'bg-slate-900/40 border-white/10 text-slate-200 hover:bg-slate-800/60'}`}
                                 >
-                                    <User size={14} strokeWidth={viewMode === 'personal' ? 2.5 : 2}/>
-                                    Meu Norte
+                                    <div className="flex items-center gap-2.5">
+                                        <div className={`p-1.5 rounded-lg ${viewMode === 'personal' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-pink-500/20 text-pink-400'}`}>
+                                            {viewMode === 'personal' ? <User size={16}/> : <Users size={16}/>}
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="text-[9px] font-bold uppercase text-slate-400 leading-tight">Visão</p>
+                                            <p className="font-bold text-sm">{viewMode === 'personal' ? 'Meu Norte' : 'Nosso Norte'}</p>
+                                        </div>
+                                    </div>
+                                    <ChevronDown size={16} className={`transition-transform ${activeDropdown === 'scope' ? 'rotate-180' : ''}`}/>
                                 </button>
 
-                                <button 
-                                    onClick={() => setViewMode('joint')} 
-                                    className={`flex items-center gap-1.5 text-xs font-bold transition-all ${viewMode === 'joint' ? 'text-white scale-105' : 'text-slate-500 hover:text-slate-300'}`}
-                                >
-                                    <Users size={14} strokeWidth={viewMode === 'joint' ? 2.5 : 2}/>
-                                    Nosso Norte
-                                </button>
+                                {/* Dropdown Menu 1 */}
+                                {activeDropdown === 'scope' && (
+                                    <div className="absolute top-full left-0 w-full mt-2 bg-slate-800 border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-slide-up z-50">
+                                        <button onClick={() => { setViewMode('personal'); setActiveDropdown(null); }} className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 border-b border-white/5 last:border-0">
+                                            <User size={16} className="text-indigo-400"/> <span className="font-bold text-sm text-slate-200">Meu Norte (Pessoal)</span>
+                                        </button>
+                                        <button onClick={() => { setViewMode('joint'); setActiveDropdown(null); }} className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3">
+                                            <Users size={16} className="text-pink-400"/> <span className="font-bold text-sm text-slate-200">Nosso Norte (Casal)</span>
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
-                            {/* DIVISOR CENTRAL (BARRA |) */}
-                            <div className="h-5 w-[1px] bg-slate-700/50"></div>
+                            {/* BOTÃO 2: CONTEXTO (Dia a dia / Investimentos) */}
+                            <div className="relative flex-1">
+                                <button 
+                                    onClick={() => setActiveDropdown(activeDropdown === 'context' ? null : 'context')}
+                                    className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border backdrop-blur-md transition-all ${activeDropdown === 'context' ? 'bg-slate-800 border-emerald-500/50 text-white' : 'bg-slate-900/40 border-white/10 text-slate-200 hover:bg-slate-800/60'}`}
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <div className={`p-1.5 rounded-lg ${dashboardMode === 'statement' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                                            {dashboardMode === 'statement' ? <Banknote size={16}/> : <TrendingUp size={16}/>}
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="text-[9px] font-bold uppercase text-slate-400 leading-tight">Foco</p>
+                                            <p className="font-bold text-sm">{dashboardMode === 'statement' ? 'Dia a dia' : 'Investimentos'}</p>
+                                        </div>
+                                    </div>
+                                    <ChevronDown size={16} className={`transition-transform ${activeDropdown === 'context' ? 'rotate-180' : ''}`}/>
+                                </button>
 
-                            {/* LADO DIREITO: CONTEXTO (DIA A DIA / INVESTIMENTOS) */}
-                            <div className="flex items-center gap-4">
-                                <button 
-                                    onClick={() => setDashboardMode('statement')} 
-                                    className={`flex items-center gap-1.5 text-xs font-bold transition-all ${dashboardMode === 'statement' ? 'text-indigo-400 scale-105' : 'text-slate-500 hover:text-slate-300'}`}
-                                >
-                                    <Banknote size={14} strokeWidth={dashboardMode === 'statement' ? 2.5 : 2}/>
-                                    Dia a dia
-                                </button>
-                                
-                                <button 
-                                    onClick={() => setDashboardMode('investment')} 
-                                    className={`flex items-center gap-1.5 text-xs font-bold transition-all ${dashboardMode === 'investment' ? 'text-emerald-400 scale-105' : 'text-slate-500 hover:text-slate-300'}`}
-                                >
-                                    <TrendingUp size={14} strokeWidth={dashboardMode === 'investment' ? 2.5 : 2}/>
-                                    Investimentos
-                                </button>
+                                {/* Dropdown Menu 2 */}
+                                {activeDropdown === 'context' && (
+                                    <div className="absolute top-full left-0 w-full mt-2 bg-slate-800 border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-slide-up z-50">
+                                        <button onClick={() => { setDashboardMode('statement'); setActiveDropdown(null); }} className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 border-b border-white/5 last:border-0">
+                                            <Banknote size={16} className="text-indigo-400"/> <span className="font-bold text-sm text-slate-200">Dia a dia (Extrato)</span>
+                                        </button>
+                                        <button onClick={() => { setDashboardMode('investment'); setActiveDropdown(null); }} className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3">
+                                            <TrendingUp size={16} className="text-emerald-400"/> <span className="font-bold text-sm text-slate-200">Investimentos</span>
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
 
-                    {/* --- ITEM 3, 5, 6: CARD PRINCIPAL REORGANIZADO --- */}
-
-                    {/* --- ITEM 3, 5, 6: CARD PRINCIPAL REORGANIZADO --- */}
+                    {/* --- CARD PRINCIPAL REORGANIZADO (HIERARQUIA AJUSTADA v2) --- */}
                     <div className="px-5 mb-4 relative z-20 shrink-0">
-                        {/* ... (conteúdo do card de saldo mantido igual, não altere o interior dele) ... */}
-                        {/* AJUSTE: Removida a cor sólida e aplicado o estilo Vidro Transparente igual ao CSS */}
-                        <div className="rounded-3xl p-4 text-white shadow-2xl border border-sky-400/20 relative overflow-hidden" 
+                        <div className="rounded-3xl p-5 text-white shadow-2xl border border-sky-400/20 relative overflow-hidden" 
                              style={{ 
                                  background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.20) 0%, rgba(15, 23, 42, 0.50) 100%)', 
                                  backdropFilter: 'blur(8px)',
                                  WebkitBackdropFilter: 'blur(8px)'
                              }}>
-                            
-                            <div className="absolute top-0 right-0 p-4 opacity-10"><MapPin size={60}/></div>
 
                             <div className="relative z-10">
-                                {/* ITEM 6: PREVISTO VS REAL (Botão Pílula no topo do card) */}
-                                <div className="flex justify-between items-start mb-1">
-                                    <div className="flex items-center gap-2 bg-[#0f172a]/50 p-1 rounded-lg border border-white/5">
-                                        <button onClick={() => setIsForecast(false)} className={`px-2 py-0.5 rounded text-[9px] font-bold transition-colors ${!isForecast ? 'bg-indigo-500 text-white' : 'text-slate-400'}`}>Real</button>
-                                        <button onClick={() => setIsForecast(true)} className={`px-2 py-0.5 rounded text-[9px] font-bold transition-colors ${isForecast ? 'bg-indigo-500 text-white' : 'text-slate-400'}`}>Previsto</button>
+                                {/* LINHA 1: BARRA DE FERRAMENTAS (Estável e Alinhada) */}
+                                <div className="flex justify-between items-start mb-2">
+                                    {/* Label do Saldo (Movido para topo esquerdo para equilibrar) */}
+                                    <div className="pt-1">
+                                        <p className="text-[10px] font-bold uppercase text-slate-400 tracking-widest pl-1">
+                                            Saldo Disponível
+                                        </p>
                                     </div>
-                                    
-                                    {/* ITEM 5: DATA E BOTÃO VISUALIZAR/ESCONDER */}
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-white/5 px-2 py-1 rounded-md border border-white/5">
-                                            {selectedMonth.split('-')[1]}/{selectedMonth.split('-')[0]}
-                                        </span>
-                                        <button onClick={() => setHideValues(!hideValues)} className="text-slate-400 hover:text-white bg-white/5 p-1.5 rounded-full border border-white/5">
-                                            {hideValues ? <EyeOff size={14}/> : <Eye size={14}/>}
+
+                                    {/* Grupo de Controle (Direita) */}
+                                    <div className="flex items-center gap-2 bg-[#0f172a]/60 p-1 rounded-xl border border-white/10 backdrop-blur-md">
+                                        
+                                        {/* Toggle Sólido (Sem tremedeira) */}
+                                        <div className="flex bg-slate-900/80 rounded-lg p-0.5 border border-white/5 relative">
+                                            {/* Fundo deslizante visual (opcional) ou apenas estados sólidos */}
+                                            <button onClick={() => setIsForecast(false)} className={`w-12 py-1 rounded-md text-[9px] font-bold transition-all ${!isForecast ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>Real</button>
+                                            <button onClick={() => setIsForecast(true)} className={`w-12 py-1 rounded-md text-[9px] font-bold transition-all ${isForecast ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>Previsto</button>
+                                        </div>
+
+                                        {/* Divisor Vertical */}
+                                        <div className="w-[1px] h-4 bg-white/10 mx-0.5"></div>
+
+                                        {/* Indicador de Mês (Apenas Visual/Rótulo) */}
+                                        <div className="flex items-center gap-1.5 px-1 select-none">
+                                            {/* Removido o input e o cursor-pointer */}
+                                            <Calendar size={14} className="text-slate-400"/>
+                                            <span className="text-[11px] font-bold text-slate-200 uppercase tracking-wider">
+                                                {selectedMonth.split('-')[1]}/{selectedMonth.split('-')[0]}
+                                            </span>
+                                        </div>
+
+                                        {/* Divisor Vertical */}
+                                        <div className="w-[1px] h-4 bg-white/10 mx-0.5"></div>
+
+                                        {/* Olho */}
+                                        <button onClick={() => setHideValues(!hideValues)} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-white transition-colors rounded-full hover:bg-white/10">
+                                            {hideValues ? <EyeOff size={16}/> : <Eye size={16}/>}
                                         </button>
                                     </div>
                                 </div>
 
-                                {/* ITEM 3: SALDO ACUMULADO COM TOTAL */}
+                                {/* LINHA 2: VALOR PRINCIPAL */}
+                                <div className="mb-1">
+                                    <div className="flex items-center gap-3">
+                                        <h2 className="text-4xl font-extrabold tracking-tight text-white drop-shadow-sm">
+                                            {hideValues ? '••••••' : (
+                                                dashboardMode === 'investment' 
+                                                    ? formatCurrency(data.investData.totalCurrent) 
+                                                    : formatCurrency(data.previousBalance + data.bal)
+                                            )}
+                                        </h2>
+                                        
+                                        {/* Badge de Variação (Renderização Condicional para evitar erro) */}
+                                        {!hideValues && (
+                                            (() => {
+                                                let pct = dashboardMode === 'statement' 
+                                                    ? (data.previousBalance !== 0 ? (data.bal / Math.abs(data.previousBalance)) * 100 : 0)
+                                                    : data.investData.yieldPct;
+                                                const isPositive = dashboardMode === 'statement' ? data.bal >= 0 : pct >= 0;
 
-                                {/* ITEM 3: SALDO ACUMULADO COM TOTAL */}
-                                {/* ITEM 3: SALDO ACUMULADO COM TOTAL E VARIAÇÃO */}
-                                <div className="flex items-center gap-2 mb-1">
-                                    <h2 className="text-3xl font-extrabold tracking-tight">
-                                        {hideValues ? '••••••' : (
-                                            dashboardMode === 'investment' 
-                                                ? formatCurrency(data.investData.totalCurrent) 
-                                                : formatCurrency(data.previousBalance + data.bal)
+                                                return (
+                                                    <div className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-0.5 border backdrop-blur-sm ${isPositive ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border-rose-500/30'}`}>
+                                                        {isPositive ? <TrendingUp size={10}/> : <TrendingDown size={10}/>}
+                                                        {Math.abs(pct).toFixed(1)}%
+                                                    </div>
+                                                );
+                                            })()
                                         )}
-                                    </h2>
-                                    
-                                    {/* NOVO: Badge de Variação % */}
-                                    {!hideValues && (
-                                        (() => {
-                                            // Lógica Dia a Dia: Variação do Mês sobre o Saldo Anterior
-                                            // Se for Investimento: Mostra Rentabilidade da Carteira
-                                            let pct = 0;
-                                            let isPositive = true;
-
-                                            if (dashboardMode === 'statement') {
-                                                // Quanto o saldo variou este mês em relação ao montante inicial
-                                                pct = data.previousBalance !== 0 ? (data.bal / Math.abs(data.previousBalance)) * 100 : 0;
-                                                isPositive = data.bal >= 0;
-                                            } else {
-                                                pct = data.investData.yieldPct;
-                                                isPositive = pct >= 0;
-                                            }
-
-                                            return (
-                                                <div className={`px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-0.5 border ${isPositive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
-                                                    {isPositive ? <TrendingUp size={10}/> : <TrendingDown size={10}/>}
-                                                    {Math.abs(pct).toFixed(1)}%
-                                                </div>
-                                            );
-                                        })()
-                                    )}
+                                    </div>
                                 </div>
-                                <p className="text-xs text-slate-400 mb-6">Saldo Acumulado Disponível</p>
-                                
-                                {/* ITEM 3: ANTERIOR / ATUAL / DETALHES */}
-                                <div className="space-y-3">
-                                    {dashboardMode === 'statement' && (
-                                        <div className="flex justify-between text-[10px] text-slate-400 border-b border-white/5 pb-2">
-                                            <span>Mês Anterior: <span className="text-white font-bold">{hideValues ? '•••' : formatCurrency(data.previousBalance)}</span></span>
-                                            <span>Mês Atual: <span className={`font-bold ${data.bal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{hideValues ? '•••' : (data.bal >= 0 ? '+' : '') + formatCurrency(data.bal)}</span></span>
-                                        </div>
-                                    )}
 
-                                    <div className="grid grid-cols-3 gap-2 pt-1">
-                                        <div>
-                                            <p className="text-[9px] text-emerald-400 font-bold mb-0.5">Receita</p>
-                                            <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.inc)}</p>
-                                        </div>
-                                        <div className="text-center border-l border-white/10 border-r">
-                                            <p className="text-[9px] text-rose-400 font-bold mb-0.5">Despesa</p>
-                                            <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.exp)}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[9px] text-indigo-400 font-bold mb-0.5">Aporte</p>
-                                            <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.inv)}</p>
-                                        </div>
+                                {/* LINHA 3: RESTAURADO - MÊS ANTERIOR E ATUAL */}
+                                {dashboardMode === 'statement' && (
+                                    <div className="flex gap-4 text-[10px] text-slate-400 mb-5 pl-0.5">
+                                        <span>Mês Anterior: <span className="text-slate-200 font-bold">{hideValues ? '•••' : formatCurrency(data.previousBalance)}</span></span>
+                                        <span className="w-[1px] h-3 bg-white/20"></span>
+                                        <span>Mês Atual: <span className={`font-bold ${data.bal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{hideValues ? '•••' : (data.bal >= 0 ? '+' : '') + formatCurrency(data.bal)}</span></span>
+                                    </div>
+                                )}
+                                {dashboardMode !== 'statement' && <div className="mb-5"></div>} {/* Espaçador se não for extrato */}
+                                
+                                {/* LINHA 4: DETALHES (Rodapé do Card) */}
+                                <div className="grid grid-cols-3 gap-0 border-t border-white/10 pt-3">
+                                    <div>
+                                        <p className="text-[9px] text-emerald-400 font-bold mb-0.5 uppercase tracking-wide">Receita</p>
+                                        <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.inc)}</p>
+                                    </div>
+                                    <div className="text-center border-l border-r border-white/5">
+                                        <p className="text-[9px] text-rose-400 font-bold mb-0.5 uppercase tracking-wide">Despesa</p>
+                                        <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.exp)}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[9px] text-indigo-400 font-bold mb-0.5 uppercase tracking-wide">Aporte</p>
+                                        <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.inv)}</p>
                                     </div>
                                 </div>
                             </div>
@@ -3047,168 +3099,129 @@
                         </div>
                     )}
 
-                    {/* Modal Add (Manual) */}
-                    {/* Modal Add (Manual) - REVISADO (Melhoria 6 e 7) */}
+                    {/* Modal Add (Manual) - VERSÃO SÓLIDA PARA LEITURA */}
                     {modalOpen && (
-                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-end justify-center animate-fade-in">
-                            <div className="bg-white w-full rounded-t-[2rem] p-6 pb-10 shadow-2xl animate-slide-up max-h-[85vh] overflow-y-auto">
-                                <div className="flex justify-between mb-6"><h3 className="font-bold text-xl">Novo Lançamento</h3><button onClick={() => setModalOpen(false)} className="bg-gray-100 p-2 rounded-full"><X size={20}/></button></div>
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center animate-fade-in">
+                            {/* Adicionado 'modal-solid' para fundo opaco */}
+                            <div className="w-full rounded-t-[2rem] p-6 pb-10 shadow-2xl animate-slide-up max-h-[85vh] overflow-y-auto modal-solid text-white">
+                                <div className="flex justify-between mb-6 border-b border-white/10 pb-4">
+                                    <h3 className="font-bold text-xl">Novo Lançamento</h3>
+                                    <button onClick={() => setModalOpen(false)} className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-colors"><X size={20}/></button>
+                                </div>
+                                
                                 <form onSubmit={saveTx} className="space-y-4">
-                                    <div className="flex bg-gray-100 p-1 rounded-xl">
+                                    {/* Seletor de Tipo */}
+                                    <div className="flex bg-slate-950 p-1 rounded-xl border border-white/10">
                                         {['expense','income','investment'].map(t => (
-                                            <button type="button" key={t} onClick={() => { setFType(t); setFCat(''); }} className={`flex-1 py-3 text-xs font-bold uppercase rounded-lg transition-all ${fType === t ? 'bg-white shadow-sm text-slate-900' : 'text-gray-400'}`}>{t === 'expense' ? 'Despesa' : t === 'income' ? 'Receita' : 'Investir'}</button>
+                                            <button type="button" key={t} onClick={() => { setFType(t); setFCat(''); }} className={`flex-1 py-3 text-xs font-bold uppercase rounded-lg transition-all ${fType === t ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}>{t === 'expense' ? 'Despesa' : t === 'income' ? 'Receita' : 'Investir'}</button>
                                         ))}
                                     </div>
                                     
-                                    {/* VALORES E QUANTIDADES */}
+                                    {/* VALORES */}
                                     {fType === 'investment' ? (
                                         <div className="flex gap-3">
                                             <div className="flex-1">
-                                                <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Qtd</label>
+                                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1 block">Qtd</label>
                                                 <input type="number" step="0.000001" value={fQty} onChange={e => {
                                                     setFQty(e.target.value);
                                                     if(fUnitPrice) setFAmount((Number(e.target.value) * Number(fUnitPrice)).toFixed(2));
-                                                }} placeholder="0" className="w-full bg-gray-50 p-4 rounded-xl text-xl font-bold outline-none focus:ring-2 focus:ring-slate-100"/>
+                                                }} placeholder="0" className="w-full p-4 rounded-xl text-xl font-bold outline-none input-solid"/>
                                             </div>
                                             <div className="flex-1 relative">
-                                                <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Preço Unit.</label>
-                                                <span className="absolute left-3 top-[38px] -translate-y-1/2 font-bold text-gray-400 text-sm">R$</span>
+                                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1 block">Preço Unit.</label>
+                                                <span className="absolute left-3 top-[42px] -translate-y-1/2 font-bold text-slate-500 text-sm">R$</span>
                                                 <input type="number" step="0.01" value={fUnitPrice} onChange={e => {
                                                     setFUnitPrice(e.target.value);
                                                     if(fQty) setFAmount((Number(fQty) * Number(e.target.value)).toFixed(2));
-                                                }} placeholder="0,00" className="w-full bg-gray-50 p-4 pl-8 rounded-xl text-xl font-bold outline-none focus:ring-2 focus:ring-slate-100"/>
+                                                }} placeholder="0,00" className="w-full p-4 pl-9 rounded-xl text-xl font-bold outline-none input-solid"/>
                                             </div>
                                         </div>
                                     ) : (
                                         <div className="relative">
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">R$</span>
-                                            <input type="number" step="0.01" value={fAmount} onChange={e => setFAmount(e.target.value)} placeholder="0,00" className="w-full bg-gray-50 p-4 pl-10 rounded-xl text-2xl font-bold outline-none focus:ring-2 focus:ring-slate-100" required />
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-500">R$</span>
+                                            <input type="number" step="0.01" value={fAmount} onChange={e => setFAmount(e.target.value)} placeholder="0,00" className="w-full p-4 pl-10 rounded-xl text-2xl font-bold outline-none input-solid" required />
                                         </div>
                                     )}
                                     
-                                    {fType === 'investment' && fAmount > 0 && (
-                                        <div className="text-center text-xs font-bold text-indigo-600 bg-indigo-50 p-2 rounded-lg mb-2">Total: {formatCurrency(fAmount)}</div>
-                                    )}
-                                    
-                                    {/* CORREÇÃO: onBlur adicionado para garantir salvamento */}
-                                    <input type="text" list="titleOptions" value={fTitle} onChange={e => setFTitle(e.target.value)} onBlur={e => setFTitle(e.target.value)} placeholder="Descrição (ex: Almoço)" className="w-full bg-gray-50 p-4 rounded-xl font-bold outline-none focus:ring-2 focus:ring-slate-100" required />
+                                    {/* Título */}
+                                    <input type="text" list="titleOptions" value={fTitle} onChange={e => setFTitle(e.target.value)} onBlur={e => setFTitle(e.target.value)} placeholder="Descrição (ex: Almoço)" className="w-full p-4 rounded-xl font-bold outline-none input-solid" required />
                                     <datalist id="titleOptions">{uniqueTitles.map(t => <option key={t} value={t} />)}</datalist>
                                     
                                     {/* DATA E CONTA */}
                                     <div className="flex gap-3">
-                                        <div className="flex-1 flex items-center gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                            <Calendar size={18} className="text-gray-400"/>
-                                            <input type="date" value={fDate} onChange={e => setFDate(e.target.value)} className="bg-transparent font-bold text-sm w-full outline-none text-slate-600"/>
+                                        <div className="flex-1 flex items-center gap-2 p-3 rounded-xl input-solid">
+                                            <Calendar size={18} className="text-slate-400 shrink-0"/>
+                                            <input type="date" value={fDate} onChange={e => setFDate(e.target.value)} className="bg-transparent font-bold text-sm w-full outline-none text-white"/>
                                         </div>
-                                        <div className="flex-1 flex items-center gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                            <Banknote size={18} className="text-gray-400"/>
-                                            {/* ALTERAÇÃO: Input com Datalist no lugar do Select */}
-                                            <input 
-                                                list="bankOptions" 
-                                                value={fBank} 
-                                                onChange={e => setFBank(e.target.value)} 
-                                                onBlur={e => setFBank(e.target.value)}
-                                                placeholder="Banco/Conta"
-                                                className="bg-transparent font-bold text-sm w-full outline-none text-slate-600"
-                                            />
-                                            <datalist id="bankOptions">
-                                                {BANKS.map(b => <option key={b.id} value={b.name} />)}
-                                            </datalist>
+                                        <div className="flex-1 flex items-center gap-2 p-3 rounded-xl input-solid">
+                                            <Banknote size={18} className="text-slate-400 shrink-0"/>
+                                            <input list="bankOptions" value={fBank} onChange={e => setFBank(e.target.value)} onBlur={e => setFBank(e.target.value)} placeholder="Banco/Conta" className="bg-transparent font-bold text-sm w-full outline-none text-white placeholder-slate-500"/>
+                                            <datalist id="bankOptions">{BANKS.map(b => <option key={b.id} value={b.name} />)}</datalist>
                                         </div>
                                     </div>
                                     
-                                    {/* DETALHE CONTEXTUAL */}
-                                    <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                        {fType === 'expense' ? <MapPin size={18} className="text-gray-400"/> : fType === 'income' ? <Briefcase size={18} className="text-gray-400"/> : <TrendingUp size={18} className="text-gray-400"/>}
-                                        {/* CORREÇÃO: onBlur adicionado */}
-                                        <input type="text" list="marketOptions" value={fMarket} onChange={e => setFMarket(e.target.value)} onBlur={e => setFMarket(e.target.value)} placeholder={fType === 'expense' ? "Local / Mercado" : fType === 'income' ? "Origem / Pagador" : "Ativo (ex: PETR4)"} className="bg-transparent font-bold text-sm w-full outline-none text-slate-600"/>
+                                    {/* LOCAL/MERCADO */}
+                                    <div className="flex items-center gap-3 p-3 rounded-xl input-solid">
+                                        {fType === 'expense' ? <MapPin size={18} className="text-slate-400 shrink-0"/> : fType === 'income' ? <Briefcase size={18} className="text-slate-400 shrink-0"/> : <TrendingUp size={18} className="text-slate-400 shrink-0"/>}
+                                        <input type="text" list="marketOptions" value={fMarket} onChange={e => setFMarket(e.target.value)} onBlur={e => setFMarket(e.target.value)} placeholder={fType === 'expense' ? "Local / Mercado" : fType === 'income' ? "Origem / Pagador" : "Ativo (ex: PETR4)"} className="bg-transparent font-bold text-sm w-full outline-none text-white placeholder-slate-500"/>
                                         <datalist id="marketOptions">{uniqueMarkets.map(m => <option key={m} value={m} />)}</datalist>
                                     </div>
 
-                                    {/* RECORRÊNCIA (Melhoria 6: Texto dinâmico) */}
-                                    <div onClick={() => setFRecurrent(!fRecurrent)} className={`flex justify-between p-4 rounded-xl border-2 cursor-pointer transition-colors ${fRecurrent ? 'border-amber-500 bg-amber-50' : 'border-gray-100'}`}>
-                                        <span className="font-bold text-sm flex gap-2 items-center text-slate-700">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-                                            {fType === 'income' ? 'Receita Fixa Mensal' : fType === 'investment' ? 'Aporte Recorrente Mensal' : 'Despesa Fixa Mensal'}
-                                        </span>
-                                        {fRecurrent && <Check size={16} className="text-amber-600"/>}
+                                    {/* TOGGLES (Recorrência e Divisão) - Estilo Dark Sólido */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div onClick={() => setFRecurrent(!fRecurrent)} className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-colors ${fRecurrent ? 'border-amber-500 bg-amber-500/10' : 'border-white/5 bg-white/5'}`}>
+                                            <span className="font-bold text-[10px] uppercase text-slate-400 mb-1">Recorrência</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-xs font-bold ${fRecurrent ? 'text-amber-400' : 'text-slate-500'}`}>{fRecurrent ? 'Mensal (Fixa)' : 'Única'}</span>
+                                                {fRecurrent && <Check size={12} className="text-amber-400"/>}
+                                            </div>
+                                        </div>
+
+                                        <div onClick={() => setFShared(!fShared)} className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-colors ${fShared ? 'border-indigo-500 bg-indigo-500/10' : 'border-white/5 bg-white/5'}`}>
+                                            <span className="font-bold text-[10px] uppercase text-slate-400 mb-1">Divisão</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-xs font-bold ${fShared ? 'text-indigo-400' : 'text-slate-500'}`}>{fShared ? 'Compartilhado' : 'Pessoal'}</span>
+                                                {fShared && <Check size={12} className="text-indigo-400"/>}
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    {/* DIVISÃO E PAGADOR (Melhoria 7: Reordenado e Textos Dinâmicos) */}
-                                    <div className="space-y-2">
-                                        <div onClick={() => setFShared(!fShared)} className={`flex justify-between p-4 rounded-xl border-2 cursor-pointer transition-colors ${fShared ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100'}`}>
-                                            <span className="font-bold text-sm flex gap-2 items-center">
-                                                <Users size={16}/> 
-                                                {fType === 'investment' ? 'Investimento Conjunto' : fType === 'income' ? 'Receita Conjunta' : 'Dividir Casal'}
+                                    {(fShared || viewMode === 'joint') && (
+                                        <div className="bg-slate-950 p-3 rounded-xl border border-white/10 flex items-center justify-between">
+                                            <span className="text-xs font-bold text-slate-400 uppercase ml-1">
+                                                {fType === 'income' ? 'Quem Recebeu?' : 'Quem Pagou?'}
                                             </span>
-                                            {fShared && <Check size={16} className="text-indigo-600"/>}
-                                        </div>
-
-                                        {(fShared || viewMode === 'joint') && (
-                                            <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-center justify-between animate-fade-in">
-                                                <span className="text-xs font-bold text-gray-500 uppercase ml-1">
-                                                    {fType === 'income' ? 'Quem Recebeu?' : fType === 'investment' ? 'Quem Aportou?' : 'Quem Pagou?'}
-                                                </span>
-                                                <div className="flex bg-gray-200 rounded-lg p-1">
-                                                    <button type="button" onClick={() => setFormPayer('me')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${formPayer === 'me' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}>Eu</button>
-                                                    <button type="button" onClick={() => setFormPayer('partner')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${formPayer === 'partner' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-500'}`}>Parceiro</button>
-                                                </div>
+                                            <div className="flex bg-slate-800 rounded-lg p-1">
+                                                <button type="button" onClick={() => setFormPayer('me')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${formPayer === 'me' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400'}`}>Eu</button>
+                                                <button type="button" onClick={() => setFormPayer('partner')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${formPayer === 'partner' ? 'bg-pink-600 text-white shadow-sm' : 'text-slate-400'}`}>Parceiro</button>
                                             </div>
-                                        )}
-                                    </div>
-
-                                    {/* SONHO E CATEGORIAS */}
-                                    {fType === 'investment' && dreams.length > 0 && (
-                                        <div className="bg-indigo-50 p-3 rounded-xl border border-indigo-100">
-                                            <label className="text-[10px] font-bold text-indigo-400 uppercase ml-1 block mb-1">Vincular a um Sonho? (Opcional)</label>
-                                            <select value={fDreamId} onChange={e => setFDreamId(e.target.value)} className="w-full bg-transparent font-bold text-sm outline-none text-slate-700">
-                                                <option value="">Sem vínculo (Aporte Geral)</option>
-                                                {/* Filtra sonhos baseado no modo de visualização atual */}
-                                                {dreams.filter(d => (viewMode === 'joint' ? d.scope === 'joint' : d.scope === 'personal')).map(d => (
-                                                    <option key={d.id} value={d.id}>{d.emoji} {d.title}</option>
-                                                ))}
-                                            </select>
                                         </div>
                                     )}
 
-                                    {fType === 'expense' && (
-                                        <div className="p-4 rounded-xl border-2 border-gray-100 bg-gray-50">
-                                            <div onClick={() => setIsInstallment(!isInstallment)} className="flex justify-between cursor-pointer">
-                                                <span className="font-bold text-sm flex gap-2 items-center text-slate-600"><CreditCard size={16}/> É compra parcelada?</span>
-                                                <div className={`w-10 h-5 rounded-full relative transition-colors ${isInstallment ? 'bg-indigo-500' : 'bg-gray-300'}`}>
-                                                    <div className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-all ${isInstallment ? 'left-6' : 'left-1'}`}/>
-                                                </div>
-                                            </div>
-                                            {isInstallment && (
-                                                <div className="mt-3 flex items-center gap-3 animate-fade-in">
-                                                    <span className="text-xs font-bold text-gray-500">Nº de Parcelas:</span>
-                                                    <input type="number" min="2" max="36" value={installments} onChange={e => setInstallments(e.target.value)} className="w-16 p-2 rounded-lg border text-center font-bold outline-none focus:border-indigo-500"/>
-                                                    <span className="text-xs text-indigo-600 font-bold">x {formatCurrency(Number(fAmount)/installments)}</span>
-                                                </div>
-                                            )}
+                                    {/* CATEGORIAS */}
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1">Categoria</p>
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {CATEGORIES[fType].map(c => (
+                                                <button type="button" key={c.id} onClick={() => { setFCat(c.name); setFSubCat(''); }} className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition-colors ${fCat === c.name ? 'border-indigo-500 bg-indigo-500/20 text-white' : 'border-white/5 bg-white/5 text-slate-400 hover:bg-white/10'}`}>
+                                                    <span className="text-xl">{c.icon}</span>
+                                                    <span className="text-[8px] font-bold uppercase text-center">{c.name.slice(0,10)}</span>
+                                                </button>
+                                            ))}
                                         </div>
-                                    )}
-
-                                    <div className="grid grid-cols-4 gap-2">
-                                        {CATEGORIES[fType].map(c => (
-                                            <button type="button" key={c.id} onClick={() => { setFCat(c.name); setFSubCat(''); }} className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition-colors ${fCat === c.name ? 'border-slate-900 bg-slate-50' : 'border-transparent'}`}>
-                                                <span className="text-xl">{c.icon}</span>
-                                                <span className="text-[8px] font-bold uppercase text-center">{c.name.slice(0,10)}</span>
-                                            </button>
-                                        ))}
                                     </div>
 
                                     {fCat && CATEGORIES[fType].find(c => c.name === fCat)?.subcategories?.length > 0 && (
-                                        <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 animate-fade-in">
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 block mb-1">Detalhe da {fCat}</label>
-                                            <select value={fSubCat} onChange={e => setFSubCat(e.target.value)} className="w-full bg-transparent font-bold text-sm outline-none text-slate-700">
-                                                <option value="">Selecione o tipo...</option>
-                                                {CATEGORIES[fType].find(c => c.name === fCat).subcategories.map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                                        <div className="p-3 rounded-xl input-solid">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 block mb-1">Detalhe</label>
+                                            <select value={fSubCat} onChange={e => setFSubCat(e.target.value)} className="w-full bg-transparent font-bold text-sm outline-none text-white">
+                                                <option value="" className="bg-slate-900 text-slate-400">Selecione...</option>
+                                                {CATEGORIES[fType].find(c => c.name === fCat).subcategories.map(sub => <option key={sub} value={sub} className="bg-slate-900 text-white">{sub}</option>)}
                                             </select>
                                         </div>
                                     )}
 
-                                    <button type="submit" className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-lg shadow-xl active:scale-98 transition-transform">Salvar</button>
+                                    <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-98 transition-transform mt-2">Salvar</button>
                                 </form>
                             </div>
                         </div>
