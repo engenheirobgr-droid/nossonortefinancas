@@ -2341,115 +2341,113 @@
                         </div>
                     </div>
 
-                    {/* --- CARD PRINCIPAL REORGANIZADO (HIERARQUIA AJUSTADA v2) --- */}
-                    <div className="px-5 mb-4 relative z-20 shrink-0">
-                        <div className="rounded-3xl p-5 text-white shadow-2xl border border-sky-400/20 relative overflow-hidden" 
-                             style={{ 
-                                 background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.20) 0%, rgba(15, 23, 42, 0.50) 100%)', 
-                                 backdropFilter: 'blur(8px)',
-                                 WebkitBackdropFilter: 'blur(8px)'
-                             }}>
+                    {/* --- CARD PRINCIPAL: Agora só aparece na aba 'home' --- */}
+                    {tab === 'home' && (
+                        <div className="px-5 mb-4 relative z-20 shrink-0 animate-fade-in">
+                            <div className="rounded-3xl p-5 text-white shadow-2xl border border-sky-400/20 relative overflow-hidden" 
+                                style={{ 
+                                    background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.20) 0%, rgba(15, 23, 42, 0.50) 100%)', 
+                                    backdropFilter: 'blur(8px)',
+                                    WebkitBackdropFilter: 'blur(8px)'
+                                }}>
 
-                            <div className="relative z-10">
-                                {/* LINHA 1: BARRA DE FERRAMENTAS (Estável e Alinhada) */}
-                                <div className="flex justify-between items-start mb-2">
-                                    {/* Label do Saldo (Movido para topo esquerdo para equilibrar) */}
-                                    <div className="pt-1">
-                                        <p className="text-[10px] font-bold uppercase text-slate-400 tracking-widest pl-1">
-                                            Saldo Disponível
-                                        </p>
-                                    </div>
-
-                                    {/* Grupo de Controle (Direita) */}
-                                    <div className="flex items-center gap-2 bg-[#0f172a]/60 p-1 rounded-xl border border-white/10 backdrop-blur-md">
-                                        
-                                        {/* Toggle Sólido (Sem tremedeira) */}
-                                        <div className="flex bg-slate-900/80 rounded-lg p-0.5 border border-white/5 relative">
-                                            {/* Fundo deslizante visual (opcional) ou apenas estados sólidos */}
-                                            <button onClick={() => setIsForecast(false)} className={`w-12 py-1 rounded-md text-[9px] font-bold transition-all ${!isForecast ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>Real</button>
-                                            <button onClick={() => setIsForecast(true)} className={`w-12 py-1 rounded-md text-[9px] font-bold transition-all ${isForecast ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>Previsto</button>
+                                <div className="relative z-10">
+                                    {/* LINHA 1: BARRA DE FERRAMENTAS (Estável e Alinhada) */}
+                                    <div className="flex justify-between items-start mb-2">
+                                        {/* Label do Saldo */}
+                                        <div className="pt-1">
+                                            <p className="text-[10px] font-bold uppercase text-slate-400 tracking-widest pl-1">
+                                                Saldo Disponível
+                                            </p>
                                         </div>
 
-                                        {/* Divisor Vertical */}
-                                        <div className="w-[1px] h-4 bg-white/10 mx-0.5"></div>
+                                        {/* Grupo de Controle (Direita) */}
+                                        <div className="flex items-center gap-2 bg-[#0f172a]/60 p-1 rounded-xl border border-white/10 backdrop-blur-md">
+                                            
+                                            {/* Toggle Sólido */}
+                                            <div className="flex bg-slate-900/80 rounded-lg p-0.5 border border-white/5 relative">
+                                                <button onClick={() => setIsForecast(false)} className={`w-12 py-1 rounded-md text-[9px] font-bold transition-all ${!isForecast ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>Real</button>
+                                                <button onClick={() => setIsForecast(true)} className={`w-12 py-1 rounded-md text-[9px] font-bold transition-all ${isForecast ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>Previsto</button>
+                                            </div>
 
-                                        {/* Indicador de Mês (Apenas Visual/Rótulo) */}
-                                        <div className="flex items-center gap-1.5 px-1 select-none">
-                                            {/* Removido o input e o cursor-pointer */}
-                                            <Calendar size={14} className="text-slate-400"/>
-                                            <span className="text-[11px] font-bold text-slate-200 uppercase tracking-wider">
-                                                {selectedMonth.split('-')[1]}/{selectedMonth.split('-')[0]}
-                                            </span>
+                                            <div className="w-[1px] h-4 bg-white/10 mx-0.5"></div>
+
+                                            {/* Indicador de Mês (Apenas Visual) */}
+                                            <div className="flex items-center gap-1.5 px-1 select-none">
+                                                <Calendar size={14} className="text-slate-400"/>
+                                                <span className="text-[11px] font-bold text-slate-200 uppercase tracking-wider">
+                                                    {selectedMonth.split('-')[1]}/{selectedMonth.split('-')[0]}
+                                                </span>
+                                            </div>
+
+                                            <div className="w-[1px] h-4 bg-white/10 mx-0.5"></div>
+
+                                            {/* Olho */}
+                                            <button onClick={() => setHideValues(!hideValues)} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-white transition-colors rounded-full hover:bg-white/10">
+                                                {hideValues ? <EyeOff size={16}/> : <Eye size={16}/>}
+                                            </button>
                                         </div>
-
-                                        {/* Divisor Vertical */}
-                                        <div className="w-[1px] h-4 bg-white/10 mx-0.5"></div>
-
-                                        {/* Olho */}
-                                        <button onClick={() => setHideValues(!hideValues)} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-white transition-colors rounded-full hover:bg-white/10">
-                                            {hideValues ? <EyeOff size={16}/> : <Eye size={16}/>}
-                                        </button>
                                     </div>
-                                </div>
 
-                                {/* LINHA 2: VALOR PRINCIPAL */}
-                                <div className="mb-1">
-                                    <div className="flex items-center gap-3">
-                                        <h2 className="text-4xl font-extrabold tracking-tight text-white drop-shadow-sm">
-                                            {hideValues ? '••••••' : (
-                                                dashboardMode === 'investment' 
-                                                    ? formatCurrency(data.investData.totalCurrent) 
-                                                    : formatCurrency(data.previousBalance + data.bal)
+                                    {/* LINHA 2: VALOR PRINCIPAL */}
+                                    <div className="mb-1">
+                                        <div className="flex items-center gap-3">
+                                            <h2 className="text-4xl font-extrabold tracking-tight text-white drop-shadow-sm">
+                                                {hideValues ? '••••••' : (
+                                                    dashboardMode === 'investment' 
+                                                        ? formatCurrency(data.investData.totalCurrent) 
+                                                        : formatCurrency(data.previousBalance + data.bal)
+                                                )}
+                                            </h2>
+                                            
+                                            {/* Badge de Variação */}
+                                            {!hideValues && (
+                                                (() => {
+                                                    let pct = dashboardMode === 'statement' 
+                                                        ? (data.previousBalance !== 0 ? (data.bal / Math.abs(data.previousBalance)) * 100 : 0)
+                                                        : data.investData.yieldPct;
+                                                    const isPositive = dashboardMode === 'statement' ? data.bal >= 0 : pct >= 0;
+
+                                                    return (
+                                                        <div className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-0.5 border backdrop-blur-sm ${isPositive ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border-rose-500/30'}`}>
+                                                            {isPositive ? <TrendingUp size={10}/> : <TrendingDown size={10}/>}
+                                                            {Math.abs(pct).toFixed(1)}%
+                                                        </div>
+                                                    );
+                                                })()
                                             )}
-                                        </h2>
-                                        
-                                        {/* Badge de Variação (Renderização Condicional para evitar erro) */}
-                                        {!hideValues && (
-                                            (() => {
-                                                let pct = dashboardMode === 'statement' 
-                                                    ? (data.previousBalance !== 0 ? (data.bal / Math.abs(data.previousBalance)) * 100 : 0)
-                                                    : data.investData.yieldPct;
-                                                const isPositive = dashboardMode === 'statement' ? data.bal >= 0 : pct >= 0;
+                                        </div>
+                                    </div>
 
-                                                return (
-                                                    <div className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-0.5 border backdrop-blur-sm ${isPositive ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border-rose-500/30'}`}>
-                                                        {isPositive ? <TrendingUp size={10}/> : <TrendingDown size={10}/>}
-                                                        {Math.abs(pct).toFixed(1)}%
-                                                    </div>
-                                                );
-                                            })()
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* LINHA 3: RESTAURADO - MÊS ANTERIOR E ATUAL */}
-                                {dashboardMode === 'statement' && (
-                                    <div className="flex gap-4 text-[10px] text-slate-400 mb-5 pl-0.5">
-                                        <span>Mês Anterior: <span className="text-slate-200 font-bold">{hideValues ? '•••' : formatCurrency(data.previousBalance)}</span></span>
-                                        <span className="w-[1px] h-3 bg-white/20"></span>
-                                        <span>Mês Atual: <span className={`font-bold ${data.bal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{hideValues ? '•••' : (data.bal >= 0 ? '+' : '') + formatCurrency(data.bal)}</span></span>
-                                    </div>
-                                )}
-                                {dashboardMode !== 'statement' && <div className="mb-5"></div>} {/* Espaçador se não for extrato */}
-                                
-                                {/* LINHA 4: DETALHES (Rodapé do Card) */}
-                                <div className="grid grid-cols-3 gap-0 border-t border-white/10 pt-3">
-                                    <div>
-                                        <p className="text-[9px] text-emerald-400 font-bold mb-0.5 uppercase tracking-wide">Receita</p>
-                                        <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.inc)}</p>
-                                    </div>
-                                    <div className="text-center border-l border-r border-white/5">
-                                        <p className="text-[9px] text-rose-400 font-bold mb-0.5 uppercase tracking-wide">Despesa</p>
-                                        <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.exp)}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[9px] text-indigo-400 font-bold mb-0.5 uppercase tracking-wide">Aporte</p>
-                                        <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.inv)}</p>
+                                    {/* LINHA 3: MÊS ANTERIOR E ATUAL */}
+                                    {dashboardMode === 'statement' && (
+                                        <div className="flex gap-4 text-[10px] text-slate-400 mb-5 pl-0.5">
+                                            <span>Mês Anterior: <span className="text-slate-200 font-bold">{hideValues ? '•••' : formatCurrency(data.previousBalance)}</span></span>
+                                            <span className="w-[1px] h-3 bg-white/20"></span>
+                                            <span>Mês Atual: <span className={`font-bold ${data.bal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{hideValues ? '•••' : (data.bal >= 0 ? '+' : '') + formatCurrency(data.bal)}</span></span>
+                                        </div>
+                                    )}
+                                    {dashboardMode !== 'statement' && <div className="mb-5"></div>}
+                                    
+                                    {/* LINHA 4: RODAPÉ */}
+                                    <div className="grid grid-cols-3 gap-0 border-t border-white/10 pt-3">
+                                        <div>
+                                            <p className="text-[9px] text-emerald-400 font-bold mb-0.5 uppercase tracking-wide">Receita</p>
+                                            <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.inc)}</p>
+                                        </div>
+                                        <div className="text-center border-l border-r border-white/5">
+                                            <p className="text-[9px] text-rose-400 font-bold mb-0.5 uppercase tracking-wide">Despesa</p>
+                                            <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.exp)}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[9px] text-indigo-400 font-bold mb-0.5 uppercase tracking-wide">Aporte</p>
+                                            <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.inv)}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Content (Onde entram as listas e cards futuros) */}
                     <div className="flex-1 overflow-y-auto p-6 pb-32 scrollbar-hide relative">
