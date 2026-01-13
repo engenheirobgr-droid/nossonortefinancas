@@ -55,14 +55,63 @@
             overflow-x: hidden; 
         }
 
-        /* --- A MÁGICA DA TRANSPARÊNCIA (GLASSMORPHISM) --- */
-        /* Isso transforma automaticamente os cards brancos em vidro escuro */
-        .bg-white, .bg-gray-50, .bg-slate-900 {
-            background-color: rgba(15, 23, 42, 0.75) !important; /* Azul escuro 75% opaco */
-            backdrop-filter: blur(8px); /* Desfoque do fundo (efeito vidro) */
-            border-color: rgba(255, 255, 255, 0.1) !important; /* Bordas sutis */
-            color: #f8fafc !important; /* Força texto claro */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+        /* --- GLASSMORPHISM PREMIUM (Identidade Náutica) --- */
+        
+        /* Regra Mestra: Transforma todos os cards sólidos em Vidro */
+        .bg-white, .bg-gray-50, .bg-slate-900, .bg-slate-800 {
+            /* Fundo: Gradiente sutil de cima para baixo (simula luz) com alta transparência */
+            background: linear-gradient(
+                180deg, 
+                rgba(30, 41, 59, 0.5) 0%,   /* Slate-800 com 50% opacidade (topo) */
+                rgba(15, 23, 42, 0.6) 100%  /* Slate-900 com 60% opacidade (base) */
+            ) !important;
+            
+            /* O segredo da leitura: Desfoca o mapa atrás do card */
+            backdrop-filter: blur(12px) !important; 
+            -webkit-backdrop-filter: blur(12px) !important;
+            
+            /* Borda fina e brilhante para delimitar o vidro */
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.15) !important; /* Topo mais brilhante */
+            
+            /* Sombra suave para separar do fundo */
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25) !important;
+            
+            /* Texto forçado para claro */
+            color: #f1f5f9 !important;
+        }
+
+        /* Ajuste específico para o Header/Topo para ele ficar mais leve */
+        .pt-4.pb-0.px-5.shrink-0.z-30.relative.text-white {
+            background: transparent !important; /* Remove fundo se houver */
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5); /* Sombra no texto para ler sobre o mapa */
+        }
+
+        /* Textos secundários (datas, categorias) ganham um tom prata/azulado para brilhar no escuro */
+        .text-slate-800, .text-slate-700, .text-gray-600, .text-gray-500, .text-gray-400 {
+            color: #94a3b8 !important; /* Slate-400 */
+        }
+        
+        /* Títulos e valores principais ficam branco puro */
+        h1, h2, h3, .font-bold.text-lg, .font-extrabold {
+            color: #ffffff !important;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        /* Botões de Ação (Editar/Excluir) e Ícones - Mantém cores originais mas com brilho */
+        button[class*="bg-"] {
+            box-shadow: 0 0 10px rgba(0,0,0,0.2); /* Glow sutil */
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        /* Inputs e Selects (Formulários) - Vidro mais escuro para foco */
+        input, select, textarea {
+            background-color: rgba(0, 0, 0, 0.3) !important;
+            color: white !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.3) !important;
         }
 
         /* Ajusta textos que eram escuros para ficarem claros */
