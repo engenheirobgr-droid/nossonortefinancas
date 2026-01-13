@@ -1856,140 +1856,56 @@
             }
 
             // --- FASE 4: EXCLUSÃO INTELIGENTE (CASCATA + TARA) ---
-            const deleteTx = async (id) => { 
-                const tx = txs.find(t => t.id === id);
-                if(!tx) return;
-
-                // --- 1. LÓGICA DE CASCATA (SÉRIES) ---
-                let docsToDelete = [id]; // Padrão: apagar só este
-                
-                // Se tiver DNA de grupo (criado na Fase 2), oferece opções
-                if (tx.groupId) {
-                    const action = prompt(
-                        "⚠️ ESTE ITEM FAZ PARTE DE UMA SÉRIE (Parcelado/Recorrente).\n\n" +
-                        "Como deseja excluir?\n" +
-                        "[1] Apenas este (Ajuste pontual)\n" +
-                        "[2] Daqui para frente (Cancelamento)\n" +
-                        "[3] A SÉRIE INTEIRA (Apagar tudo)\n\n" +
-                        "Digite o número da opção:"
-                    );
-
-                    if (!action) return; // Cancelou
-
-                    if (action === '2' || action === '3') {
-                        // Busca todos os itens com o mesmo DNA no banco
-                        try {
-                            const snapshot = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions')
-                                .where('groupId', '==', tx.groupId).get();
-                            
-                            const groupDocs = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
-                            
-                            if (action === '2') {
-                                // Filtra: Mesma série E data maior ou igual a hoje
-                                docsToDelete = groupDocs.filter(d => d.date >= tx.date).map(d => d.id);
-                            } else if (action === '3') {
-                                // Todos
-                                docsToDelete = groupDocs.map(d => d.id);
-                            }
-                        } catch (err) {
-                            alert("Erro ao buscar série: " + err.message);
-                            return;
-                        }
-                    }
+            // --- NOVA FUNÇÃO: Rejeitar/Excluir Pagamento não recebido ---
+            const rejectSettlement = async (id) => {
+                if(confirm("O dinheiro não caiu? Ao rejeitar, este lançamento será apagado.")) {
+                    await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc(id).delete();
                 }
-
-                if (!confirm(`Confirma a exclusão de ${docsToDelete.length} item(ns)?`)) return;
-
-                // --- 2. SEGURANÇA DE CASAL (HUMANIZAÇÃO/TARA) ---
-                // Verifica se o item é compartilhado e não é um acerto técnico
-                const isSharedTx = tx.isShared && !tx.isSettlement; 
-
-                const batch = db.batch();
-
-                if (isSharedTx) {
-                    const userResponse = confirm(
-                        `💰 SEGURANÇA DE DÍVIDA\n\n` +
-                        "Esse dinheiro SAIU da conta na vida real (foi pago)?\n\n" +
-                        "[OK] = SIM, eu paguei (Gera compensação para manter seu crédito)\n" +
-                        "[CANCELAR] = NÃO, foi erro ou estorno (Apaga e remove a dívida)"
-                    );
-
-                    // Se respondeu SIM (OK), aplicamos a TARA (Compensação)
-                    if (userResponse) {
-                        // Calcula valor total aproximado (segurança para lote)
-                        let totalValue = tx.amount; 
-                        // Se for lote, tenta somar o que temos em memória para ser mais preciso
-                        if (docsToDelete.length > 1) {
-                            const sumInMemory = docsToDelete.reduce((acc, delId) => {
-                                const t = txs.find(x => x.id === delId);
-                                return acc + (t ? Number(t.amount) : 0);
-                            }, 0);
-                            if(sumInMemory > 0) totalValue = sumInMemory;
-                            else totalValue = tx.amount * docsToDelete.length; // Fallback
-                        }
-
-                        const adjustmentAmount = totalValue / 2; // Dívida é metade
-                        
-                        const taraRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc();
-                        batch.set(taraRef, {
-                            title: `Ajuste (Tara): ${tx.title} ${docsToDelete.length > 1 ? '(Série)' : ''}`,
-                            amount: adjustmentAmount,
-                            type: tx.payer === 'me' ? 'expense' : 'income', // Inverte fluxo para anular dívida
-                            category: 'Ajuste/Reembolso',
-                            date: new Date().toISOString().split('T')[0],
-                            isShared: false, // Vira pessoal (técnico)
-                            isSettlement: true, // Marca como acerto
-                            status: 'confirmed',
-                            ownerId: profile, 
-                            userId: user.uid,
-                            createdAt: new Date().toISOString()
-                        });
-                        alert(`✅ Exclusão realizada.\nFoi gerado um ajuste de ${formatCurrency(adjustmentAmount)} para manter o saldo da dívida correto.`);
-                    } else {
-                        alert("✅ Itens excluídos. A dívida referente a eles foi anulada.");
-                    }
-                }
-
-                // --- 3. EXECUÇÃO (BATCH DELETE) ---
-                docsToDelete.forEach(docId => {
-                    const ref = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc(docId);
-                    batch.delete(ref);
-                });
-
-                await batch.commit();
             };
 
-            // CORREÇÃO 3: Função aceita valor opcional para permitir "Quitar Tudo"
-            // CORREÇÃO: Função simplificada para apenas PAGAR (Gera pendência)
+            const confirmSettlement = async (tx) => {
+                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc(tx.id).update({
+                    status: 'confirmed'
+                });
+            };
+
+            // CORREÇÃO INTELIGENTE (Pagar vs Receber)
             const settleDebt = async (amountOverride = null) => {
-                // Pega o valor absoluto (sem sinal), pois já sabemos que é pagamento
-                const val = amountOverride !== null ? Math.abs(amountOverride) : Math.abs(data.coupleBal);
+                const currentBal = amountOverride !== null ? amountOverride : data.coupleBal;
+                const val = Math.abs(currentBal);
                 
                 if (val === 0) return;
 
+                // 1. Define quem é você na transação
+                const isPayer = currentBal < 0; // Saldo Negativo = Eu Devo (Payer)
+                
+                // 2. Define Tipo e Título
+                const type = isPayer ? 'expense' : 'income';
+                const title = isPayer ? 'Pagamento de Acerto' : 'Recebimento de Acerto';
+
+                // 3. Define o Status Inicial
+                // Se eu PAGUEI -> Nasce 'pending' (Parceiro precisa confirmar ou rejeitar)
+                // Se eu RECEBI -> Nasce 'confirmed' (Eu mesmo estou validando)
+                const initialStatus = isPayer ? 'pending' : 'confirmed';
+
                 await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').add({
-                    title: 'Pagamento de Acerto', 
+                    title: title, 
                     amount: val, 
-                    type: 'expense', // Sempre saída para quem clica (Pagar)
+                    type: type, 
                     category: 'Ajuste/Reembolso', 
                     date: new Date().toISOString().split('T')[0], 
                     isShared: false,
                     isSettlement: true, 
-                    status: 'pending', // Sempre pendente para o outro confirmar
+                    status: initialStatus, // Status dinâmico
                     payer: 'me', 
                     ownerId: profile, 
                     userId: user.uid, 
                     createdAt: new Date().toISOString()
                 });
                 
-                alert("Pagamento registrado! O parceiro deve confirmar o recebimento.");
-            };
-                
-                	    // NOVA FUNÇÃO: Confirmar recebimento do dinheiro
-            const confirmSettlement = async (tx) => {
-                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc(tx.id).update({
-                    status: 'confirmed'
-                });
+                // Feedback visual
+                if (isPayer) alert("Pagamento registrado! Aguardando o parceiro confirmar.");
+                else alert("Recebimento confirmado! Saldo ajustado.");
             };
 
             const openBudget = () => {
@@ -2253,9 +2169,16 @@
                                         <p className="text-xs text-amber-900 mb-0.5">{USER_CONFIG[tx.ownerId]?.name || 'Parceiro'} informou pagamento:</p>
                                         <p className="font-bold text-lg text-amber-900">{formatCurrency(tx.amount)}</p>
                                     </div>
-                                    <button onClick={() => confirmSettlement(tx)} className="bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-sm active:scale-95 transition-transform flex items-center gap-2 hover:bg-emerald-600">
-                                        <Check size={14}/> Confirmar
+                                    <div className="flex gap-2">
+                                    {/* Botão Rejeitar (Vermelho Claro) */}
+                                    <button onClick={() => rejectSettlement(tx.id)} className="bg-white text-rose-500 border border-rose-200 px-3 py-2 rounded-lg font-bold text-xs shadow-sm active:scale-95 transition-transform hover:bg-rose-50 flex items-center gap-1">
+                                        <X size={14}/> Não
                                     </button>
+                                    {/* Botão Confirmar (Verde) */}
+                                    <button onClick={() => confirmSettlement(tx)} className="bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-sm active:scale-95 transition-transform flex items-center gap-2 hover:bg-emerald-600">
+                                        <Check size={14}/> Sim, recebi
+                                    </button>
+                                </div>
                                 </div>
                             ))}
                         </div>
@@ -2268,40 +2191,44 @@
         {/* Linha 1: Perfil e Botões de Configuração */}
         {/* AJUSTE: Reduzi a margem inferior de mb-6 para mb-3 */}
         <div className="flex justify-between items-center mb-3 relative z-10 gap-4">
-        <div className="flex items-center gap-3 flex-1 min-w-0"> {/* Adicionado flex-1 e min-w-0 para segurança */}
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ring-2 ring-indigo-500/50 shadow-lg shrink-0 ${USER_CONFIG[profile].color}`}>
-                {USER_CONFIG[profile].avatar}
-            </div>
-            <div>
-                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{greeting.t},</p>
-                {/* Fonte ajustada para text-lg em mobile para evitar quebras */}
-                <h1 className="font-bold text-lg md:text-xl leading-none truncate">{USER_CONFIG[profile].name}</h1>
-            </div>
-        </div>
-        
-        {/* AJUSTE: gap-1.5 aproxima o calendário dos botões */}
-        <div className="flex gap-1.5 text-indigo-200 items-center shrink-0">
-        {/* BOTÃO DE CALENDÁRIO COM DATA INTEGRADA (PÍLULA) - ECONOMIA DE ESPAÇO */}
-        <div className="relative flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-full px-3 py-1.5 transition-colors group cursor-pointer">
-            <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer z-50 w-full h-full"/>
-            
-            <Calendar size={16} className="text-emerald-400 shrink-0"/>
-            
-            {/* Data formatada MM/AAAA */}
-            <span className="text-xs font-bold text-white tracking-wide whitespace-nowrap">
-                {selectedMonth.split('-')[1]}/{selectedMonth.split('-')[0]}
-            </span>
-        </div>
+        {/* ESQUERDA: Perfil & Saudação (Visual Limpo) */}
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ring-2 ring-indigo-500/50 shadow-lg shrink-0 ${USER_CONFIG[profile].color}`}>
+                                    {USER_CONFIG[profile].avatar}
+                                </div>
+                                <div>
+                                    {/* CORREÇÃO: Fonte natural (sem uppercase forçado) e com ícone da saudação */}
+                                    <p className="text-slate-400 text-xs font-medium flex items-center gap-1">
+                                        {greeting.t}, {greeting.i}
+                                    </p>
+                                    <h1 className="font-bold text-lg md:text-xl leading-none truncate">{USER_CONFIG[profile].name}</h1>
+                                </div>
+                            </div>
+                            
+                            {/* DIREITA: Data + Ícones (Agrupados e Próximos) */}
+                            <div className="flex gap-2 text-indigo-200 items-center shrink-0">
+                                {/* DATA (Pílula Compacta) */}
+                                <div className="relative flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-full px-3 py-1.5 transition-colors group cursor-pointer mr-1">
+                                    <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer z-50 w-full h-full"/>
+                                    <Calendar size={14} className="text-emerald-400 shrink-0"/>
+                                    <span className="text-[10px] font-bold text-white tracking-wide whitespace-nowrap pt-0.5">
+                                        {selectedMonth.split('-')[1]}/{selectedMonth.split('-')[0]}
+                                    </span>
+                                </div>
 
-                                {/* Botão Seleção em Massa */}
+                                {/* BOTÕES DE AÇÃO (Estilo Original Mantido: w-9 h-9 com fundo) */}
                                 <button 
                                     onClick={() => { setSelectionMode(!selectionMode); setSelectedIds(new Set()); }} 
                                     className={`w-9 h-9 flex items-center justify-center rounded-full transition-all border ${selectionMode ? 'bg-emerald-500 text-white border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'}`}
                                 >
                                     <CheckSquare size={18}/>
                                 </button>
-                                <button onClick={() => setSettingsModal(true)} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"><Settings size={18} /></button>
-                                <button onClick={() => { localStorage.removeItem('fincontrol_profile'); setProfile(null); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"><LogOut size={18} /></button>
+                                <button onClick={() => setSettingsModal(true)} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-slate-300">
+                                    <Settings size={18} />
+                                </button>
+                                <button onClick={() => { localStorage.removeItem('fincontrol_profile'); setProfile(null); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-rose-400 hover:text-rose-300">
+                                    <LogOut size={18} />
+                                </button>
                             </div>
                         </div>
 
@@ -2490,29 +2417,53 @@
                                             <p className="text-[10px] font-bold uppercase text-slate-400 mb-1 flex items-center gap-1">
                                                 <ArrowRightLeft size={10}/> Situação do Acerto
                                             </p>
-                                            {Math.abs(data.coupleBal) < 1 ? (
-                                                <p className="font-bold text-emerald-600 text-sm">Tudo quitado entre vocês! 🎉</p>
-                                            ) : (
-                                                <div>
-                                                    <p className="text-lg font-extrabold text-slate-800">
-                                                        {data.coupleBal > 0 ? 'Você tem a receber' : 'Você deve pagar'}
-                                                    </p>
-                                                    <p className={`text-2xl font-black ${data.coupleBal > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                                        {hideValues ? '••••••' : formatCurrency(Math.abs(data.coupleBal))}
-                                                    </p>
+                                            {/* CENÁRIO 1: TUDO QUITADO */}
+                                    {Math.abs(data.coupleBal) < 1 ? (
+                                        <div>
+                                            <p className="font-bold text-emerald-600 text-sm mb-1">Tudo quitado! 🎉</p>
+                                            
+                                            {/* HISTÓRICO DO MÊS (Novo Recurso) */}
+                                            {data.list.filter(t => t.isSettlement).length > 0 && (
+                                                <div className="text-[10px] text-slate-500 bg-white/60 p-2 rounded-lg border border-emerald-100 mt-2 min-w-[200px]">
+                                                    <p className="font-bold text-emerald-700 uppercase mb-1 border-b border-emerald-100 pb-0.5">Histórico do Mês:</p>
+                                                    {data.list.filter(t => t.isSettlement).map(t => (
+                                                        <div key={t.id} className="flex justify-between gap-4 py-0.5">
+                                                            <span>{t.date.split('-')[2]}/{t.date.split('-')[1]} • {t.title.replace(' de Acerto','')}</span>
+                                                            <span className={`font-bold ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                                {formatCurrency(t.amount)}
+                                                            </span>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             )}
                                         </div>
-                                        {/* Botão de Ação do Acerto */}
-                                        {Math.abs(data.coupleBal) >= 1 && (
-                                            <button 
-                                                onClick={() => settleDebt(data.coupleBal)} 
-                                                className={`px-4 py-3 rounded-xl font-bold text-xs shadow-lg active:scale-95 transition-all flex flex-col items-center gap-1 ${data.coupleBal > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-600 text-white'}`}
-                                            >
-                                                {data.coupleBal > 0 ? <Check size={18}/> : <Banknote size={18}/>}
-                                                {data.coupleBal > 0 ? 'Recebido' : 'Pagar'}
-                                            </button>
-                                        )}
+                                    ) : (
+                                        /* CENÁRIO 2: DÍVIDA PENDENTE */
+                                        <div>
+                                            <p className="text-lg font-extrabold text-slate-800">
+                                                {data.coupleBal > 0 ? 'Você tem a receber' : 'Você deve pagar'}
+                                            </p>
+                                            <p className={`text-2xl font-black ${data.coupleBal > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                {hideValues ? '••••••' : formatCurrency(Math.abs(data.coupleBal))}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* BOTÃO DE AÇÃO DINÂMICO (Só aparece se tiver saldo) */}
+                                {Math.abs(data.coupleBal) >= 1 && (
+                                    <button 
+                                        onClick={() => settleDebt(data.coupleBal)} 
+                                        className={`px-4 py-3 rounded-xl font-bold text-xs shadow-lg active:scale-95 transition-all flex flex-col items-center gap-1 border border-white/10
+                                        ${data.coupleBal > 0 
+                                            ? 'bg-emerald-600 text-white shadow-emerald-500/30' // Emerald para Receber
+                                            : 'bg-indigo-600 text-white shadow-indigo-500/30'}`} // Indigo para Pagar
+                                    >
+                                        {data.coupleBal > 0 ? <CheckCircle size={18}/> : <Banknote size={18}/>}
+                                        {/* Textos explícitos de AÇÃO */}
+                                        {data.coupleBal > 0 ? 'Confirmar Recebimento' : 'Realizar Pagamento'}
+                                    </button>
+                                )}
                                     </div>
                                 </div>
 
