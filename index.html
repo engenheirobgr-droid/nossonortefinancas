@@ -59,37 +59,36 @@
         
         /* Regra Mestra: Transforma todos os cards sólidos em Vidro */
         .bg-white, .bg-gray-50, .bg-slate-900, .bg-slate-800 {
-            /* Fundo: Gradiente sutil de cima para baixo (simula luz) com alta transparência */
+            /* Fundo: Mais transparente (40%) para o mapa aparecer mais */
             background: linear-gradient(
                 180deg, 
-                rgba(30, 41, 59, 0.5) 0%,   /* Slate-800 com 50% opacidade (topo) */
-                rgba(15, 23, 42, 0.6) 100%  /* Slate-900 com 60% opacidade (base) */
+                rgba(15, 23, 42, 0.4) 0%, 
+                rgba(15, 23, 42, 0.6) 100%
             ) !important;
             
-            /* O segredo da leitura: Desfoca o mapa atrás do card */
+            /* Blur: Mantém o foco no texto */
             backdrop-filter: blur(12px) !important; 
             -webkit-backdrop-filter: blur(12px) !important;
             
-            /* Borda fina e brilhante para delimitar o vidro */
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            border-top: 1px solid rgba(255, 255, 255, 0.15) !important; /* Topo mais brilhante */
+            /* Borda: Ciano Suave (Efeito Náutico/Tech) em vez de branco simples */
+            border: 1px solid rgba(56, 189, 248, 0.15) !important; /* Sky-400 com baixa opacidade */
+            border-top: 1px solid rgba(56, 189, 248, 0.25) !important; /* Topo mais iluminado */
             
-            /* Sombra suave para separar do fundo */
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25) !important;
+            /* Sombra: Azulada profunda para dar volume */
+            box-shadow: 0 8px 32px 0 rgba(2, 6, 23, 0.3) !important;
             
-            /* Texto forçado para claro */
             color: #f1f5f9 !important;
         }
 
         /* Ajuste específico para o Header/Topo para ele ficar mais leve */
         .pt-4.pb-0.px-5.shrink-0.z-30.relative.text-white {
-            background: transparent !important; /* Remove fundo se houver */
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5); /* Sombra no texto para ler sobre o mapa */
+            background: transparent !important; 
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8); /* Sombra mais forte para ler em cima da bússola */
         }
 
-        /* Textos secundários (datas, categorias) ganham um tom prata/azulado para brilhar no escuro */
+        /* Textos secundários: Clareados para evitar que sumam no fundo escuro */
         .text-slate-800, .text-slate-700, .text-gray-600, .text-gray-500, .text-gray-400 {
-            color: #94a3b8 !important; /* Slate-400 */
+            color: #cbd5e1 !important; /* Slate-300 (Cinza Gelo) */
         }
         
         /* Títulos e valores principais ficam branco puro */
