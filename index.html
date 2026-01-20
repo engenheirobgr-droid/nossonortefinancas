@@ -58,30 +58,13 @@
 
         /* --- GLASSMORPHISM PREMIUM (Identidade Náutica) --- */
         
-        /* Regra Mestra: Transforma todos os cards sólidos em Vidro */
-        .bg-white, .bg-gray-50, .bg-slate-900, .bg-slate-800 {
-            /* MUDANÇA CRÍTICA: Opacidade bem baixa (0.2 a 0.5) */
-            /* Isso deixa passar 80% do fundo no topo do cartão */
-            background: linear-gradient(
-                180deg, 
-                rgba(15, 23, 42, 0.20) 0%,   /* Muito transparente no topo */
-                rgba(15, 23, 42, 0.50) 100%  /* Levemente escuro na base para segurar o texto */
-            ) !important;
-            
-            /* BLUR REDUZIDO: De 16px para 8px */
-            /* Com menos desfoque, você consegue distinguir as linhas do mapa atrás */
-            backdrop-filter: blur(8px) !important; 
-            -webkit-backdrop-filter: blur(8px) !important;
-            
-            /* Borda fina e clara para delimitar onde o cartão começa */
-            border: 1px solid rgba(255, 255, 255, 0.08) !important;
-            border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
-            
-            /* Sombra suave */
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
-            
-            /* Força texto claro */
-            color: #f1f5f9 !important;
+        /* --- ESTILO NOVO (CLEAN) --- */
+        /* Removemos a regra mestra que forçava vidro em tudo. 
+           Agora controlaremos manualmente. */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         /* Ajuste específico para o Header/Topo para ele ficar mais leve */
@@ -2302,107 +2285,113 @@
                         {/* --- CARD PRINCIPAL (Agora dentro da rolagem) --- */}
                         {tab === 'home' && (
                             <div className="pt-6 mb-6 relative z-20 shrink-0 animate-fade-in">
-                                <div className="rounded-3xl p-5 text-white shadow-2xl border border-sky-400/20 relative overflow-hidden" 
-                                    style={{ 
-                                        background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.40) 0%, rgba(15, 23, 42, 0.60) 100%)', 
-                                        backdropFilter: 'blur(12px)',
-                                        WebkitBackdropFilter: 'blur(12px)'
-                                    }}>
+                                {/* --- NOVO LAYOUT HERO (Imagem 5) --- */}
+                                <div className="px-1 relative z-10">
+                                    
+                                    {/* 1. LABEL SUPERIOR + CONTROLES */}
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <p className="text-sm text-slate-400 font-normal uppercase tracking-wide">Saldo Disponível</p>
+                                        
+                                        {/* Seletor Real/Previsto (Estilo Texto) */}
+                                        <button 
+                                            onClick={() => setIsForecast(!isForecast)} 
+                                            className="text-sm text-slate-400 font-normal flex items-center hover:text-white transition-colors"
+                                        >
+                                            {isForecast ? 'Previsto' : 'Real'} <ChevronDown size={14} className="ml-0.5 opacity-70"/>
+                                        </button>
 
-                                    <div className="relative z-10">
-                                        {/* LINHA 1: Cabeçalho do Card (Limpo e Organizado) */}
-                                        <div className="flex justify-between items-center mb-4">
-                                            <p className="text-[10px] font-bold uppercase text-slate-400 tracking-widest pl-1">
-                                                Saldo Disponível
-                                            </p>
-                                            
-                                            {/* Controles da Direita (Simplificados) */}
-                                            <div className="flex items-center gap-3">
-                                                {/* Botão Real/Previsto */}
-    <div className="flex bg-slate-900/60 rounded-lg p-0.5 border border-white/5">
-        <button onClick={() => setIsForecast(false)} className={`px-3 py-1 rounded-md text-[9px] font-bold transition-all ${!isForecast ? 'bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}>Real</button>
-        <button onClick={() => setIsForecast(true)} className={`px-3 py-1 rounded-md text-[9px] font-bold transition-all ${isForecast ? 'bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}>Prev</button>
-</div>
+                                        {/* Olho (Toggle Visibilidade) */}
+                                        <button onClick={() => setHideValues(!hideValues)} className="text-slate-400 hover:text-white transition-colors ml-1">
+                                            {hideValues ? <EyeOff size={16}/> : <Eye size={16}/>}
+                                        </button>
+                                    </div>
 
-{/* Olho */}
-<button onClick={() => setHideValues(!hideValues)} className="text-slate-400 hover:text-white transition-colors">
-
-                                                    {hideValues ? <EyeOff size={16}/> : <Eye size={16}/>}
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* LINHA 2: Valor Ajustado */}
-                                        <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                                            {/* Mudança: text-3xl para caber melhor, md:text-4xl em telas maiores */}
-                                            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white drop-shadow-sm leading-none">
-                                                {hideValues ? '••••••' : (
-                                                    dashboardMode === 'investment' 
-                                                        ? formatCurrency(data.investData.totalCurrent) 
-                                                        : formatCurrency(data.previousBalance + data.bal)
-                                                )}
-                                            </h2>
-                                            
-                                            {/* Badge de % */}
-                                            {!hideValues && (
-                                                <div className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-0.5 border backdrop-blur-sm 
-                                                    ${(dashboardMode === 'statement' ? data.bal >= 0 : data.investData.yieldPct >= 0) 
-                                                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
-                                                        : 'bg-rose-500/20 text-rose-300 border-rose-500/30'}`}>
-                                                    {(dashboardMode === 'statement' ? data.bal >= 0 : data.investData.yieldPct >= 0) ? <TrendingUp size={10}/> : <TrendingDown size={10}/>}
-                                                    {dashboardMode === 'statement' 
-                                                        ? (data.previousBalance !== 0 ? Math.abs((data.bal / data.previousBalance) * 100).toFixed(1) : '0.0')
-                                                        : Math.abs(data.investData.yieldPct).toFixed(1)
-                                                    }%
-                                                </div>
+                                    {/* 2. SALDO GIGANTE + VARIAÇÃO */}
+                                    <div className="flex items-baseline gap-3 mb-2">
+                                        <h2 className="text-5xl font-bold text-white tracking-tighter drop-shadow-lg">
+                                            {hideValues ? '••••••' : (
+                                                dashboardMode === 'investment' 
+                                                    ? formatCurrency(data.investData.totalCurrent) 
+                                                    : formatCurrency(data.previousBalance + data.bal)
                                             )}
-                                        </div>
+                                        </h2>
 
-                                        {/* LINHA EXTRA: MÊS ANTERIOR E ATUAL (Formato Texto Simples) */}
-                                        {dashboardMode === 'statement' && (
-                                            <div className="flex items-center gap-3 text-[10px] text-slate-400 mb-3 pl-1 font-medium">
-                                                {/* Mês Anterior */}
-                                                <span>
-                                                    Mês Anterior: <span className="text-slate-200 font-bold">{hideValues ? '•••' : formatCurrency(data.previousBalance)}</span>
-                                                </span>
-
-                                                {/* Separador Ponto */}
-                                                <span className="text-slate-600">•</span>
-
-                                                {/* Mês Atual */}
-                                                <span>
-                                                    Mês Atual: <span className={`font-bold ${data.bal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                                        {hideValues ? '•••' : (data.bal >= 0 ? '+' : '') + formatCurrency(data.bal)}
-                                                    </span>
-                                                </span>
+                                        {/* Variação % (Seta + Valor) */}
+                                        {!hideValues && (
+                                            <div className={`flex items-center text-lg font-medium ${(dashboardMode === 'statement' ? data.bal >= 0 : data.investData.yieldPct >= 0) ? 'text-emerald-500' : 'text-rose-400'}`}>
+                                                {(dashboardMode === 'statement' ? data.bal >= 0 : data.investData.yieldPct >= 0) ? <TrendingUp size={20} className="mr-1"/> : <TrendingDown size={20} className="mr-1"/>}
+                                                {dashboardMode === 'statement' 
+                                                    ? (data.previousBalance !== 0 ? Math.abs((data.bal / data.previousBalance) * 100).toFixed(1) : '0.0')
+                                                    : Math.abs(data.investData.yieldPct).toFixed(1)
+                                                }%
                                             </div>
                                         )}
+                                    </div>
 
-                                        {/* LINHA 3: Resumo Rodapé */}
-                                        <div className="grid grid-cols-3 gap-0 border-t border-white/10 pt-3 mt-3">
-                                            <div>
-                                                <p className="text-[9px] text-emerald-400 font-bold mb-0.5 uppercase">Receita</p>
-                                                <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.inc)}</p>
+                                    {/* 3. SUB-INFORMAÇÕES (Mês Anterior / Atual) */}
+                                    <div className="space-y-0.5 mb-8">
+                                        <p className="text-sm text-slate-300 font-medium">
+                                            Mês Anterior: <span className="text-slate-400 font-normal">{hideValues ? '••••' : formatCurrency(data.previousBalance)}</span>
+                                        </p>
+                                        <p className="text-sm text-slate-300 font-medium">
+                                            Mês Atual: <span className={`font-normal ${data.bal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                {hideValues ? '••••' : formatCurrency(data.bal)}
+                                            </span>
+                                        </p>
+                                    </div>
+
+                                    {/* 4. GRID DE RESUMO (RECEITA | DESPESA | APORTE) */}
+                                    <div className="grid grid-cols-3 gap-4 border-t border-white/10 pt-4 mb-2">
+                                        {/* Receita */}
+                                        <div>
+                                            <p className="text-[11px] font-bold text-emerald-600 uppercase mb-1">Receita</p>
+                                            <p className="text-xl font-bold text-emerald-500 tracking-tight">
+                                                {hideValues ? '•••' : formatCurrency(data.inc)}
+                                            </p>
+                                        </div>
+
+                                        {/* Despesa */}
+                                        <div className="text-center">
+                                            <p className="text-[11px] font-bold text-rose-500 uppercase mb-1">Despesa</p>
+                                            <p className="text-xl font-bold text-rose-500 tracking-tight">
+                                                {hideValues ? '•••' : formatCurrency(data.exp)}
+                                            </p>
+                                            {/* Link Extrato (Decorativo por enquanto) */}
+                                            <div className="flex justify-center items-center gap-1 text-[10px] text-blue-400 mt-1 opacity-80">
+                                                Extrato <ArrowRightLeft size={8}/>
                                             </div>
-                                            <div className="text-center border-l border-r border-white/5">
-                                                <p className="text-[9px] text-rose-400 font-bold mb-0.5 uppercase">Despesa</p>
-                                                <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.exp)}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-[9px] text-indigo-400 font-bold mb-0.5 uppercase">Aporte</p>
-                                                <p className="text-sm font-bold">{hideValues ? '•••' : formatCurrency(data.inv)}</p>
-                                            </div>
+                                        </div>
+
+                                        {/* Aporte */}
+                                        <div className="text-right">
+                                            <p className="text-[11px] font-bold text-slate-400 uppercase mb-1">Aporte</p>
+                                            <p className="text-xl font-bold text-white tracking-tight">
+                                                {hideValues ? '•••' : formatCurrency(data.inv)}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* BARRA FLUTUANTE DE EXCLUSÃO */}
-                        {selectionMode && selectedIds.size > 0 && (
-                            <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-pop">
-                                <span className="font-bold text-sm">{selectedIds.size} selecionados</span>
-                                <button onClick={deleteSelected} className="flex items-center gap-2 font-bold text-xs bg-rose-800 px-3 py-1.5 rounded-lg"><Trash2 size={14}/> Excluir</button>
+                        {/* BARRA FLUTUANTE DE EXCLUSÃO (Agora com botão Fechar) */}
+                        {selectionMode && (
+                            <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white pl-6 pr-2 py-2 rounded-full shadow-2xl flex items-center gap-4 animate-pop">
+                                <span className="font-bold text-sm whitespace-nowrap">{selectedIds.size} selecionados</span>
+                                
+                                <div className="flex items-center gap-2">
+                                    <button onClick={deleteSelected} className="flex items-center gap-2 font-bold text-xs bg-rose-800 px-3 py-2 rounded-xl active:scale-95 transition-transform">
+                                        <Trash2 size={14}/> Excluir
+                                    </button>
+                                    
+                                    {/* Botão Cancelar/Sair do Modo Seleção */}
+                                    <button 
+                                        onClick={() => { setSelectionMode(false); setSelectedIds(new Set()); }} 
+                                        className="w-8 h-8 flex items-center justify-center bg-rose-700 rounded-full hover:bg-rose-800 transition-colors"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </div>
                             </div>
                         )}
 
@@ -2497,104 +2486,108 @@
                         {/* --- FIM ITENS 7 e 8 --- */}
 
                         {tab === 'home' && dashboardMode === 'statement' && (
-                            <div className="space-y-4 animate-fade-in">
-                                {data.list.map(t => (
-                                    <div key={t.id} 
-                                         className={`rounded-2xl shadow-sm border transition-all overflow-hidden cursor-pointer ${selectionMode && selectedIds.has(t.id) ? 'bg-indigo-50 border-indigo-500' : 'bg-white border-gray-100 hover:bg-gray-50'} 
-                                         ${t.isProjection ? 'opacity-60 border-dashed border-slate-300' : ''}`} 
-                                         onClick={() => {
-                                             if(selectionMode) toggleSelection(t.id);
-                                             else setExpandedTxId(expandedTxId === t.id ? null : t.id);
-                                         }}>
-                                        <div className="p-4 flex justify-between items-center">
-                                            <div className="flex gap-4 items-center">
-                                                {selectionMode ? (
-                                                    <div className={`w-10 h-10 rounded-xl border-2 flex items-center justify-center transition-colors ${selectedIds.has(t.id) ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300'}`}>
-                                                        {selectedIds.has(t.id) && <Check size={20} className="text-white"/>}
-                                                    </div>
-                                                ) : (
-                                                    <div className="relative">
-                                                        <span className="text-2xl bg-gray-50 w-10 h-10 flex items-center justify-center rounded-xl">
-                                                            {t.type === 'income' ? '💰' : t.type === 'investment' ? '🚀' : t.isSettlement ? '🤝' : '🏷️'}
-                                                        </span>
-                                                        
-                                                        {viewMode === 'joint' && (
-                                                            <>
-                                                                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center text-[10px] overflow-hidden shadow-sm z-10">
-                                                                    {(() => {
-                                                                        const isCreatorPayer = t.payer === 'me';
-                                                                        const payerId = isCreatorPayer ? t.ownerId : (t.ownerId === 'bruno' ? 'maiara' : 'bruno');
-                                                                        const payerConfig = USER_CONFIG[payerId];
-                                                                        return (
-                                                                            <div className={`w-full h-full flex items-center justify-center ${payerConfig?.color || 'bg-gray-400'}`} title={`Pago por ${payerConfig?.name}`}>
-                                                                                {payerConfig?.avatar || '?'}
-                                                                            </div>
-                                                                        );
-                                                                    })()}
-                                                                </div>
-                                                                {t.payer === 'partner' && USER_CONFIG[t.ownerId] && (
-                                                                    <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center text-[8px] overflow-hidden shadow-sm z-20">
-                                                                         <div className={`w-full h-full flex items-center justify-center ${USER_CONFIG[t.ownerId].color} opacity-90`} title={`Lançado por ${USER_CONFIG[t.ownerId].name}`}>
-                                                                            {USER_CONFIG[t.ownerId].avatar}
-                                                                         </div>
-                                                                    </div>
-                                                                )}
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                )}
-                                                
-                                                <div>
-                                                    <p className="font-bold text-sm flex items-center gap-2">
-                                                        {t.isShared && !t.isSettlement && <Users size={14} className="text-indigo-500 shrink-0" />}
-                                                        
-                                                        {t.displayTitle || t.title}
-                                                        {t.items && t.items.length > 0 && !selectionMode && (
-                                                            <span className="bg-gray-100 text-gray-500 text-[9px] px-1.5 rounded-full flex items-center gap-0.5">
-                                                                <ListIcon size={8}/> {t.items.length}
-                                                            </span>
-                                                        )}
-                                                    </p>
-                                                    <div className="text-xs text-gray-400 flex flex-wrap gap-2 mt-0.5 items-center">
-                                                        <span>
-                                                            {formatDate(t.date)} • {t.category} 
-                                                            {t.subCategory && <span className="text-slate-500 font-medium"> ({t.subCategory})</span>}
-                                                        </span>
-                                                        {t.market && <span className="flex items-center gap-0.5 text-slate-500 font-medium">• {t.market}</span>}
-                                                        {t.bank && BANKS.find(b=>b.id===t.bank) && <span className={`px-1.5 rounded text-[9px] text-white ${BANKS.find(b=>b.id===t.bank).color}`}>{BANKS.find(b=>b.id===t.bank).name}</span>}
-                                                    </div>
+                            // AJUSTE: Removemos 'space-y-4' e adicionamos o estilo de Container Único (borda única, fundo único)
+                            <div className="animate-fade-in bg-slate-900/40 rounded-3xl border border-white/5 overflow-hidden shadow-sm">
+                                {data.list.map(t => {
+                                    // Lógica de Long Press (Segurar)
+                                    let pressTimer;
+                                    const handleIconPressStart = () => {
+                                        pressTimer = setTimeout(() => {
+                                            if (!selectionMode) {
+                                                setSelectionMode(true);
+                                                toggleSelection(t.id);
+                                            }
+                                        }, 800); 
+                                    };
+                                    const handleIconPressEnd = () => clearTimeout(pressTimer);
+
+                                    return (
+                                        <div key={t.id} 
+                                            // AJUSTE: Layout de LISTA (border-b, sem rounded individual, hover na linha inteira)
+                                            className={`relative flex items-center justify-between p-4 transition-all
+                                            ${selectionMode && selectedIds.has(t.id) 
+                                                ? 'bg-indigo-900/50' // Destaque de seleção (linha inteira)
+                                                : 'border-b border-white/5 last:border-0 hover:bg-white/5' // Linha normal com separador
+                                            } ${t.isProjection ? 'opacity-50 italic' : ''}`}
+                                        >
+                                            
+                                            {/* 1. ÍCONE INTERATIVO */}
+                                            <div 
+                                                className="relative shrink-0 mr-4 cursor-pointer group"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (selectionMode) toggleSelection(t.id);
+                                                    else handleEdit(t); 
+                                                }}
+                                                onMouseDown={handleIconPressStart} 
+                                                onMouseUp={handleIconPressEnd}
+                                                onTouchStart={handleIconPressStart}
+                                                onTouchEnd={handleIconPressEnd}
+                                            >
+                                                {/* Círculo do Ícone (Levemente menor e mais integrado) */}
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-90
+                                                    ${selectionMode && selectedIds.has(t.id) ? 'bg-indigo-500 text-white' : 'bg-slate-800/80 text-slate-300 group-hover:bg-slate-700'}`}>
+                                                    
+                                                    {selectionMode && selectedIds.has(t.id) 
+                                                        ? <Check size={18} /> 
+                                                        : (t.type === 'income' ? <TrendingUp size={18} className="text-emerald-500"/> : 
+                                                           t.type === 'investment' ? <PieChart size={18} className="text-indigo-400"/> : 
+                                                           t.isSettlement ? <ArrowRightLeft size={18} className="text-amber-400"/> : 
+                                                           <span className="text-lg">🏷️</span>)
+                                                    }
                                                 </div>
-                                            </div>
-                                            <div className="text-right flex flex-col items-end gap-1">
-                                                <p className={`font-bold text-sm ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                                    {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
-                                                </p>
-                                                {!selectionMode && (
-                                                    <div className="flex gap-2">
-                                                        <button onClick={(e) => { e.stopPropagation(); handleEdit(t); }} className="text-[10px] bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded-full font-bold uppercase hover:bg-indigo-100 transition-colors">Editar</button>
-                                                        <button onClick={(e) => { e.stopPropagation(); deleteTx(t.id); }} className="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase hover:bg-rose-100 hover:text-rose-500 transition-colors">Excluir</button>
+
+                                                {/* Indicador de "Quem Pagou" */}
+                                                {viewMode === 'joint' && !selectionMode && (
+                                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border border-slate-900 overflow-hidden z-10">
+                                                        {(() => {
+                                                            const isCreatorPayer = t.payer === 'me';
+                                                            const payerId = isCreatorPayer ? t.ownerId : (t.ownerId === 'bruno' ? 'maiara' : 'bruno');
+                                                            const payerConfig = USER_CONFIG[payerId];
+                                                            return (
+                                                                <div className={`w-full h-full flex items-center justify-center text-[8px] ${payerConfig?.color || 'bg-gray-500'}`}>
+                                                                    {payerConfig?.avatar}
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 )}
+                                            </div>
+
+                                            {/* 2. DADOS PRINCIPAIS */}
+                                            <div className="flex-1 min-w-0" onClick={() => handleEdit(t)}>
+                                                <div className="flex justify-between items-baseline mb-1">
+                                                    <h4 className={`font-bold text-sm truncate pr-4 flex items-center gap-2 ${t.type === 'expense' ? 'text-slate-100' : 'text-slate-200'}`}>
+                                                        {t.isShared && !t.isSettlement && <Users size={14} className="text-indigo-400 shrink-0" />}
+                                                        {t.displayTitle || t.title}
+                                                    </h4>
+                                                    <span className={`font-bold text-sm whitespace-nowrap ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-400'}`}>
+                                                        {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
+                                                    </span>
+                                                </div>
+                                                
+                                                <div className="flex justify-between items-center text-[11px] text-slate-500">
+                                                    <div className="flex gap-2 truncate items-center">
+                                                        <span>{t.date.split('-')[2]}/{t.date.split('-')[1]}</span>
+                                                        <span className="opacity-30">•</span>
+                                                        <span className="truncate max-w-[150px]">{t.category} {t.subCategory ? `(${t.subCategory})` : ''}</span>
+                                                    </div>
+                                                    {t.market && (
+                                                        <span className="text-slate-600 truncate max-w-[100px] italic">
+                                                            {t.market}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                        
-                                        {/* DETALHES */}
-                                        {expandedTxId === t.id && t.items && t.items.length > 0 && !selectionMode && (
-                                            <div className="bg-gray-50 px-4 py-3 border-t border-gray-100 text-xs animate-slide-up">
-                                                <p className="font-bold text-slate-400 mb-2 uppercase text-[10px]">Itens da Compra</p>
-                                                <div className="space-y-1.5">
-                                                    {t.items.map((item, idx) => (
-                                                        <div key={idx} className="flex justify-between border-b border-gray-200 last:border-0 pb-1 last:pb-0 border-dashed">
-                                                            <span className="text-slate-600 font-medium">{item.name}</span>
-                                                            <span className="text-slate-800 font-bold">{formatCurrency(item.value)}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
+                                    );
+                                })}
+                                {data.list.length === 0 && (
+                                    <div className="text-center text-slate-500 py-12">
+                                        <ListIcon className="mx-auto mb-3 opacity-20" size={40}/>
+                                        <p className="text-sm font-medium opacity-60">Sem movimentações este mês.</p>
                                     </div>
-                                ))}
-                                {data.list.length === 0 && <div className="text-center text-gray-400 mt-10"><ListIcon className="mx-auto mb-2 opacity-50"/><p>Sem movimentações este mês.</p></div>}
+                                )}
                             </div>
                         )}
 
