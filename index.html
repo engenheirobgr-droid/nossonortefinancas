@@ -39,15 +39,15 @@
         body {
             margin: 0;
             padding: 0;
-            /* Imagem de fundo fixa */
+            /* Forçamos a imagem a fixar no topo para o azul aparecer */
             background-image: url('fundo.jpg');
             background-size: cover;
-            background-position: center center; /* Centraliza melhor a imagem */
+            background-position: top center; 
             background-attachment: fixed;
             background-repeat: no-repeat;
             
-            /* TRUQUE: Clareia o fundo base para a imagem aparecer mais se for PNG transparente */
-            background-color: #1e293b; 
+            /* Removi a cor sólida que "vazava" na transparência */
+            background-color: #000; 
             color: #e2e8f0;
             
             height: 100vh;
@@ -56,9 +56,14 @@
             position: fixed;
         }
         
-        /* Adicione isso para garantir que o container do React seja transparente */
         #root {
-            background-color: transparent !important;
+            /* Diminuí a opacidade do overlay para 0.4 para as texturas aparecerem */
+            background: linear-gradient(
+                to bottom, 
+                rgba(15, 23, 42, 0.2) 0%, 
+                rgba(15, 23, 42, 0.6) 100%
+            );
+            min-height: 100vh;
         }
 
         /* --- GLASSMORPHISM PREMIUM (Identidade Náutica) --- */
@@ -2331,7 +2336,7 @@
                                     </div>
 
                                     {/* 4. GRID DE RESUMO (Subindo mais para o topo) */}
-                                    <div className="grid grid-cols-3 border-t border-white/10 pt-2 mt-2 mb-4">
+                                    <div className="grid grid-cols-3 border-t border-white/10 pt-1 mt-2 mb-4">
                                         {/* Receita */}
                                         <div className="text-center border-r border-white/5">
                                             <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Receita</p>
