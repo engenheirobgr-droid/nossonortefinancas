@@ -2216,7 +2216,7 @@
                     </div>
 
                     {/* --- MENU CONTEXTUAL FLUTUANTE (FUNDO DO APP) --- */}
-                    <div className="px-5 pt-4 pb-2 shrink-0 z-30 relative flex gap-4 w-full">
+                    <div className="px-5 pt-4 pb-4 shrink-0 z-30 relative flex gap-4 w-full border-b border-white/5">
                         
                         {/* 1. ESCOPO (TEXTO PURO + SETA) */}
                         <div className="relative flex-1 min-w-0">
@@ -2277,7 +2277,8 @@
 
                     {/* Content (Área de Rolagem - ONDE O CARD VIVE AGORA) */}
                     {/* Usamos px-5 aqui para alinhar tudo com o cabeçalho */}
-                    <div className="flex-1 overflow-y-auto px-5 pb-32 scrollbar-hide relative bg-subtle-filter">
+                    <div className="flex-1 overflow-y-auto px-2 pb-32 scrollbar-hide relative bg-subtle-filter">
+                    
                         
                         {/* --- CARD PRINCIPAL (Agora dentro da rolagem) --- */}
                         {tab === 'home' && (
@@ -2481,6 +2482,11 @@
                             </div>
                         )}
                         {/* --- FIM ITENS 7 e 8 --- */}
+
+			{/* AJUSTE: Linha divisória entre o Resumo (Extrato) e a Lista de Transações */}
+                        {tab === 'home' && dashboardMode === 'statement' && (
+                            <div className="h-px w-full bg-white/5 mb-4 mx-auto max-w-[95%]"></div>
+                        )}
 
                         {tab === 'home' && dashboardMode === 'statement' && (
                             // AJUSTE: Removemos 'space-y-4' e adicionamos o estilo de Container Único (borda única, fundo único)
