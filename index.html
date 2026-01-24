@@ -39,15 +39,15 @@
         body {
             margin: 0;
             padding: 0;
-            /* Imagem de fundo fixa - Foco no Topo */
+            /* Imagem fixada no topo para mostrar o azul e a silhueta */
             background-image: url('fundo.jpg');
             background-size: cover;
             background-position: top center; 
             background-attachment: fixed;
             background-repeat: no-repeat;
             
-            /* Removemos a cor sólida para não "pintar" o fundo da imagem */
-            background-color: transparent; 
+            /* Removemos a cor sólida para não escurecer a imagem */
+            background-color: transparent !important; 
             color: #e2e8f0;
             
             height: 100vh;
@@ -55,13 +55,13 @@
             overflow: hidden;
             position: fixed;
         }
-        
+
+        /* Overlay transparente para permitir a visibilidade do fundo */
         #root {
-            /* Overlay suave: 20% de escurecimento no topo, 60% na base */
             background: linear-gradient(
                 to bottom, 
                 rgba(15, 23, 42, 0.2) 0%, 
-                rgba(15, 23, 42, 0.6) 100%
+                rgba(15, 23, 42, 0.15) 100%
             );
             min-height: 100vh;
         }
@@ -2220,49 +2220,50 @@
                     </div>
 
                     {/* --- MENU CONTEXTUAL FLUTUANTE (FUNDO DO APP) --- */}
-                    <div className="px-5 pt-4 pb-2 shrink-0 z-30 relative flex gap-6">
+                    <div className="px-5 pt-4 pb-2 shrink-0 z-30 relative flex gap-4 w-full">
                         
                         {/* 1. ESCOPO (TEXTO PURO + SETA) */}
-                        <div className="relative">
+                        <div className="relative flex-1 min-w-0">
                             <button 
                                 onClick={() => setActiveDropdown(activeDropdown === 'scope' ? null : 'scope')}
-                                className="flex items-center gap-2 text-white group min-w-fit"
+                                className="flex items-center gap-2 text-white group w-full"
                             >
                                 <div className={`p-1.5 rounded-full shrink-0 ${viewMode === 'personal' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-pink-500/20 text-pink-400'}`}>
                                     {viewMode === 'personal' ? <User size={14} strokeWidth={3}/> : <Users size={14} strokeWidth={3}/>}
                                 </div>
-                                {/* whitespace-nowrap impede a quebra de linha no mobile */}
-                                <span className="font-bold text-xl tracking-tight text-white drop-shadow-md whitespace-nowrap">
+                                {/* AJUSTE: text-base (mobile) md:text-xl (desktop) e 'truncate' para evitar quebra de layout */}
+                                <span className="font-bold text-base md:text-xl tracking-tight text-white drop-shadow-md truncate">
                                     {viewMode === 'personal' ? 'Meu Norte' : 'Nosso Norte'}
                                 </span>
-                                <ChevronDown size={16} className={`text-slate-400 shrink-0 transition-transform ${activeDropdown === 'scope' ? 'rotate-180' : ''}`}/>
+                                <ChevronDown size={14} className={`text-slate-400 shrink-0 transition-transform ${activeDropdown === 'scope' ? 'rotate-180' : ''}`}/>
                             </button>
                             {/* Dropdown 1 */}
                             {activeDropdown === 'scope' && (
-                                <div className="absolute top-full left-0 w-56 mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-slide-up z-[100]">
+                                <div className="absolute top-full left-0 w-48 md:w-56 mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-slide-up z-[100]">
                                     <button onClick={() => { setViewMode('personal'); setActiveDropdown(null); }} className="w-full text-left px-4 py-4 hover:bg-white/5 flex items-center gap-3 border-b border-white/5">
-                                        <User size={16} className="text-indigo-400"/> <span className="font-bold text-sm text-slate-200">Meu Norte (Pessoal)</span>
+                                        <User size={16} className="text-indigo-400"/> <span className="font-bold text-sm text-slate-200">Meu Norte</span>
                                     </button>
                                     <button onClick={() => { setViewMode('joint'); setActiveDropdown(null); }} className="w-full text-left px-4 py-4 hover:bg-white/5 flex items-center gap-3">
-                                        <Users size={16} className="text-pink-400"/> <span className="font-bold text-sm text-slate-200">Nosso Norte (Casal)</span>
+                                        <Users size={16} className="text-pink-400"/> <span className="font-bold text-sm text-slate-200">Nosso Norte</span>
                                     </button>
                                 </div>
                             )}
                         </div>
 
                         {/* 2. CONTEXTO (TEXTO PURO + SETA) */}
-                        <div className="relative">
+                        <div className="relative flex-1 min-w-0">
                             <button 
                                 onClick={() => setActiveDropdown(activeDropdown === 'context' ? null : 'context')}
-                                className="flex items-center gap-2 text-white group"
+                                className="flex items-center gap-2 text-white group w-full"
                             >
-                                <div className={`p-1.5 rounded-full ${dashboardMode === 'statement' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                                <div className={`p-1.5 rounded-full shrink-0 ${dashboardMode === 'statement' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
                                     {dashboardMode === 'statement' ? <Banknote size={14} strokeWidth={3}/> : <TrendingUp size={14} strokeWidth={3}/>}
                                 </div>
-                                <span className="font-bold text-xl tracking-tight text-white drop-shadow-md">
+                                {/* AJUSTE: Mesma correção de tipografia responsiva */}
+                                <span className="font-bold text-base md:text-xl tracking-tight text-white drop-shadow-md truncate">
                                     {dashboardMode === 'statement' ? 'Dia a dia' : 'Carteira'}
                                 </span>
-                                <ChevronDown size={16} className={`text-slate-400 transition-transform ${activeDropdown === 'context' ? 'rotate-180' : ''}`}/>
+                                <ChevronDown size={14} className={`text-slate-400 shrink-0 transition-transform ${activeDropdown === 'context' ? 'rotate-180' : ''}`}/>
                             </button>
                             {/* Dropdown 2 */}
                             {activeDropdown === 'context' && (
@@ -3016,11 +3017,18 @@
                                     >
                                         <div className="absolute inset-0 rounded-full bg-gradient-to-b from-slate-700 to-slate-900 border-[1.5px] border-slate-500"></div>
                                         
+                                        {/* AJUSTE: Nova Rosa dos Ventos SVG (Substituição completa do svg anterior) */}
                                         <div className={`relative w-10 h-10 transition-transform duration-700 cubic-bezier(0.4, 0, 0.2, 1) ${menuOpen ? 'rotate-[225deg]' : 'rotate-0'}`}>
-                                            <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_3px_rgba(16,185,129,0.4)]">
-                                                <path d="M50 8 L60 50 L50 46 L40 50 Z" fill="#ef4444" />
-                                                <path d="M50 92 L60 50 L50 54 L40 50 Z" fill="#e2e8f0" />
-                                                <circle cx="50" cy="50" r="3" fill="#1e293b" />
+                                            <svg viewBox="0 0 100 100" className={`w-full h-full drop-shadow-[0_0_3px_rgba(16,185,129,0.3)] transition-colors duration-500 ${menuOpen ? 'text-emerald-400' : 'text-slate-300'}`}>
+                                                {/* Pontas Maiores (N-S-L-O) */}
+                                                <path d="M50 10 L58 42 L90 50 L58 58 L50 90 L42 58 L10 50 L42 42 Z" fill="currentColor" opacity="0.9" />
+                                                {/* Destaque do Norte (Seta Vermelha Estilizada) */}
+                                                <path d="M50 10 L58 42 L50 50 Z" fill="#ef4444" />
+                                                <path d="M50 10 L42 42 L50 50 Z" fill="#b91c1c" />
+                                                {/* Pontas Menores (Intermediárias) */}
+                                                <path d="M50 50 L65 35 L50 50 L80 65 L50 50 L35 80 L50 50 L20 35 Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.4" />
+                                                {/* Centro */}
+                                                <circle cx="50" cy="50" r="4" fill="#0f172a" stroke="currentColor" strokeWidth="1.5" />
                                             </svg>
                                         </div>
                                     </button>
