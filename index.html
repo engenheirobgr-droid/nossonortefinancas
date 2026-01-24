@@ -1009,6 +1009,9 @@
             // Filtros de Data
             const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
             
+            // Estado para alternar entre Lista e Gráficos na Home
+            const [extratoMode, setExtratoMode] = useState('list'); // 'list' | 'chart'
+
             // Dashboard Context Mode (Dia a Dia vs Investimentos) - Global para todas as abas
             const [dashboardMode, setDashboardMode] = useState('statement'); // 'statement' | 'investment'
 
@@ -2355,9 +2358,10 @@
                                                 {hideValues ? '•••' : formatCurrency(data.exp)}
                                             </p>
                                             {/* BOTÃO EXTRATO DE VOLTA */}
-                                            <div className="flex justify-center items-center gap-1 text-[10px] text-blue-400 mt-1 opacity-80">
-                                                Extrato <ArrowRightLeft size={8}/>
-                                            </div>
+                                            {/* BOTÃO EXTRATO DE VOLTA */}
+                                            <button onClick={() => setExtratoMode(extratoMode === 'list' ? 'chart' : 'list')} className="flex justify-center items-center gap-1 text-[10px] text-blue-400 mt-1 opacity-80 hover:opacity-100 transition-opacity active:scale-95 w-full">
+                                                {extratoMode === 'list' ? 'Ver Gráficos' : 'Ver Extrato'} <ArrowRightLeft size={8}/>
+                                            </button>
                                         </div>
 
                                         {/* Aporte */}
@@ -2489,109 +2493,193 @@
                         )}
 
                         {tab === 'home' && dashboardMode === 'statement' && (
-                            // AJUSTE: Removemos 'space-y-4' e adicionamos o estilo de Container Único (borda única, fundo único)
-                            <div className="animate-fade-in -mt-4 bg-slate-900/40 rounded-3xl overflow-hidden shadow-sm">
-                                {data.list.map(t => {
-                                    // Lógica de Long Press (Segurar)
-                                    let pressTimer;
-                                    const handleIconPressStart = () => {
-                                        pressTimer = setTimeout(() => {
-                                            if (!selectionMode) {
-                                                setSelectionMode(true);
-                                                toggleSelection(t.id);
-                                            }
-                                        }, 800); 
-                                    };
-                                    const handleIconPressEnd = () => clearTimeout(pressTimer);
-
-                                    return (
-                                        <div key={t.id} 
-                                            // AJUSTE: Aumentamos contraste da borda e removemos hover de botão
-                                            className={`relative flex items-center justify-between p-4 transition-all
-                                            ${selectionMode && selectedIds.has(t.id) 
-                                                ? 'bg-indigo-900/50' 
-                                                : 'border-b border-slate-700/50 last:border-0' 
-                                            } ${t.isProjection ? 'opacity-50 italic' : ''}`}
-                                        >
-                                            
-                                            {/* 1. ÍCONE INTERATIVO */}
-                                            <div 
-                                                className="relative shrink-0 mr-4 cursor-pointer group"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (selectionMode) toggleSelection(t.id);
-                                                    else handleEdit(t); 
-                                                }}
-                                                onMouseDown={handleIconPressStart} 
-                                                onMouseUp={handleIconPressEnd}
-                                                onTouchStart={handleIconPressStart}
-                                                onTouchEnd={handleIconPressEnd}
-                                            >
-                                                {/* Círculo do Ícone (Levemente menor e mais integrado) */}
-                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-90
-                                                    ${selectionMode && selectedIds.has(t.id) ? 'bg-indigo-500 text-white' : 'bg-slate-800/80 text-slate-300 group-hover:bg-slate-700'}`}>
-                                                    
-                                                    {selectionMode && selectedIds.has(t.id) 
-                                                        ? <Check size={18} /> 
-                                                        : (t.type === 'income' ? <TrendingUp size={18} className="text-emerald-500"/> : 
-                                                           t.type === 'investment' ? <PieChart size={18} className="text-indigo-400"/> : 
-                                                           t.isSettlement ? <ArrowRightLeft size={18} className="text-amber-400"/> : 
-                                                           <span className="text-lg">🏷️</span>)
+                            <>
+                                {extratoMode === 'list' ? (
+                                    // AJUSTE: Removemos 'space-y-4' e adicionamos o estilo de Container Único (borda única, fundo único)
+                                    <div className="animate-fade-in -mt-4 bg-slate-900/40 rounded-3xl overflow-hidden shadow-sm">
+                                        {data.list.map(t => {
+                                            // Lógica de Long Press (Segurar)
+                                            let pressTimer;
+                                            const handleIconPressStart = () => {
+                                                pressTimer = setTimeout(() => {
+                                                    if (!selectionMode) {
+                                                        setSelectionMode(true);
+                                                        toggleSelection(t.id);
                                                     }
-                                                </div>
+                                                }, 800); 
+                                            };
+                                            const handleIconPressEnd = () => clearTimeout(pressTimer);
 
-                                                {/* Indicador de "Quem Pagou" */}
-                                                {viewMode === 'joint' && !selectionMode && (
-                                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border border-slate-900 overflow-hidden z-10">
-                                                        {(() => {
-                                                            const isCreatorPayer = t.payer === 'me';
-                                                            const payerId = isCreatorPayer ? t.ownerId : (t.ownerId === 'bruno' ? 'maiara' : 'bruno');
-                                                            const payerConfig = USER_CONFIG[payerId];
-                                                            return (
-                                                                <div className={`w-full h-full flex items-center justify-center text-[8px] ${payerConfig?.color || 'bg-gray-500'}`}>
-                                                                    {payerConfig?.avatar}
-                                                                </div>
-                                                            );
-                                                        })()}
+                                            return (
+                                                <div key={t.id} 
+                                                    // AJUSTE: Aumentamos contraste da borda e removemos hover de botão
+                                                    className={`relative flex items-center justify-between p-4 transition-all
+                                                    ${selectionMode && selectedIds.has(t.id) 
+                                                        ? 'bg-indigo-900/50' 
+                                                        : 'border-b border-slate-700/50 last:border-0' 
+                                                    } ${t.isProjection ? 'opacity-50 italic' : ''}`}
+                                                >
+                                                    
+                                                    {/* 1. ÍCONE INTERATIVO */}
+                                                    <div 
+                                                        className="relative shrink-0 mr-4 cursor-pointer group"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (selectionMode) toggleSelection(t.id);
+                                                            else handleEdit(t); 
+                                                        }}
+                                                        onMouseDown={handleIconPressStart} 
+                                                        onMouseUp={handleIconPressEnd}
+                                                        onTouchStart={handleIconPressStart}
+                                                        onTouchEnd={handleIconPressEnd}
+                                                    >
+                                                        {/* Círculo do Ícone (Levemente menor e mais integrado) */}
+                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-90
+                                                            ${selectionMode && selectedIds.has(t.id) ? 'bg-indigo-500 text-white' : 'bg-slate-800/80 text-slate-300 group-hover:bg-slate-700'}`}>
+                                                            
+                                                            {selectionMode && selectedIds.has(t.id) 
+                                                                ? <Check size={18} /> 
+                                                                : (t.type === 'income' ? <TrendingUp size={18} className="text-emerald-500"/> : 
+                                                                t.type === 'investment' ? <PieChart size={18} className="text-indigo-400"/> : 
+                                                                t.isSettlement ? <ArrowRightLeft size={18} className="text-amber-400"/> : 
+                                                                <span className="text-lg">🏷️</span>)
+                                                            }
+                                                        </div>
+
+                                                        {/* Indicador de "Quem Pagou" */}
+                                                        {viewMode === 'joint' && !selectionMode && (
+                                                            <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border border-slate-900 overflow-hidden z-10">
+                                                                {(() => {
+                                                                    const isCreatorPayer = t.payer === 'me';
+                                                                    const payerId = isCreatorPayer ? t.ownerId : (t.ownerId === 'bruno' ? 'maiara' : 'bruno');
+                                                                    const payerConfig = USER_CONFIG[payerId];
+                                                                    return (
+                                                                        <div className={`w-full h-full flex items-center justify-center text-[8px] ${payerConfig?.color || 'bg-gray-500'}`}>
+                                                                            {payerConfig?.avatar}
+                                                                        </div>
+                                                                    );
+                                                                })()}
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                )}
+
+                                                    {/* 2. DADOS PRINCIPAIS (AGORA APENAS LEITURA) */}
+                                                    <div className="flex-1 min-w-0 select-none">
+                                                        <div className="flex justify-between items-baseline mb-1">
+                                                            <h4 className={`font-bold text-sm truncate pr-4 flex items-center gap-2 ${t.type === 'expense' ? 'text-slate-100' : 'text-slate-200'}`}>
+                                                                {t.isShared && !t.isSettlement && <Users size={14} className="text-indigo-400 shrink-0" />}
+                                                                {t.displayTitle || t.title}
+                                                            </h4>
+                                                            <span className={`font-bold text-sm whitespace-nowrap ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-400'}`}>
+                                                                {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        <div className="flex justify-between items-center text-[11px] text-slate-500">
+                                                            <div className="flex gap-2 truncate items-center">
+                                                                <span>{t.date.split('-')[2]}/{t.date.split('-')[1]}</span>
+                                                                <span className="opacity-30">•</span>
+                                                                <span className="truncate max-w-[150px]">{t.category} {t.subCategory ? `(${t.subCategory})` : ''}</span>
+                                                            </div>
+                                                            {t.market && (
+                                                                <span className="text-slate-600 truncate max-w-[100px] italic">
+                                                                    {t.market}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                        {data.list.length === 0 && (
+                                            <div className="text-center text-slate-500 py-12">
+                                                <ListIcon className="mx-auto mb-3 opacity-20" size={40}/>
+                                                <p className="text-sm font-medium opacity-60">Sem movimentações este mês.</p>
                                             </div>
-
-                                            {/* 2. DADOS PRINCIPAIS (AGORA APENAS LEITURA) */}
-                                            <div className="flex-1 min-w-0 select-none">
-                                                <div className="flex justify-between items-baseline mb-1">
-                                                    <h4 className={`font-bold text-sm truncate pr-4 flex items-center gap-2 ${t.type === 'expense' ? 'text-slate-100' : 'text-slate-200'}`}>
-                                                        {t.isShared && !t.isSettlement && <Users size={14} className="text-indigo-400 shrink-0" />}
-                                                        {t.displayTitle || t.title}
-                                                    </h4>
-                                                    <span className={`font-bold text-sm whitespace-nowrap ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-400'}`}>
-                                                        {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
-                                                    </span>
-                                                </div>
-                                                
-                                                <div className="flex justify-between items-center text-[11px] text-slate-500">
-                                                    <div className="flex gap-2 truncate items-center">
-                                                        <span>{t.date.split('-')[2]}/{t.date.split('-')[1]}</span>
-                                                        <span className="opacity-30">•</span>
-                                                        <span className="truncate max-w-[150px]">{t.category} {t.subCategory ? `(${t.subCategory})` : ''}</span>
+                                        )}
+                                    </div>
+                                ) : (
+                                    /* --- NOVO MODO: VISÃO GRÁFICA --- */
+                                    <div className="space-y-4 animate-fade-in -mt-4">
+                                        
+                                        {/* GRÁFICO 1: MAIORES GASTOS (Barras Horizontais) */}
+                                        <div className="bg-slate-900/40 rounded-3xl p-5 border border-white/5">
+                                            <h3 className="font-bold text-sm text-slate-300 mb-4 flex items-center gap-2"><PieChart size={16} className="text-rose-400"/> Maiores Gastos</h3>
+                                            <div className="space-y-3">
+                                                {analysisData.charts.slice(0, 5).map((c, i) => (
+                                                    <div key={i} className="group">
+                                                        <div className="flex justify-between text-xs font-bold mb-1">
+                                                            <span className="text-slate-200 flex items-center gap-1.5">{c.icon} {c.name}</span>
+                                                            <span className="text-rose-400">{formatCurrency(c.amount)}</span>
+                                                        </div>
+                                                        <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                                                            <div className={`h-full rounded-full transition-all duration-1000 ${c.color}`} style={{ width: `${c.pct}%` }}></div>
+                                                        </div>
                                                     </div>
-                                                    {t.market && (
-                                                        <span className="text-slate-600 truncate max-w-[100px] italic">
-                                                            {t.market}
-                                                        </span>
-                                                    )}
-                                                </div>
+                                                ))}
+                                                {analysisData.charts.length === 0 && <p className="text-xs text-slate-500 text-center">Sem dados suficientes.</p>}
                                             </div>
                                         </div>
-                                    );
-                                })}
-                                {data.list.length === 0 && (
-                                    <div className="text-center text-slate-500 py-12">
-                                        <ListIcon className="mx-auto mb-3 opacity-20" size={40}/>
-                                        <p className="text-sm font-medium opacity-60">Sem movimentações este mês.</p>
+
+                                        {/* GRÁFICO 2: TRANSAÇÕES POR SEMANA (Linhas Múltiplas) */}
+                                        <div className="bg-slate-900/40 rounded-3xl p-5 border border-white/5">
+                                            <h3 className="font-bold text-sm text-slate-300 mb-4 flex items-center gap-2"><BarChart3 size={16} className="text-indigo-400"/> Fluxo Semanal</h3>
+                                            
+                                            {(() => {
+                                                // Agrupamento Semanal Direto (Isolado da Lógica Principal)
+                                                const weeks = [1, 2, 3, 4];
+                                                const weekData = weeks.map(w => {
+                                                    const startDay = (w - 1) * 7 + 1;
+                                                    const endDay = w === 4 ? 31 : w * 7;
+                                                    const txsInWeek = data.list.filter(t => {
+                                                        const day = parseInt(t.date.split('-')[2]);
+                                                        return day >= startDay && day <= endDay;
+                                                    });
+                                                    return {
+                                                        week: w,
+                                                        label: `Sem ${w}`,
+                                                        exp: txsInWeek.filter(t => t.type === 'expense').reduce((acc, t) => acc + Number(t.amount), 0),
+                                                        inc: txsInWeek.filter(t => t.type === 'income').reduce((acc, t) => acc + Number(t.amount), 0),
+                                                        inv: txsInWeek.filter(t => t.type === 'investment').reduce((acc, t) => acc + Number(t.amount), 0),
+                                                    };
+                                                });
+                                                const maxVal = Math.max(...weekData.map(d => Math.max(d.exp, d.inc, d.inv)), 1);
+
+                                                return (
+                                                    <div>
+                                                        {/* Legenda */}
+                                                        <div className="flex justify-center gap-4 mb-4 text-[10px] font-bold">
+                                                            <span className="flex items-center gap-1 text-emerald-500"><span className="w-2 h-2 rounded-full bg-emerald-500"></span>Receita</span>
+                                                            <span className="flex items-center gap-1 text-rose-500"><span className="w-2 h-2 rounded-full bg-rose-500"></span>Despesa</span>
+                                                            <span className="flex items-center gap-1 text-indigo-400"><span className="w-2 h-2 rounded-full bg-indigo-400"></span>Aporte</span>
+                                                        </div>
+
+                                                        {/* Gráfico SVG Customizado */}
+                                                        <div className="flex items-end justify-between h-40 pt-4 border-b border-slate-700/50 pb-2 relative">
+                                                            {weekData.map((d, i) => {
+                                                                const hExp = (d.exp / maxVal) * 100;
+                                                                const hInc = (d.inc / maxVal) * 100;
+                                                                const hInv = (d.inv / maxVal) * 100;
+
+                                                                return (
+                                                                    <div key={i} className="flex flex-col items-center flex-1">
+                                                                        <div className="w-full flex justify-center items-end gap-1 h-32">
+                                                                            <div style={{height: `${hInc}%`}} className="w-2 bg-emerald-500 rounded-t-sm transition-all duration-700"></div>
+                                                                            <div style={{height: `${hExp}%`}} className="w-2 bg-rose-500 rounded-t-sm transition-all duration-700"></div>
+                                                                            <div style={{height: `${hInv}%`}} className="w-2 bg-indigo-500 rounded-t-sm transition-all duration-700"></div>
+                                                                        </div>
+                                                                        <span className="text-[9px] text-slate-500 font-bold mt-2">{d.label}</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
                                     </div>
                                 )}
-                            </div>
+                            </>
                         )}
 
                         {tab === 'home' && dashboardMode === 'investment' && (
