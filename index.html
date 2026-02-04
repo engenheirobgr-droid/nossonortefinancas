@@ -82,8 +82,8 @@
 
         /* NOVA CLASSE UNIFICADA PARA CARDS */
         .glass-card {
-            background: rgba(15, 23, 42, 0.6);
-            /* Slate 900 com 60% opacidade */
+            background: rgba(15, 23, 42, 0.4);
+            /* Slate 900 com 40% opacidade */
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 1.5rem;
@@ -162,8 +162,8 @@
         .text-gray-600,
         .text-gray-500,
         .text-gray-400 {
-            color: #cbd5e1 !important;
-            /* Slate-300 (Cinza Gelo) */
+            color: #94a3b8 !important;
+            /* Slate-400 (Mais legível no dark) */
         }
 
         /* Títulos e valores principais ficam branco puro */
@@ -375,23 +375,23 @@
     };
 
     const BANKS = [
-        { id: 'nubank', name: 'Nubank', color: 'bg-purple-600' },
+        { id: 'nubank', name: 'Nubank', color: 'bg-indigo-600' }, // Adjusted to Indigo for cleaner look
         { id: 'inter', name: 'Inter', color: 'bg-orange-500' },
         { id: 'itau', name: 'Itaú', color: 'bg-blue-600' },
-        { id: 'bradesco', name: 'Bradesco', color: 'bg-red-600' }, // NOVO
+        { id: 'bradesco', name: 'Bradesco', color: 'bg-rose-600' },
         { id: 'bb', name: 'BB', color: 'bg-yellow-500' },
-        { id: 'santander', name: 'Santander', color: 'bg-red-600' },
+        { id: 'santander', name: 'Santander', color: 'bg-rose-600' },
         { id: 'caixa', name: 'Caixa', color: 'bg-blue-500' },
         { id: 'btg', name: 'BTG', color: 'bg-blue-800' },
-        { id: 'xp', name: 'XP', color: 'bg-black' },
+        { id: 'xp', name: 'XP', color: 'bg-slate-900' },
         { id: 'rico', name: 'Rico', color: 'bg-orange-600' },
-        { id: 'clear', name: 'Clear', color: 'bg-blue-400' }, // NOVO
-        { id: 'genial', name: 'Genial', color: 'bg-blue-700' }, // NOVO
-        { id: 'c6', name: 'C6 Bank', color: 'bg-slate-800' }, // NOVO
-        { id: 'nomad', name: 'Nomad', color: 'bg-yellow-400' }, // NOVO
-        { id: 'wise', name: 'Wise', color: 'bg-lime-500' }, // NOVO
-        { id: 'avenue', name: 'Avenue', color: 'bg-slate-900' }, // NOVO
-        { id: 'money', name: 'Dinheiro', color: 'bg-green-600' },
+        { id: 'clear', name: 'Clear', color: 'bg-blue-400' },
+        { id: 'genial', name: 'Genial', color: 'bg-blue-700' },
+        { id: 'c6', name: 'C6 Bank', color: 'bg-slate-800' },
+        { id: 'nomad', name: 'Nomad', color: 'bg-yellow-400' },
+        { id: 'wise', name: 'Wise', color: 'bg-lime-500' },
+        { id: 'avenue', name: 'Avenue', color: 'bg-slate-900' },
+        { id: 'money', name: 'Dinheiro', color: 'bg-emerald-600' },
         { id: 'vr', name: 'VR/VA', color: 'bg-pink-500' },
     ];
 
@@ -408,52 +408,52 @@
     const CATEGORIES = {
         expense: [
             {
-                id: 'home', name: 'Moradia', icon: '🏠', color: 'bg-purple-100 text-purple-600', barColor: 'bg-purple-500',
+                id: 'home', name: 'Moradia', icon: '🏠', color: 'bg-violet-500/10 text-violet-300 border border-violet-500/20', barColor: 'bg-violet-500',
                 subcategories: ['Aluguel', 'Condomínio', 'Internet/TV', 'Água', 'Luz', 'Gás', 'Mercado (Limpeza)', 'Mercado (Higiene)']
             },
             {
-                id: 'food', name: 'Alimentação', icon: '🛒', color: 'bg-orange-100 text-orange-600', barColor: 'bg-orange-500',
+                id: 'food', name: 'Alimentação', icon: '🛒', color: 'bg-amber-500/10 text-amber-300 border border-amber-500/20', barColor: 'bg-amber-500',
                 subcategories: ['Mercado (Comida)', 'Mercado (Água)', 'Feira', 'Padaria']
             },
             {
-                id: 'transport', name: 'Transporte', icon: '🚗', color: 'bg-blue-100 text-blue-600', barColor: 'bg-blue-500',
+                id: 'transport', name: 'Transporte', icon: '🚗', color: 'bg-sky-500/10 text-sky-300 border border-sky-500/20', barColor: 'bg-sky-500',
                 subcategories: ['Gasolina', 'Lavagem', 'Manutenção', 'Uber/99', 'Estacionamento', 'IPVA/Licenciamento']
             },
             {
-                id: 'leisure', name: 'Lazer', icon: '🎉', color: 'bg-pink-100 text-pink-600', barColor: 'bg-pink-500',
+                id: 'leisure', name: 'Lazer', icon: '🎉', color: 'bg-pink-500/10 text-pink-300 border border-pink-500/20', barColor: 'bg-pink-500',
                 subcategories: ['Restaurante', 'Bebida', 'Bares e Festas', 'Confraternizações', 'Netflix/Streaming', 'Viagem', 'Outros']
             },
             {
-                id: 'health', name: 'Saúde', icon: '💊', color: 'bg-red-100 text-red-600', barColor: 'bg-red-500',
+                id: 'health', name: 'Saúde', icon: '💊', color: 'bg-rose-500/10 text-rose-300 border border-rose-500/20', barColor: 'bg-rose-500',
                 subcategories: ['Academia', 'Consultas Médicas', 'Odonto', 'Exames', 'Remédios', 'Terapia']
             },
             {
-                id: 'education', name: 'Educação', icon: '📚', color: 'bg-teal-100 text-teal-600', barColor: 'bg-teal-500',
+                id: 'education', name: 'Educação', icon: '📚', color: 'bg-teal-500/10 text-teal-300 border border-teal-500/20', barColor: 'bg-teal-500',
                 subcategories: ['Curso', 'Faculdade', 'Livros', 'Material Escolar']
             },
             {
-                id: 'shopping', name: 'Compras', icon: '🛍️', color: 'bg-amber-100 text-amber-600', barColor: 'bg-amber-500',
+                id: 'shopping', name: 'Compras', icon: '🛍️', color: 'bg-fuchsia-500/10 text-fuchsia-300 border border-fuchsia-500/20', barColor: 'bg-fuchsia-500',
                 subcategories: ['Roupas', 'Eletrônicos', 'Casa', 'Presentes']
             },
             {
-                id: 'adjustment', name: 'Ajuste/Reembolso', icon: '💸', color: 'bg-slate-100 text-slate-600', barColor: 'bg-slate-500',
+                id: 'adjustment', name: 'Ajuste/Reembolso', icon: '💸', color: 'bg-slate-500/10 text-slate-300 border border-slate-500/20', barColor: 'bg-slate-500',
                 subcategories: []
             },
             {
-                id: 'other', name: 'Outros', icon: '📦', color: 'bg-gray-100 text-gray-600', barColor: 'bg-gray-500',
+                id: 'other', name: 'Outros', icon: '📦', color: 'bg-gray-500/10 text-gray-300 border border-gray-500/20', barColor: 'bg-gray-500',
                 subcategories: ['Telefone Celular', 'Corte Cabelo/Beleza', 'Contribuição Família', 'Cesta Básica/Doação', 'Ação Fim de Ano']
             },
         ],
         income: [
-            { id: 'salary', name: 'Salário', icon: '💰', color: 'bg-green-100 text-green-600', subcategories: ['Adiantamento', 'Mensal', '13º Salário', 'Férias'] },
-            { id: 'freelance', name: 'Freelance', icon: '💻', color: 'bg-teal-100 text-teal-600', subcategories: ['Projeto', 'Consultoria'] },
-            { id: 'gift', name: 'Presente', icon: '🎁', color: 'bg-pink-100 text-pink-600', subcategories: [] },
-            { id: 'dividends', name: 'Dividendos', icon: '💵', color: 'bg-emerald-100 text-emerald-600', subcategories: [] },
-            { id: 'adjustment', name: 'Reembolso Recebido', icon: '💸', color: 'bg-slate-100 text-slate-600', subcategories: [] },
+            { id: 'salary', name: 'Salário', icon: '💰', color: 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20', subcategories: ['Adiantamento', 'Mensal', '13º Salário', 'Férias'] },
+            { id: 'freelance', name: 'Freelance', icon: '💻', color: 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/20', subcategories: ['Projeto', 'Consultoria'] },
+            { id: 'gift', name: 'Presente', icon: '🎁', color: 'bg-pink-500/10 text-pink-300 border border-pink-500/20', subcategories: [] },
+            { id: 'dividends', name: 'Dividendos', icon: '💵', color: 'bg-amber-500/10 text-amber-300 border border-amber-500/20', subcategories: [] },
+            { id: 'adjustment', name: 'Reembolso Recebido', icon: '💸', color: 'bg-slate-500/10 text-slate-300 border border-slate-500/20', subcategories: [] },
         ],
         investment: INVESTMENT_TYPES.map(t => ({
             ...t,
-            color: 'bg-indigo-100 text-indigo-600',
+            color: 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/20',
             barColor: 'bg-indigo-500',
             subcategories: t.id === 'reserve' ? ['Caixinha', 'Poupança'] :
                 t.id === 'fixed' ? ['CDB', 'Tesouro Direto', 'LCI/LCA'] :
@@ -530,20 +530,20 @@
                                 <div className="flex items-end gap-1 h-[120px] relative group">
                                     {mode === 'statement' ? (
                                         <>
-                                            <div style={{ height: `${h1}px` }} className="w-2 bg-emerald-400 rounded-t-sm transition-all duration-500 relative">
-                                                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-900 border border-white/10 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 shadow-xl pointer-events-none">{formatCurrency(d.income)}</div>
+                                            <div style={{ height: `${h1}px` }} className="w-2 bg-emerald-400 rounded-t-sm transition-all duration-700 relative shadow-[0_0_10px_rgba(52,211,153,0.3)]">
+                                                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-800 border border-white/10 text-emerald-300 text-xs font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 shadow-xl pointer-events-none">{formatCurrency(d.income)}</div>
                                             </div>
-                                            <div style={{ height: `${h2}px` }} className="w-2 bg-rose-400 rounded-t-sm transition-all duration-500 relative">
-                                                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-900 border border-white/10 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 shadow-xl pointer-events-none">{formatCurrency(d.expense)}</div>
+                                            <div style={{ height: `${h2}px` }} className="w-2 bg-rose-400 rounded-t-sm transition-all duration-700 relative shadow-[0_0_10px_rgba(251,113,133,0.3)]">
+                                                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-800 border border-white/10 text-rose-300 text-xs font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 shadow-xl pointer-events-none">{formatCurrency(d.expense)}</div>
                                             </div>
                                         </>
                                     ) : (
-                                        <div style={{ height: `${hInv}px` }} className="w-4 bg-indigo-500 rounded-t-md transition-all duration-500 relative">
-                                            <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-900 border border-white/10 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 shadow-xl pointer-events-none">{formatCurrency(d.invested)}</div>
+                                        <div style={{ height: `${hInv}px` }} className="w-4 bg-indigo-400 rounded-t-md transition-all duration-700 relative shadow-[0_0_10px_rgba(129,140,248,0.3)]">
+                                            <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-800 border border-white/10 text-indigo-300 text-xs font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 shadow-xl pointer-events-none">{formatCurrency(d.invested)}</div>
                                         </div>
                                     )}
                                 </div>
-                                <span className="text-[10px] text-slate-400 font-bold uppercase">{d.month.split('-')[1]}</span>
+                                <span className="text-xs text-slate-400 font-bold uppercase">{d.month.split('-')[1]}</span>
                             </div>
                         );
                     })}
@@ -804,14 +804,14 @@
             <div className="space-y-6 pb-24">
                 {/* LISTA DE COMPRAS ATIVA */}
                 <div className="glass-card p-5">
-                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-white"><ShoppingCart className="text-indigo-400" /> Lista de Compras</h3>
+                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-white uppercase tracking-wider"><ShoppingCart className="text-indigo-400" /> Lista de Compras</h3>
 
                     {(!shoppingList || shoppingList.length === 0) ? (
                         <p className="text-sm text-slate-400 text-center py-4">Sua lista está vazia.</p>
                     ) : (
                         <div className="space-y-3">
                             {shoppingList.map(item => (
-                                <div key={item.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${item.checked ? 'bg-slate-800/30 border-white/5 opacity-50' : 'bg-slate-800/50 border-white/10'}`}>
+                                <div key={item.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${item.checked ? 'bg-slate-800/30 border-white/5 opacity-50' : 'bg-slate-800/30 border-white/10'}`}>
                                     <button onClick={() => toggleCartItem(item)} className={`w-5 h-5 rounded border-2 flex items-center justify-center ${item.checked ? 'bg-indigo-500 border-indigo-500' : 'border-slate-500'}`}>
                                         {item.checked && <Check size={12} className="text-white" />}
                                     </button>
@@ -820,10 +820,10 @@
 
                                         {/* LINHA DE DETALHE NOVA */}
                                         <div className="flex justify-between items-center pr-2 mt-0.5">
-                                            <p className="text-[10px] text-indigo-300 font-bold">
+                                            <p className="text-xs text-indigo-300 font-bold">
                                                 {item.plannedQty || 1} {item.unit} <span className="text-slate-400 font-normal">x {formatCurrency(item.price / (item.plannedQty || 1))} (méd)</span>
                                             </p>
-                                            <p className="text-[10px] text-slate-400 flex items-center gap-1">
+                                            <p className="text-xs text-slate-400 flex items-center gap-1">
                                                 <TrendingDown size={10} className="text-emerald-400" /> {item.market}
                                             </p>
                                         </div>
@@ -845,7 +845,7 @@
 
                 {/* BUSCA UNIFICADA */}
                 <div className="glass-card p-5">
-                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-white"><Target className="text-emerald-400" /> Adicionar Item</h3>
+                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-white uppercase tracking-wider"><Target className="text-emerald-400" /> Adicionar Item</h3>
                     <div className="relative mb-4">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input
@@ -865,7 +865,7 @@
                                 </div>
                                 <div>
                                     <p className="font-bold text-sm text-indigo-200">Adicionar "{searchTerm}"</p>
-                                    <p className="text-[10px] text-indigo-400">Novo item na lista</p>
+                                    <p className="text-xs text-indigo-400">Novo item na lista</p>
                                 </div>
                             </div>
                         )}
@@ -874,18 +874,18 @@
                             <div key={idx} className="flex items-center justify-between p-3 hover:bg-white/5 rounded-xl cursor-pointer group border border-transparent hover:border-white/5" onClick={() => addToCart(prod)}>
                                 <div className="flex-1 pr-3 overflow-hidden">
                                     <p className="font-bold text-sm text-slate-200 truncate">{prod.name}</p>
-                                    <p className="text-[10px] text-slate-400">
+                                    <p className="text-xs text-slate-400">
                                         Média: {formatCurrency(prod.avgPrice)} {prod.unit && prod.unit !== 'un' ? `/${prod.unit}` : ''}
                                     </p>
                                 </div>
                                 <div className="text-right flex-shrink-0 min-w-[100px]">
                                     <p className="font-bold text-sm text-emerald-400 leading-tight">
                                         {formatCurrency(prod.bestPrice)}
-                                        <span className="text-[10px] text-emerald-600 font-normal ml-0.5">
+                                        <span className="text-xs text-emerald-600 font-normal ml-0.5">
                                             {prod.unit && prod.unit !== 'un' ? `/${prod.unit}` : ''}
                                         </span>
                                     </p>
-                                    <p className="text-[10px] text-slate-500 truncate max-w-[120px] ml-auto block">{prod.bestMarket || 'Sem local'}</p>
+                                    <p className="text-xs text-slate-500 truncate max-w-[120px] ml-auto block">{prod.bestMarket || 'Sem local'}</p>
                                 </div>
                                 <div className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity bg-emerald-500/20 p-1.5 rounded-lg">
                                     <Plus size={14} className="text-emerald-400" />
@@ -913,10 +913,10 @@
         const [points, setPoints] = useState({ bruno: 0, maiara: 0 });
 
         const EFFORT_LEVELS = {
-            easy: { label: '😌 Sussa', points: 5, color: 'text-emerald-500' },
-            medium: { label: '😐 Normal', points: 15, color: 'text-blue-500' },
-            hard: { label: '😅 Cansativo', points: 30, color: 'text-orange-500' },
-            heavy: { label: '🥵 Dói as Costas', points: 50, color: 'text-rose-600 font-extrabold' }
+            easy: { label: '😌 Sussa', points: 5, color: 'text-emerald-400' },
+            medium: { label: '😐 Normal', points: 15, color: 'text-sky-400' },
+            hard: { label: '😅 Cansativo', points: 30, color: 'text-amber-400' },
+            heavy: { label: '🥵 Dói as Costas', points: 50, color: 'text-rose-400 font-bold' }
         };
 
         // Calcula Placar
@@ -963,7 +963,7 @@
             const effortStyle = EFFORT_LEVELS[effortKey] || EFFORT_LEVELS['medium'];
 
             return (
-                <div key={chore.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${chore.done ? 'bg-slate-800/30 border-white/5 opacity-60' : 'glass-card'}`}>
+                <div key={chore.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${chore.done ? 'bg-slate-800/30 border-white/5 opacity-60' : 'bg-slate-800/40 border-white/10'}`}>
                     <button onClick={() => onToggle(chore.id)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${chore.done ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500'}`}>
                         {chore.done && <Check size={14} className="text-white" />}
                     </button>
@@ -972,18 +972,18 @@
                         <div className="flex justify-between items-start">
                             <p className={`font-bold text-sm text-white truncate pr-2 ${chore.done ? 'line-through text-slate-500' : ''}`}>{chore.title}</p>
                             <div className="flex gap-1 items-center">
-                                <span className={`text-[9px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 ${effortStyle.color} whitespace-nowrap`}>
+                                <span className={`text-xs px-1.5 py-0.5 rounded bg-white/5 border border-white/10 ${effortStyle.color} whitespace-nowrap`}>
                                     {effortStyle.label}
                                 </span>
-                                {chore.frequency === 'biweekly' && <span className="text-[9px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded font-bold uppercase border border-purple-500/30">Quinzenal</span>}
+                                {chore.frequency === 'biweekly' && <span className="text-xs bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded font-bold uppercase border border-purple-500/30">Quinzenal</span>}
                             </div>
                         </div>
                         <div className="flex gap-2 items-center mt-1">
-                            <div className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-bold text-white ${userConfig[chore.assignee]?.color || 'bg-gray-400'}`}>
+                            <div className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded font-bold text-white ${userConfig[chore.assignee]?.color || 'bg-gray-400'}`}>
                                 {userConfig[chore.assignee]?.avatar} {userConfig[chore.assignee]?.name}
                             </div>
-                            {chore.isRotating && <span className="text-[10px] text-indigo-400 flex items-center gap-0.5"><RefreshCw size={10} /></span>}
-                            <span className="text-[10px] text-amber-500 font-bold">+{chore.points}pts</span>
+                            {chore.isRotating && <span className="text-xs text-indigo-400 flex items-center gap-0.5"><RefreshCw size={10} /></span>}
+                            <span className="text-xs text-amber-500 font-bold">+{chore.points}pts</span>
                         </div>
                     </div>
 
@@ -1021,8 +1021,8 @@
                         {/* GRUPO 1: ROTINA DIÁRIA */}
                         <div className="glass-card p-5">
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-bold text-lg flex items-center gap-2 text-white"><Sun className="text-amber-500" /> Rotina Diária</h3>
-                                <button onClick={onResetDaily} className="text-[10px] font-bold text-slate-400 hover:text-indigo-400 flex items-center gap-1 bg-white/5 px-2 py-1 rounded-lg border border-white/5">
+                                <h3 className="font-bold text-lg flex items-center gap-2 text-white uppercase tracking-wider"><Sun className="text-amber-500" /> Rotina Diária</h3>
+                                <button onClick={onResetDaily} className="text-xs font-bold text-slate-400 hover:text-indigo-400 flex items-center gap-1 bg-white/5 px-2 py-1 rounded-lg border border-white/5">
                                     <RefreshCw size={10} /> Resetar Dia
                                 </button>
                             </div>
@@ -1032,12 +1032,12 @@
                         {/* GRUPO 2: MISSÕES DA SEMANA */}
                         <div className="glass-card p-5 relative overflow-hidden">
                             {(weekCycle || 0) % 2 === 0 ? (
-                                <div className="absolute top-0 right-0 bg-purple-500/20 text-purple-300 border-l border-b border-purple-500/30 text-[9px] font-bold px-3 py-1 rounded-bl-xl">
+                                <div className="absolute top-0 right-0 bg-purple-500/20 text-purple-300 border-l border-b border-purple-500/30 text-xs font-bold px-3 py-1 rounded-bl-xl">
                                     ✨ Semana da Faxina Pesada
                                 </div>
                             ) : null}
 
-                            <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-white"><Broom className="text-indigo-400" /> Missões da Semana</h3>
+                            <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-white uppercase tracking-wider"><Broom className="text-indigo-400" /> Missões da Semana</h3>
                             <div className="space-y-3">{groups.weekly.map(renderChoreItem)}{groups.weekly.length === 0 && <p className="text-xs text-slate-500 text-center">Tudo limpo por aqui!</p>}</div>
 
                             {/* ÁREA DE CRIAÇÃO */}
@@ -1052,11 +1052,11 @@
                                     />
 
                                     <div className="flex gap-2">
-                                        <select value={newAssignee} onChange={e => setNewAssignee(e.target.value)} className="flex-1 text-[10px] font-bold bg-slate-900/50 text-slate-300 p-2 rounded-lg border border-white/10 outline-none">
+                                        <select value={newAssignee} onChange={e => setNewAssignee(e.target.value)} className="flex-1 text-xs font-bold bg-slate-900/50 text-slate-300 p-2 rounded-lg border border-white/10 outline-none">
                                             <option value="bruno">Bruno</option>
                                             <option value="maiara">Maiara</option>
                                         </select>
-                                        <select value={newFreq} onChange={e => setNewFreq(e.target.value)} className="flex-1 text-[10px] font-bold bg-slate-900/50 text-slate-300 p-2 rounded-lg border border-white/10 outline-none">
+                                        <select value={newFreq} onChange={e => setNewFreq(e.target.value)} className="flex-1 text-xs font-bold bg-slate-900/50 text-slate-300 p-2 rounded-lg border border-white/10 outline-none">
                                             <option value="daily">Diária</option>
                                             <option value="weekly">Semanal</option>
                                             <option value="biweekly">Quinzenal</option>
@@ -1064,20 +1064,20 @@
                                     </div>
 
                                     <div className="flex gap-2 items-center">
-                                        <select value={newEffort} onChange={e => setNewEffort(e.target.value)} className="flex-1 text-[10px] font-bold bg-slate-900/50 text-slate-300 p-2 rounded-lg border border-white/10 outline-none">
+                                        <select value={newEffort} onChange={e => setNewEffort(e.target.value)} className="flex-1 text-xs font-bold bg-slate-900/50 text-slate-300 p-2 rounded-lg border border-white/10 outline-none">
                                             {Object.entries(EFFORT_LEVELS).map(([k, v]) => (
                                                 <option key={k} value={k}>{v.label} ({v.points}pts)</option>
                                             ))}
                                         </select>
 
-                                        <button onClick={() => setIsRotating(!isRotating)} className={`px-3 py-2 rounded-lg text-[10px] font-bold border transition-colors ${isRotating ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-white/5 text-slate-400 border-white/10'}`}>
+                                        <button onClick={() => setIsRotating(!isRotating)} className={`px-3 py-2 rounded-lg text-xs font-bold border transition-colors ${isRotating ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-white/5 text-slate-400 border-white/10'}`}>
                                             {isRotating ? '🔄 Revezar' : '🔒 Fixo'}
                                         </button>
                                     </div>
 
                                     <div className="flex justify-between items-center pt-2 border-t border-white/10 mt-1">
                                         <div className="flex items-center gap-1">
-                                            <span className="text-[10px] font-bold text-slate-400">Pontos:</span>
+                                            <span className="text-xs font-bold text-slate-400">Pontos:</span>
                                             <input type="number" value={customPoints} onChange={e => setCustomPoints(e.target.value)} className="w-10 text-xs font-bold text-white bg-slate-900/50 border border-white/10 rounded px-1 text-center" />
                                         </div>
                                         <button onClick={handleAdd} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md active:scale-95 flex items-center gap-1 hover:bg-indigo-500">
@@ -1193,6 +1193,9 @@
         const [pricesModal, setPricesModal] = useState(false);
         const [fQty, setFQty] = useState('');
         const [fUnitPrice, setFUnitPrice] = useState('');
+
+        // --- CHART INTERACTION STATE ---
+        const [activeBar, setActiveBar] = useState(null); // { index: number, type: 'inc' | 'exp' | 'inv' }
 
         const fileInputRef = useRef(null);
 
@@ -2430,21 +2433,23 @@
                             <div className="px-1 relative z-10">
 
                                 {/* 1. LABEL SUPERIOR + CONTROLES */}
-                                <div className="flex items-center gap-2 mb-1">
+                                <div className="flex justify-between items-center mb-1">
                                     <p className="text-sm text-slate-400 font-normal uppercase tracking-wide">Saldo Disponível</p>
 
-                                    {/* Seletor Real/Previsto (Estilo Texto) */}
-                                    <button
-                                        onClick={() => setIsForecast(!isForecast)}
-                                        className="text-sm text-slate-400 font-normal flex items-center hover:text-white transition-colors"
-                                    >
-                                        {isForecast ? 'Previsto' : 'Real'} <ChevronDown size={14} className="ml-0.5 opacity-70" />
-                                    </button>
+                                    <div className="flex items-center gap-3">
+                                        {/* Seletor Real/Previsto (Estilo Texto) */}
+                                        <button
+                                            onClick={() => setIsForecast(!isForecast)}
+                                            className="text-sm text-slate-400 font-normal flex items-center hover:text-white transition-colors"
+                                        >
+                                            {isForecast ? 'Prev' : 'Real'} <ChevronDown size={14} className="ml-0.5 opacity-70" />
+                                        </button>
 
-                                    {/* Olho (Toggle Visibilidade) */}
-                                    <button onClick={() => setHideValues(!hideValues)} className="text-slate-400 hover:text-white transition-colors ml-1">
-                                        {hideValues ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    </button>
+                                        {/* Olho (Toggle Visibilidade) */}
+                                        <button onClick={() => setHideValues(!hideValues)} className="text-slate-400 hover:text-white transition-colors">
+                                            {hideValues ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* 2. SALDO GIGANTE + VARIAÇÃO */}
@@ -2485,7 +2490,7 @@
                                 <div className="grid grid-cols-3 border-t border-white/10 pt-1 mt-2 mb-4">
                                     {/* Receita */}
                                     <div className="text-center border-r border-white/5">
-                                        <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Receita</p>
+                                        <p className="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-1">Receita</p>
                                         <p className="text-lg font-bold text-emerald-400 tracking-tight">
                                             {hideValues ? '•••' : formatCurrency(data.inc)}
                                         </p>
@@ -2493,20 +2498,20 @@
 
                                     {/* Despesa + Extrato */}
                                     <div className="text-center border-r border-white/5">
-                                        <p className="text-[10px] font-bold text-rose-500 uppercase tracking-widest mb-1">Despesa</p>
+                                        <p className="text-xs font-bold text-rose-500 uppercase tracking-widest mb-1">Despesa</p>
                                         <p className="text-lg font-bold text-rose-400 tracking-tight">
                                             {hideValues ? '•••' : formatCurrency(data.exp)}
                                         </p>
                                         {/* BOTÃO EXTRATO DE VOLTA */}
                                         {/* BOTÃO EXTRATO DE VOLTA */}
-                                        <button onClick={() => setExtratoMode(extratoMode === 'list' ? 'chart' : 'list')} className="flex justify-center items-center gap-1 text-[10px] text-blue-400 mt-1 opacity-80 hover:opacity-100 transition-opacity active:scale-95 w-full">
+                                        <button onClick={() => setExtratoMode(extratoMode === 'list' ? 'chart' : 'list')} className="flex justify-center items-center gap-1 text-xs text-blue-400 mt-1 opacity-80 hover:opacity-100 transition-opacity active:scale-95 w-full">
                                             {extratoMode === 'list' ? 'Ver Gráficos' : 'Ver Extrato'} <ArrowRightLeft size={8} />
                                         </button>
                                     </div>
 
                                     {/* Aporte */}
                                     <div className="text-center">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Aporte</p>
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Aporte</p>
                                         <p className="text-lg font-bold text-white tracking-tight">
                                             {hideValues ? '•••' : formatCurrency(data.inv)}
                                         </p>
@@ -2545,7 +2550,7 @@
                             <div className={`p-5 rounded-3xl shadow-sm border relative overflow-hidden ${Math.abs(data.coupleBal) < 1 ? 'bg-emerald-900/20 border-emerald-500/20' : 'bg-slate-900/60 border-indigo-500/20'}`}>
                                 <div className="flex justify-between items-center relative z-10">
                                     <div>
-                                        <p className="text-[10px] font-bold uppercase text-slate-400 mb-1 flex items-center gap-1">
+                                        <p className="text-xs font-bold uppercase text-slate-400 mb-1 flex items-center gap-1">
                                             <ArrowRightLeft size={10} /> Situação do Acerto
                                         </p>
                                         {/* CENÁRIO 1: TUDO QUITADO */}
@@ -2555,7 +2560,7 @@
 
                                                 {/* HISTÓRICO DO MÊS (Novo Recurso) */}
                                                 {data.list.filter(t => t.isSettlement).length > 0 && (
-                                                    <div className="text-[10px] text-slate-400 bg-slate-800/50 p-2 rounded-lg border border-white/5 mt-2 min-w-[200px]">
+                                                    <div className="text-xs text-slate-400 bg-slate-800/50 p-2 rounded-lg border border-white/5 mt-2 min-w-[200px]">
                                                         <p className="font-bold text-emerald-500 uppercase mb-1 border-b border-white/5 pb-0.5">Histórico do Mês:</p>
                                                         {data.list.filter(t => t.isSettlement).map(t => (
                                                             <div key={t.id} className="flex justify-between gap-4 py-0.5">
@@ -2606,7 +2611,7 @@
                                         {USER_CONFIG['bruno'].avatar}
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-[9px] font-bold uppercase text-gray-400">Bruno gastou</p>
+                                        <p className="text-xs font-bold uppercase text-gray-400">Bruno gastou</p>
                                         <p className="font-bold text-slate-800">{hideValues ? '•••' : formatCurrency(data.sharedSpends?.bruno || 0)}</p>
                                     </div>
                                 </div>
@@ -2617,7 +2622,7 @@
                                         {USER_CONFIG['maiara'].avatar}
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-[9px] font-bold uppercase text-gray-400">Maiara gastou</p>
+                                        <p className="text-xs font-bold uppercase text-gray-400">Maiara gastou</p>
                                         <p className="font-bold text-slate-800">{hideValues ? '•••' : formatCurrency(data.sharedSpends?.maiara || 0)}</p>
                                     </div>
                                 </div>
@@ -2715,7 +2720,7 @@
                                                         </span>
                                                     </div>
 
-                                                    <div className="flex justify-between items-center text-[11px] text-slate-500">
+                                                    <div className="flex justify-between items-center text-xs text-slate-500">
                                                         <div className="flex gap-2 truncate items-center">
                                                             <span>{t.date.split('-')[2]}/{t.date.split('-')[1]}</span>
                                                             <span className="opacity-30">•</span>
@@ -2744,7 +2749,7 @@
 
                                     {/* GRÁFICO 1: MAIORES GASTOS (Barras Horizontais) */}
                                     <div className="bg-slate-900/40 rounded-3xl p-5 border border-white/5">
-                                        <h3 className="font-bold text-sm text-slate-300 mb-4 flex items-center gap-2"><PieChart size={16} className="text-rose-400" /> Maiores Gastos</h3>
+                                        <h3 className="font-bold text-sm text-slate-300 mb-4 flex items-center gap-2 uppercase tracking-wider"><PieChart size={16} className="text-rose-400" /> Maiores Gastos</h3>
                                         <div className="space-y-3">
                                             {analysisData.charts.map((c, i) => (
                                                 <div key={i} className="group">
@@ -2763,7 +2768,7 @@
 
                                     {/* GRÁFICO 2: TRANSAÇÕES POR SEMANA (Linhas Múltiplas) */}
                                     <div className="bg-slate-900/40 rounded-3xl p-5 border border-white/5">
-                                        <h3 className="font-bold text-sm text-slate-300 mb-4 flex items-center gap-2"><BarChart3 size={16} className="text-indigo-400" /> Fluxo Semanal</h3>
+                                        <h3 className="font-bold text-sm text-slate-300 mb-4 flex items-center gap-2 uppercase tracking-wider"><BarChart3 size={16} className="text-indigo-400" /> Fluxo Semanal</h3>
 
                                         {(() => {
                                             // Agrupamento Semanal Direto (Isolado da Lógica Principal)
@@ -2786,29 +2791,54 @@
                                             const maxVal = Math.max(...weekData.map(d => Math.max(d.exp, d.inc, d.inv)), 1);
 
                                             return (
-                                                <div>
+                                                <div onClick={() => setActiveBar(null)}>
                                                     {/* Legenda */}
-                                                    <div className="flex justify-center gap-4 mb-4 text-[10px] font-bold">
+                                                    <div className="flex justify-center gap-4 mb-4 text-xs font-bold">
                                                         <span className="flex items-center gap-1 text-emerald-500"><span className="w-2 h-2 rounded-full bg-emerald-500"></span>Receita</span>
                                                         <span className="flex items-center gap-1 text-rose-500"><span className="w-2 h-2 rounded-full bg-rose-500"></span>Despesa</span>
                                                         <span className="flex items-center gap-1 text-indigo-400"><span className="w-2 h-2 rounded-full bg-indigo-400"></span>Aporte</span>
                                                     </div>
 
-                                                    {/* Gráfico SVG Customizado */}
+                                                    {/* Gráfico SVG Customizado Interativo */}
                                                     <div className="flex items-end justify-between h-40 pt-4 border-b border-slate-700/50 pb-2 relative">
                                                         {weekData.map((d, i) => {
                                                             const hExp = (d.exp / maxVal) * 100;
                                                             const hInc = (d.inc / maxVal) * 100;
                                                             const hInv = (d.inv / maxVal) * 100;
 
+                                                            const isIncActive = activeBar && activeBar.index === i && activeBar.type === 'inc';
+                                                            const isExpActive = activeBar && activeBar.index === i && activeBar.type === 'exp';
+                                                            const isInvActive = activeBar && activeBar.index === i && activeBar.type === 'inv';
+
                                                             return (
-                                                                <div key={i} className="flex flex-col items-center flex-1">
+                                                                <div key={i} className="flex flex-col items-center flex-1 relative z-10">
                                                                     <div className="w-full flex justify-center items-end gap-1 h-32">
-                                                                        <div style={{ height: `${hInc}%` }} className="w-2 bg-emerald-500 rounded-t-sm transition-all duration-700"></div>
-                                                                        <div style={{ height: `${hExp}%` }} className="w-2 bg-rose-500 rounded-t-sm transition-all duration-700"></div>
-                                                                        <div style={{ height: `${hInv}%` }} className="w-2 bg-indigo-500 rounded-t-sm transition-all duration-700"></div>
+                                                                        {/* Receita */}
+                                                                        <div
+                                                                            onClick={(e) => { e.stopPropagation(); setActiveBar({ index: i, type: 'inc' }); }}
+                                                                            style={{ height: `${hInc}%` }}
+                                                                            className={`w-2 rounded-t-sm transition-all duration-300 cursor-pointer ${isIncActive ? 'bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.8)] scale-110' : 'bg-emerald-500 hover:bg-emerald-400'}`}
+                                                                        >
+                                                                            {isIncActive && <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-emerald-900 border border-emerald-500 text-emerald-300 text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xl whitespace-nowrap z-20 animate-pop">{formatCurrency(d.inc)}</div>}
+                                                                        </div>
+                                                                        {/* Despesa */}
+                                                                        <div
+                                                                            onClick={(e) => { e.stopPropagation(); setActiveBar({ index: i, type: 'exp' }); }}
+                                                                            style={{ height: `${hExp}%` }}
+                                                                            className={`w-2 rounded-t-sm transition-all duration-300 cursor-pointer ${isExpActive ? 'bg-rose-300 shadow-[0_0_10px_rgba(253,164,175,0.8)] scale-110' : 'bg-rose-500 hover:bg-rose-400'}`}
+                                                                        >
+                                                                            {isExpActive && <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-rose-900 border border-rose-500 text-rose-300 text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xl whitespace-nowrap z-20 animate-pop">{formatCurrency(d.exp)}</div>}
+                                                                        </div>
+                                                                        {/* Aporte */}
+                                                                        <div
+                                                                            onClick={(e) => { e.stopPropagation(); setActiveBar({ index: i, type: 'inv' }); }}
+                                                                            style={{ height: `${hInv}%` }}
+                                                                            className={`w-2 rounded-t-sm transition-all duration-300 cursor-pointer ${isInvActive ? 'bg-indigo-300 shadow-[0_0_10px_rgba(165,180,252,0.8)] scale-110' : 'bg-indigo-500 hover:bg-indigo-400'}`}
+                                                                        >
+                                                                            {isInvActive && <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-indigo-900 border border-indigo-500 text-indigo-300 text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xl whitespace-nowrap z-20 animate-pop">{formatCurrency(d.inv)}</div>}
+                                                                        </div>
                                                                     </div>
-                                                                    <span className="text-[9px] text-slate-500 font-bold mt-2">{d.label}</span>
+                                                                    <span className="text-xs text-slate-500 font-bold mt-2">{d.label}</span>
                                                                 </div>
                                                             );
                                                         })}
@@ -2826,7 +2856,7 @@
                         <div className="space-y-6 animate-fade-in">
                             {/* Distribuição por Instituição */}
                             <div className="glass-card p-5">
-                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-white"><Briefcase className="text-indigo-400" /> Por Instituição</h3>
+                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-white uppercase tracking-wider"><Briefcase className="text-indigo-400" /> Por Instituição</h3>
                                 <div className="space-y-3">
                                     {Object.entries(data.investData.byBank || {}).sort(([, a], [, b]) => b - a).map(([name, val], i) => (
                                         <div key={i} className="flex justify-between items-center p-2 rounded-lg bg-slate-800/50 border border-white/5">
@@ -2839,11 +2869,11 @@
 
                             {/* Distribuição por Tipo */}
                             <div className="glass-card p-5">
-                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-white"><PieChart className="text-indigo-400" /> Por Classe de Ativo</h3>
+                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-white uppercase tracking-wider"><PieChart className="text-indigo-400" /> Por Classe de Ativo</h3>
                                 <div className="grid grid-cols-2 gap-3">
                                     {Object.entries(data.investData.byType || {}).sort(([, a], [, b]) => b - a).map(([name, val], i) => (
                                         <div key={i} className="p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
-                                            <p className="text-[10px] font-bold text-indigo-300 uppercase mb-1">{name}</p>
+                                            <p className="text-xs font-bold text-indigo-300 uppercase mb-1">{name}</p>
                                             <p className="font-bold text-slate-200">{formatCurrency(val)}</p>
                                         </div>
                                     ))}
@@ -2873,7 +2903,7 @@
                             {/* SEÇÃO DE SONHOS */}
                             <div className="glass-card p-6">
                                 <div className="flex justify-between items-center mb-4">
-                                    <h3 className="font-bold flex gap-2 items-center text-lg text-white">
+                                    <h3 className="font-bold flex gap-2 items-center text-lg text-white uppercase tracking-wider">
                                         <Sparkles size={20} className="text-amber-500" />
                                         {viewMode === 'joint' ? 'Nossos Sonhos' : 'Meus Sonhos'}
                                     </h3>
@@ -2909,7 +2939,7 @@
 
                             <div className="glass-card p-6">
                                 <div className="flex justify-between items-center mb-6">
-                                    <h3 className="font-bold flex gap-2 items-center text-lg text-white">
+                                    <h3 className="font-bold flex gap-2 items-center text-lg text-white uppercase tracking-wider">
                                         <Target size={20} className="text-indigo-400" />
                                         Orçamento Mensal
                                     </h3>
@@ -2937,7 +2967,7 @@
                                                         <div className="h-3 bg-slate-700/50 rounded-full overflow-hidden relative">
                                                             <div className={`h-full transition-all duration-500 rounded-full ${b.pct >= 100 ? 'bg-emerald-500' : 'bg-emerald-400/70'}`} style={{ width: `${b.pct}%` }} />
                                                         </div>
-                                                        <p className="text-[10px] text-right mt-1 text-slate-400 font-bold">{b.rawPct.toFixed(0)}% atingido</p>
+                                                        <p className="text-xs text-right mt-1 text-slate-400 font-bold">{b.rawPct.toFixed(0)}% atingido</p>
                                                     </div>
                                                 ))}
                                             </div>
@@ -2958,7 +2988,7 @@
                                                         <div className="h-3 bg-slate-700/50 rounded-full overflow-hidden">
                                                             <div className={`h-full transition-all duration-500 rounded-full ${b.pct > 100 ? 'bg-rose-500' : b.pct > 80 ? 'bg-amber-400' : 'bg-blue-400'}`} style={{ width: `${b.pct}%` }} />
                                                         </div>
-                                                        <p className="text-[10px] text-right mt-1 text-slate-400 font-bold">{b.rawPct.toFixed(0)}% consumido</p>
+                                                        <p className="text-xs text-right mt-1 text-slate-400 font-bold">{b.rawPct.toFixed(0)}% consumido</p>
                                                     </div>
                                                 ))}
                                             </div>
@@ -2972,9 +3002,9 @@
                     {tab === 'reports' && (
                         <div className="space-y-6 animate-fade-in pb-20">
                             {/* DASHBOARD DE SAÚDE FINANCEIRA */}
-                            <div className="bg-slate-900 text-white p-5 rounded-3xl shadow-lg relative overflow-hidden mb-6">
+                            <div className="glass-card text-white p-5 rounded-3xl shadow-lg relative overflow-hidden mb-6">
                                 <div className="absolute top-0 right-0 p-6 opacity-5"><Heart size={120} /></div>
-                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2 relative z-10">
+                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2 relative z-10 uppercase tracking-wider">
                                     <Sparkles className="text-yellow-400" />
                                     {dashboardMode === 'statement' ? 'Saúde do Mês' : 'Raio-X Patrimonial'}
                                 </h3>
@@ -2983,22 +3013,22 @@
                                     {dashboardMode === 'statement' ? (
                                         <>
                                             <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/5">
-                                                <p className="text-[10px] text-slate-300 font-bold uppercase mb-1">Taxa de Poupança</p>
-                                                <p className={`text-xl font-extrabold ${data.analysis.health.savingsRate > 20 ? 'text-emerald-400' : data.analysis.health.savingsRate > 0 ? 'text-yellow-400' : 'text-rose-400'}`}>
+                                                <p className="text-xs text-slate-300 font-bold uppercase mb-1">Taxa de Poupança</p>
+                                                <p className={`text-xl font-extrabold ${data.analysis.health.savingsRate > 20 ? 'text-emerald-400' : data.analysis.health.savingsRate > 0 ? 'text-amber-400' : 'text-rose-400'}`}>
                                                     {data.analysis.health.savingsRate.toFixed(0)}%
                                                 </p>
-                                                <p className="text-[9px] text-slate-400">Meta ideal: &gt;20%</p>
+                                                <p className="text-xs text-slate-400">Meta ideal: &gt;20%</p>
                                             </div>
                                             <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/5">
-                                                <p className="text-[10px] text-slate-300 font-bold uppercase mb-1">Poder de Aporte</p>
+                                                <p className="text-xs text-slate-300 font-bold uppercase mb-1">Poder de Aporte</p>
                                                 <p className="text-xl font-extrabold text-indigo-400">
                                                     {data.analysis.health.investRate.toFixed(0)}%
                                                 </p>
-                                                <p className="text-[9px] text-slate-400">da renda foi investida</p>
+                                                <p className="text-xs text-slate-400">da renda foi investida</p>
                                             </div>
                                             <div className="col-span-2 bg-white/5 p-3 rounded-2xl border border-white/5 flex justify-between items-center mt-1">
                                                 <div>
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase">
+                                                    <p className="text-xs text-slate-400 font-bold uppercase">
                                                         {viewMode === 'joint' ? 'Custo p/ Pessoa' : 'Sobras (Saldo)'}
                                                     </p>
                                                     <p className="text-lg font-bold text-white">
@@ -3010,35 +3040,35 @@
                                                 </div>
                                                 <div className="h-8 w-[1px] bg-white/10"></div>
                                                 <div className="text-right">
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase">Custo de Vida/Dia</p>
+                                                    <p className="text-xs text-slate-400 font-bold uppercase">Custo de Vida/Dia</p>
                                                     <p className="text-lg font-bold text-white">{formatCurrency(data.analysis.health.burnRate / 30)}</p>
                                                 </div>
                                             </div>
                                         </>
                                     ) : (
                                         <>
-                                            <div className="col-span-2 bg-gradient-to-r from-slate-800 to-slate-900 p-4 rounded-2xl border border-slate-700 shadow-lg mb-2">
+                                            <div className="col-span-2 bg-gradient-to-r from-slate-800/60 to-slate-900/60 p-4 rounded-2xl border border-slate-700 shadow-lg mb-2">
                                                 {viewMode === 'joint' ? (
                                                     <>
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase mb-1 flex items-center gap-2">
+                                                        <p className="text-xs text-slate-400 font-bold uppercase mb-1 flex items-center gap-2">
                                                             <Trophy size={12} className="text-yellow-400" /> Total Acumulado (Casal)
                                                         </p>
                                                         <p className="text-2xl font-extrabold text-white tracking-tight">
                                                             {formatCurrency(data.investData.totalCurrent)}
                                                         </p>
-                                                        <p className="text-[9px] text-slate-400 mt-1">
+                                                        <p className="text-xs text-slate-400 mt-1">
                                                             Total bruto em carteira (Sem descontar gastos)
                                                         </p>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase mb-1 flex items-center gap-2">
+                                                        <p className="text-xs text-slate-400 font-bold uppercase mb-1 flex items-center gap-2">
                                                             <Wallet size={12} /> Patrimônio Global (Pessoal)
                                                         </p>
                                                         <p className="text-2xl font-extrabold text-white tracking-tight">
                                                             {formatCurrency(data.analysis.health.totalNetWorth)}
                                                         </p>
-                                                        <p className="text-[9px] text-slate-400 mt-1">
+                                                        <p className="text-xs text-slate-400 mt-1">
                                                             Saldo em Conta ({formatCurrency(data.previousBalance + data.bal)}) + Investimentos ({formatCurrency(data.investData.totalCurrent)})
                                                         </p>
                                                     </>
@@ -3046,24 +3076,24 @@
                                             </div>
 
                                             <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/5">
-                                                <p className="text-[10px] text-slate-300 font-bold uppercase mb-1">Liberdade Fin.</p>
+                                                <p className="text-xs text-slate-300 font-bold uppercase mb-1">Liberdade Fin.</p>
                                                 <p className="text-xl font-extrabold text-amber-400">
                                                     {data.analysis.health.freedom.toFixed(2)}%
                                                 </p>
-                                                <p className="text-[9px] text-slate-400">Pagos por dividendos</p>
+                                                <p className="text-xs text-slate-400">Pagos por dividendos</p>
                                             </div>
                                             <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/5">
-                                                <p className="text-[10px] text-slate-300 font-bold uppercase mb-1">Sobrevivência</p>
+                                                <p className="text-xs text-slate-300 font-bold uppercase mb-1">Sobrevivência</p>
                                                 <p className="text-xl font-extrabold text-emerald-400">
                                                     {data.analysis.health.coverage.toFixed(1)} <span className="text-sm font-normal text-slate-300">meses</span>
                                                 </p>
-                                                <p className="text-[9px] text-slate-400">Sem renda ativa</p>
+                                                <p className="text-xs text-slate-400">Sem renda ativa</p>
                                             </div>
 
                                             <div className="col-span-2 mt-2 bg-white/5 p-3 rounded-xl border border-white/10">
                                                 <div className="flex justify-between items-start">
                                                     <div>
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Rentabilidade Carteira</p>
+                                                        <p className="text-xs text-slate-400 font-bold uppercase mb-1">Rentabilidade Carteira</p>
                                                         <div className="flex gap-2 mt-1 items-baseline">
                                                             <span className={`text-lg font-bold ${data.investData.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                                                 {data.investData.profit >= 0 ? '+' : ''}{formatCurrency(data.investData.profit)}
@@ -3085,8 +3115,8 @@
                             {dashboardMode === 'investment' && (
                                 <div className="glass-card p-5 mb-6">
                                     <div className="flex justify-between items-center mb-4">
-                                        <h3 className="font-bold text-lg flex items-center gap-2 text-white"><PieChart className="text-indigo-400" /> Minha Carteira</h3>
-                                        <button onClick={() => setPricesModal(true)} className="text-[10px] text-indigo-400 font-bold bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors">Atualizar Cotações</button>
+                                        <h3 className="font-bold text-lg flex items-center gap-2 text-white uppercase tracking-wider"><PieChart className="text-indigo-400" /> Minha Carteira</h3>
+                                        <button onClick={() => setPricesModal(true)} className="text-xs text-indigo-400 font-bold bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors">Atualizar Cotações</button>
                                     </div>
                                     <div className="space-y-3">
                                         {data.investData.portfolio.map((asset, i) => {
@@ -3099,14 +3129,14 @@
                                                         <p className="font-bold text-sm text-slate-200 flex items-center gap-2">
                                                             {asset.name}
                                                         </p>
-                                                        <p className="text-[10px] text-slate-400">
+                                                        <p className="text-xs text-slate-400">
                                                             {asset.qty > 0 ? `${asset.qty} cotas • PM ${formatCurrency(asset.avgPrice)}` : 'Saldo Financeiro'}
                                                         </p>
                                                     </div>
                                                     <div className="text-right">
                                                         <p className="font-bold text-sm text-slate-200">{formatCurrency(asset.currentTotal)}</p>
                                                         {asset.qty > 0 && (
-                                                            <p className={`text-[10px] font-bold ${assetProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                            <p className={`text-xs font-bold ${assetProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                                                 {assetProfit >= 0 ? '+' : ''}{assetYield.toFixed(1)}%
                                                             </p>
                                                         )}
@@ -3130,7 +3160,7 @@
                                         <div className="bg-rose-500/10 p-4 rounded-2xl border border-rose-500/20">
                                             <p className="text-xs text-rose-400 font-bold uppercase mb-1">Saídas Totais</p>
                                             <p className="text-lg font-extrabold text-rose-100">{formatCurrency(data.analysis.health.totalOutflows)}</p>
-                                            <p className="text-[9px] text-rose-300/70 font-bold">(Despesas + Aportes)</p>
+                                            <p className="text-xs text-rose-300/70 font-bold">(Despesas + Aportes)</p>
                                         </div>
                                     </>
                                 ) : (
@@ -3149,13 +3179,13 @@
 
                             {/* HISTÓRICO MENSAL */}
                             <div className="glass-card p-5">
-                                <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-white"><BarChart3 className="text-indigo-400" /> Evolução (6 Meses)</h3>
+                                <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-white uppercase tracking-wider"><BarChart3 className="text-indigo-400" /> Evolução (6 Meses)</h3>
                                 <SimpleHistoryChart data={data.analysis.history} mode={dashboardMode} />
                             </div>
 
                             {/* FLUXO DE BANCOS */}
                             <div className="glass-card p-5">
-                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-white">
+                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-white uppercase tracking-wider">
                                     <Banknote className="text-indigo-400" />
                                     {dashboardMode === 'statement' ? 'Fluxo de Contas' : 'Aportes por Corretora'}
                                 </h3>
@@ -3172,7 +3202,7 @@
 
                             {/* TOP CATEGORIAS */}
                             <div className="glass-card p-5">
-                                <h3 className="font-bold flex gap-2 mb-4 text-white">
+                                <h3 className="font-bold flex gap-2 mb-4 text-white uppercase tracking-wider">
                                     <PieChart size={20} className="text-indigo-400" />
                                     {dashboardMode === 'statement' ? 'Maiores Despesas' : 'Alocação por Tipo'}
                                 </h3>
@@ -3228,7 +3258,7 @@
                                 <div className={`p-1 rounded-full transition-all ${tab === 'home' ? 'bg-emerald-400/10' : ''}`}>
                                     <Wallet size={18} strokeWidth={tab === 'home' ? 2.5 : 2} className="group-active:scale-90 transition-transform" />
                                 </div>
-                                <span className="text-[8px] font-medium tracking-wide opacity-90">Norte</span>
+                                {tab === 'home' && <span className="text-[8px] font-medium tracking-wide opacity-90 animate-fade-in">Norte</span>}
                             </button>
 
                             {/* 2. CASA */}
@@ -3236,7 +3266,7 @@
                                 <div className={`p-1 rounded-full transition-all ${tab === 'chores' ? 'bg-emerald-400/10' : ''}`}>
                                     <Home size={18} strokeWidth={tab === 'chores' ? 2.5 : 2} className="group-active:scale-90 transition-transform" />
                                 </div>
-                                <span className="text-[8px] font-medium tracking-wide opacity-90">Casa</span>
+                                {tab === 'chores' && <span className="text-[8px] font-medium tracking-wide opacity-90 animate-fade-in">Casa</span>}
                             </button>
 
                             {/* 3. BÚSSOLA CENTRAL (Ícone Aumentado) */}
@@ -3269,7 +3299,7 @@
                                 <div className={`p-1 rounded-full transition-all ${tab === 'planning' ? 'bg-emerald-400/10' : ''}`}>
                                     <Target size={18} strokeWidth={tab === 'planning' ? 2.5 : 2} className="group-active:scale-90 transition-transform" />
                                 </div>
-                                <span className="text-[8px] font-medium tracking-wide opacity-90">Metas</span>
+                                {tab === 'planning' && <span className="text-[8px] font-medium tracking-wide opacity-90 animate-fade-in">Metas</span>}
                             </button>
 
                             {/* 5. ANÁLISE */}
@@ -3277,7 +3307,7 @@
                                 <div className={`p-1 rounded-full transition-all ${tab === 'reports' ? 'bg-emerald-400/10' : ''}`}>
                                     <BarChart3 size={18} strokeWidth={tab === 'reports' ? 2.5 : 2} className="group-active:scale-90 transition-transform" />
                                 </div>
-                                <span className="text-[8px] font-medium tracking-wide opacity-90">Análise</span>
+                                {tab === 'reports' && <span className="text-[8px] font-medium tracking-wide opacity-90 animate-fade-in">Análise</span>}
                             </button>
                         </div>
                     </div>
@@ -3308,7 +3338,7 @@
                                     <button onClick={resetDatabase} className="w-full bg-rose-500/10 text-rose-400 border border-rose-500/20 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-rose-500/20 transition-colors">
                                         <Trash2 size={18} /> Reiniciar Banco de Dados
                                     </button>
-                                    <p className="text-[10px] text-center text-slate-500 mt-2">Apaga tudo e restaura o padrão de fábrica.</p>
+                                    <p className="text-xs text-center text-slate-500 mt-2">Apaga tudo e restaura o padrão de fábrica.</p>
                                 </div>
                             </div>
                         </div>
@@ -3353,20 +3383,20 @@
                                     <div className="bg-[#0f172a] p-4 rounded-3xl border border-white/5 space-y-3">
                                         <div className="flex gap-3">
                                             <div className="flex-1">
-                                                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 mb-1 block">Quantidade</label>
+                                                <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">Quantidade</label>
                                                 <input type="number" step="0.000001" value={fQty} onChange={e => {
                                                     const q = e.target.value;
                                                     setFQty(q);
                                                     if (fUnitPrice) setFAmount((Number(q) * Number(fUnitPrice)).toFixed(2));
-                                                }} placeholder="0" className="w-full bg-[#1e293b] p-3 rounded-xl text-white font-bold outline-none border border-slate-700 focus:border-indigo-500" />
+                                                }} placeholder="0" className="w-full bg-[#020617] p-3 rounded-xl text-white font-bold outline-none border border-slate-700 focus:border-indigo-500 shadow-inner" />
                                             </div>
                                             <div className="flex-1">
-                                                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 mb-1 block">Preço Unit.</label>
+                                                <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">Preço Unit.</label>
                                                 <input type="number" step="0.01" value={fUnitPrice} onChange={e => {
                                                     const p = e.target.value;
                                                     setFUnitPrice(p);
                                                     if (fQty) setFAmount((Number(fQty) * Number(p)).toFixed(2));
-                                                }} placeholder="R$ 0,00" className="w-full bg-[#1e293b] p-3 rounded-xl text-white font-bold outline-none border border-slate-700 focus:border-indigo-500" />
+                                                }} placeholder="R$ 0,00" className="w-full bg-[#020617] p-3 rounded-xl text-white font-bold outline-none border border-slate-700 focus:border-indigo-500 shadow-inner" />
                                             </div>
                                         </div>
                                         <div className="pt-2 border-t border-white/5 flex justify-between items-center px-2">
@@ -3383,7 +3413,7 @@
                                             value={fAmount}
                                             onChange={e => setFAmount(e.target.value)}
                                             placeholder="0,00"
-                                            className="w-full bg-[#0f172a] p-5 pl-14 rounded-3xl text-4xl font-black text-white outline-none border border-white/5 placeholder-slate-700 text-center"
+                                            className="w-full bg-[#020617] p-5 pl-14 rounded-3xl text-4xl font-black text-white outline-none border border-white/5 placeholder-slate-700 text-center shadow-inner"
                                             required
                                         />
                                     </div>
@@ -3391,7 +3421,7 @@
 
                                 {/* 3. DESCRIÇÃO */}
                                 <div className="relative">
-                                    <input type="text" list="titleOptions" value={fTitle} onChange={e => setFTitle(e.target.value)} placeholder="Descrição (ex: Almoço, Salário)" className="w-full bg-[#1e293b] p-4 pl-12 rounded-xl text-white font-bold outline-none border border-slate-700 focus:border-indigo-500 shadow-sm" required />
+                                    <input type="text" list="titleOptions" value={fTitle} onChange={e => setFTitle(e.target.value)} placeholder="Descrição (ex: Almoço, Salário)" className="w-full bg-[#020617] p-4 pl-12 rounded-xl text-white font-bold outline-none border border-slate-700 focus:border-indigo-500 shadow-inner" required />
                                     <Type size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                                     <datalist id="titleOptions">{uniqueTitles.map(t => <option key={t} value={t} />)}</datalist>
                                 </div>
@@ -3399,11 +3429,11 @@
                                 {/* 4. DATA E CONTA */}
                                 <div className="flex gap-3">
                                     <div className="flex-1 relative">
-                                        <input type="date" value={fDate} onChange={e => setFDate(e.target.value)} className="w-full bg-[#1e293b] p-3 pl-10 rounded-xl text-white font-bold text-sm outline-none border border-slate-700" />
+                                        <input type="date" value={fDate} onChange={e => setFDate(e.target.value)} className="w-full bg-[#020617] p-3 pl-10 rounded-xl text-white font-bold text-sm outline-none border border-slate-700 shadow-inner" />
                                         <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                                     </div>
                                     <div className="flex-1 relative">
-                                        <input list="bankOptions" value={fBank} onChange={e => setFBank(e.target.value)} placeholder="Conta/Banco" className="w-full bg-[#1e293b] p-3 pl-10 rounded-xl text-white font-bold text-sm outline-none border border-slate-700" />
+                                        <input list="bankOptions" value={fBank} onChange={e => setFBank(e.target.value)} placeholder="Conta/Banco" className="w-full bg-[#020617] p-3 pl-10 rounded-xl text-white font-bold text-sm outline-none border border-slate-700 shadow-inner" />
                                         <Banknote size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                                         <datalist id="bankOptions">{BANKS.map(b => <option key={b.id} value={b.name} />)}</datalist>
                                     </div>
@@ -3411,7 +3441,7 @@
 
                                 {/* 5. LOCAL / MERCADO */}
                                 <div className="relative">
-                                    <input type="text" list="marketOptions" value={fMarket} onChange={e => setFMarket(e.target.value)} placeholder={fType === 'investment' ? "Corretora / Código do Ativo" : "Local / Mercado"} className="w-full bg-[#1e293b] p-3 pl-10 rounded-xl text-white font-bold text-sm outline-none border border-slate-700" />
+                                    <input type="text" list="marketOptions" value={fMarket} onChange={e => setFMarket(e.target.value)} placeholder={fType === 'investment' ? "Corretora / Código do Ativo" : "Local / Mercado"} className="w-full bg-[#020617] p-3 pl-10 rounded-xl text-white font-bold text-sm outline-none border border-slate-700 shadow-inner" />
                                     <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                                     <datalist id="marketOptions">{uniqueMarkets.map(m => <option key={m} value={m} />)}</datalist>
                                 </div>
@@ -3420,20 +3450,20 @@
                                 <div className="grid grid-cols-3 gap-2">
                                     {/* 1. Recorrência (Mantido) */}
                                     <div onClick={() => { setFRecurrent(!fRecurrent); setIsInstallment(false); }} className={`p-3 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all ${fRecurrent ? 'bg-amber-500/10 border-amber-500 text-amber-500' : 'bg-[#1e293b] border-slate-700 text-slate-500'}`}>
-                                        <span className="text-[9px] font-bold uppercase mb-1">Recorrência</span>
-                                        {fRecurrent ? <CheckCircle size={14} /> : <span className="text-[10px] font-bold">Não</span>}
+                                        <span className="text-xs font-bold uppercase mb-1">Recorrência</span>
+                                        {fRecurrent ? <CheckCircle size={14} /> : <span className="text-xs font-bold">Não</span>}
                                     </div>
 
                                     {/* 2. Divisão (TROUXEMOS PARA O MEIO) */}
                                     <div onClick={() => setFShared(!fShared)} className={`p-3 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all ${fShared ? 'bg-pink-500/10 border-pink-500 text-pink-500' : 'bg-[#1e293b] border-slate-700 text-slate-500'}`}>
-                                        <span className="text-[9px] font-bold uppercase mb-1">Divisão</span>
+                                        <span className="text-xs font-bold uppercase mb-1">Divisão</span>
                                         {fShared ? <Users size={14} /> : <User size={14} />}
                                     </div>
 
                                     {/* 3. Parcelado (AGORA É O ÚLTIMO) */}
                                     <div onClick={() => { setIsInstallment(!isInstallment); setFRecurrent(false); }} className={`p-3 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all ${isInstallment ? 'bg-blue-500/10 border-blue-500 text-blue-500' : 'bg-[#1e293b] border-slate-700 text-slate-500'}`}>
-                                        <span className="text-[9px] font-bold uppercase mb-1">Parcelado</span>
-                                        {isInstallment ? <span className="text-xs font-bold">{installments}x</span> : <span className="text-[10px] font-bold">À Vista</span>}
+                                        <span className="text-xs font-bold uppercase mb-1">Parcelado</span>
+                                        {isInstallment ? <span className="text-xs font-bold">{installments}x</span> : <span className="text-xs font-bold">À Vista</span>}
                                     </div>
                                 </div>
 
@@ -3442,7 +3472,7 @@
                                     <div className="bg-blue-900/20 p-4 rounded-xl border border-blue-500/30 animate-slide-up flex flex-col gap-3">
                                         <div className="flex items-center gap-3">
                                             <label className="text-xs font-bold text-blue-200 uppercase whitespace-nowrap">Nº Parcelas:</label>
-                                            <input type="number" min="2" max="60" value={installments} onChange={e => setInstallments(e.target.value)} className="w-full bg-[#0f172a] p-2 rounded-lg text-center font-bold text-white border border-blue-500/30 outline-none focus:border-blue-500" />
+                                            <input type="number" min="2" max="60" value={installments} onChange={e => setInstallments(e.target.value)} className="w-full bg-[#020617] p-2 rounded-lg text-center font-bold text-white border border-blue-500/30 outline-none focus:border-blue-500 shadow-inner" />
                                         </div>
 
                                         {/* CÁLCULO DA PARCELA */}
@@ -3454,7 +3484,7 @@
 
                                                 {/* CÁLCULO POR PESSOA (CASAL) */}
                                                 {fShared && (
-                                                    <p className="text-[10px] text-pink-300 mt-1 font-bold border-t border-blue-500/20 pt-1">
+                                                    <p className="text-xs text-pink-300 mt-1 font-bold border-t border-blue-500/20 pt-1">
                                                         (Casal: {formatCurrency((fAmount / installments) / 2)} para cada)
                                                     </p>
                                                 )}
@@ -3469,17 +3499,28 @@
                                         <span className="text-xs font-bold text-slate-400 uppercase ml-1">
                                             {fType === 'income' ? 'Quem Recebeu?' : 'Quem Pagou?'}
                                         </span>
-                                        <div className="flex bg-[#0f172a] rounded-lg p-1 border border-white/5">
-                                            <button type="button" onClick={() => setFormPayer('me')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${formPayer === 'me' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>Eu</button>
-                                            <button type="button" onClick={() => setFormPayer('partner')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${formPayer === 'partner' ? 'bg-pink-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>Parceiro</button>
+                                        <div className="flex gap-4">
+                                            <button type="button" onClick={() => setFormPayer('me')} className={`relative w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all ${formPayer === 'me' ? 'border-indigo-500 scale-110 shadow-[0_0_15px_rgba(99,102,241,0.5)] grayscale-0' : 'border-slate-700 grayscale opacity-50 scale-90'}`}>
+                                                <div className={`w-full h-full rounded-full flex items-center justify-center text-xl ${USER_CONFIG[profile]?.color || 'bg-gray-500'} border-2 border-[#1e293b]`}>
+                                                    {USER_CONFIG[profile]?.avatar}
+                                                </div>
+                                                {formPayer === 'me' && <div className="absolute -bottom-2 text-xs font-bold text-indigo-400 bg-slate-900 px-2 rounded-full border border-indigo-500/30">Eu</div>}
+                                            </button>
+
+                                            <button type="button" onClick={() => setFormPayer('partner')} className={`relative w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all ${formPayer === 'partner' ? 'border-pink-500 scale-110 shadow-[0_0_15px_rgba(236,72,153,0.5)] grayscale-0' : 'border-slate-700 grayscale opacity-50 scale-90'}`}>
+                                                <div className={`w-full h-full rounded-full flex items-center justify-center text-xl ${USER_CONFIG[profile === 'bruno' ? 'maiara' : 'bruno']?.color || 'bg-gray-500'} border-2 border-[#1e293b]`}>
+                                                    {USER_CONFIG[profile === 'bruno' ? 'maiara' : 'bruno']?.avatar}
+                                                </div>
+                                                {formPayer === 'partner' && <div className="absolute -bottom-2 text-xs font-bold text-pink-400 bg-slate-900 px-2 rounded-full border border-pink-500/30">{profile === 'bruno' ? 'Maiara' : 'Bruno'}</div>}
+                                            </button>
                                         </div>
                                     </div>
                                 )}
 
                                 {/* 7. CATEGORIAS */}
                                 <div>
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1">Categoria</p>
-                                    <div className="grid grid-cols-4 gap-2">
+                                    <p className="text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Categoria</p>
+                                    <div className="grid grid-cols-3 gap-2">
                                         {CATEGORIES[fType].map(c => (
                                             <button type="button" key={c.id} onClick={() => { setFCat(c.name); setFSubCat(''); }}
                                                 className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition-all active:scale-95 ${fCat === c.name ? 'border-indigo-500 bg-indigo-500/20 text-white shadow-[0_0_15px_rgba(99,102,241,0.2)]' : 'border-white/5 bg-[#1e293b] text-slate-400 hover:bg-[#283548]'}`}>
@@ -3493,7 +3534,7 @@
                                 {/* 8. SUBCATEGORIA */}
                                 {fCat && CATEGORIES[fType].find(c => c.name === fCat)?.subcategories?.length > 0 && (
                                     <div className="p-3 rounded-xl bg-[#0f172a] border border-slate-700 animate-slide-up">
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 block mb-1">Detalhe da Categoria</label>
+                                        <label className="text-xs font-bold text-slate-400 uppercase ml-1 block mb-1">Detalhe da Categoria</label>
                                         <select value={fSubCat} onChange={e => setFSubCat(e.target.value)} className="w-full bg-transparent font-bold text-sm outline-none text-white appearance-none">
                                             <option value="" className="bg-slate-900 text-slate-500">Selecione uma opção...</option>
                                             {CATEGORIES[fType].find(c => c.name === fCat).subcategories.map(sub => <option key={sub} value={sub} className="bg-slate-900 text-white">{sub}</option>)}
@@ -3543,9 +3584,9 @@
                                                 <span className="text-xl w-8 text-center">{b.icon}</span>
                                                 <div className="flex-1">
                                                     <div className="flex justify-between">
-                                                        <p className={`text-[10px] font-bold uppercase truncate ${isParent ? 'text-indigo-400' : 'text-slate-400'}`}>{b.displayName || b.category}</p>
+                                                        <p className={`text-xs font-bold uppercase truncate ${isParent ? 'text-indigo-400' : 'text-slate-400'}`}>{b.displayName || b.category}</p>
                                                         {/* Feedback visual adicionado */}
-                                                        {isParent && hasChildren && <span className="text-[9px] text-indigo-300 font-bold bg-indigo-500/20 px-1.5 rounded flex items-center gap-1 border border-indigo-500/30">Auto <Sparkles size={8} /></span>}
+                                                        {isParent && hasChildren && <span className="text-xs text-indigo-300 font-bold bg-indigo-500/20 px-1.5 rounded flex items-center gap-1 border border-indigo-500/30">Auto <Sparkles size={8} /></span>}
                                                     </div>
                                                     <input
                                                         type="number"
@@ -3585,7 +3626,7 @@
                                     <div key={asset.name} className="flex gap-3 items-center justify-between">
                                         <div className="flex-1">
                                             <p className="text-sm font-bold text-slate-200">{asset.name}</p>
-                                            <p className="text-[10px] text-slate-400">PM: {formatCurrency(asset.avgPrice)}</p>
+                                            <p className="text-xs text-slate-400">PM: {formatCurrency(asset.avgPrice)}</p>
                                         </div>
                                         <div className="relative w-32">
                                             <span className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">R$</span>
