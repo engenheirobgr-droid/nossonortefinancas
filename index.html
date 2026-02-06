@@ -511,39 +511,112 @@
     };
 
     // --- COMPONENTE GRAFICO HISTÓRICO SIMPLES (SVG) ---
+    // --- COMPONENTE GRAFICO HISTÓRICO SIMPLES (REFEITO V2 - EVOLUÇÃO + TOOLTIPS) ---
     const SimpleHistoryChart = ({ data, mode }) => {
         if (!data || data.length === 0) return <div className="text-center text-slate-400 text-xs py-10">Sem histórico suficiente</div>;
 
-        const maxVal = Math.max(...data.map(d => mode === 'statement' ? Math.max(d.income, d.expense) : d.invested));
+        // Determina qual valor plotar baseado no modo
+        // Modo 'statement' (Dia a Dia): Mostra a evolução do SALDO (runningBalance)
+        // Modo 'investment' (Investimentos): Mostra a evolução do PATRIMÔNIO (runningNetWorth)
+        const getBarValue = (d) => mode === 'statement' ? (d.runningBalance || 0) : (d.runningNetWorth || 0);
+
+        const values = data.map(getBarValue);
+        // CORREÇÃO: Usa valor absoluto para calcular altura (suporta saldo negativo)
+        const maxVal = Math.max(...values.map(v => Math.abs(v)), 100);
         const height = 120; // Altura fixa do gráfico
 
+        const [hoveredIndex, setHoveredIndex] = useState(null);
+
         return (
-            <div className="w-full overflow-x-auto scrollbar-hide">
-                <div className="flex items-end justify-between min-w-full h-[150px] pt-4 pb-6 px-2 relative">
+            <div className="w-full overflow-visible relative">
+                <div className="flex items-end justify-between min-w-full h-[160px] pt-10 pb-6 px-2 relative font-sans">
                     {data.map((d, i) => {
-                        const h1 = maxVal ? (d.income / maxVal) * height : 0;
-                        const h2 = maxVal ? (d.expense / maxVal) * height : 0;
-                        const hInv = maxVal ? (d.invested / maxVal) * height : 0;
+                        const val = getBarValue(d);
+                        const isNegative = val < 0;
+                        // Altura da barra baseada no valor ABSOLUTO
+                        const barHeight = maxVal ? (Math.abs(val) / maxVal) * height : 0;
+                        const isHovered = hoveredIndex === i;
+
+                        // Definição de cores baseada no modo e sinal
+                        // MODO INVESTIMENTOS: Blue (Palette existente) e Indigo (Negativo)
+                        const barColor = isNegative
+                            ? 'bg-indigo-600' // Negativo: Indigo
+                            : (mode === 'statement' ? 'bg-emerald-500' : 'bg-blue-600'); // Positivo Inv: Blue (Palette)
+
+                        const glowColor = isNegative
+                            ? 'shadow-[0_0_15px_rgba(79,70,229,0.4)]'
+                            : (mode === 'statement' ? 'shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'shadow-[0_0_15px_rgba(37,99,235,0.4)]'); // Blue-600
 
                         return (
-                            <div key={i} className="flex flex-col items-center gap-1 flex-1 min-w-[40px]">
-                                <div className="flex items-end gap-1 h-[120px] relative group">
-                                    {mode === 'statement' ? (
-                                        <>
-                                            <div style={{ height: `${h1}px` }} className="w-2 bg-emerald-400 rounded-t-sm transition-all duration-700 relative shadow-[0_0_10px_rgba(52,211,153,0.3)]">
-                                                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-800 border border-white/10 text-emerald-300 text-xs font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 shadow-xl pointer-events-none">{formatCurrency(d.income)}</div>
-                                            </div>
-                                            <div style={{ height: `${h2}px` }} className="w-2 bg-rose-400 rounded-t-sm transition-all duration-700 relative shadow-[0_0_10px_rgba(251,113,133,0.3)]">
-                                                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-800 border border-white/10 text-rose-300 text-xs font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 shadow-xl pointer-events-none">{formatCurrency(d.expense)}</div>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <div style={{ height: `${hInv}px` }} className="w-4 bg-indigo-400 rounded-t-md transition-all duration-700 relative shadow-[0_0_10px_rgba(129,140,248,0.3)]">
-                                            <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-800 border border-white/10 text-indigo-300 text-xs font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 shadow-xl pointer-events-none">{formatCurrency(d.invested)}</div>
-                                        </div>
-                                    )}
+                            <div
+                                key={i}
+                                className="flex flex-col items-center gap-2 flex-1 min-w-[40px] relative group cursor-pointer"
+                                onMouseEnter={() => setHoveredIndex(i)}
+                                onMouseLeave={() => setHoveredIndex(null)}
+                                onClick={() => setHoveredIndex(isHovered ? null : i)} // Toggle no mobile
+                            >
+                                {/* ÁREA DA BARRA (Com hit area maior invisível para facilitar toque) */}
+                                <div className="h-[120px] flex items-end relative w-full justify-center">
+
+                                    {/* BARRA VISUAL */}
+                                    <div
+                                        style={{ height: `${Math.max(barHeight, 4)}px` }} // Mínimo 4px pra não sumir
+                                        className={`w-3 rounded-t-md transition-all duration-500 relative
+                                            ${barColor} ${isHovered ? `scale-110 ${glowColor} brightness-110` : 'opacity-80'}
+                                        `}
+                                    >
+                                    </div>
                                 </div>
-                                <span className="text-xs text-slate-400 font-bold uppercase">{d.month.split('-')[1]}</span>
+
+                                {/* LABEL MÊS */}
+                                <span className={`text-[10px] font-bold uppercase transition-colors ${isHovered ? 'text-white' : 'text-slate-500'}`}>
+                                    {d.month.split('-')[1]}
+                                </span>
+
+                                {/* TOOLTIP DETALHADO (FLUTUANTE) */}
+                                {isHovered && (
+                                    <div className="absolute bottom-[140%] left-1/2 -translate-x-1/2 bg-slate-900/95 border border-white/10 p-3 rounded-xl shadow-2xl z-50 w-48 backdrop-blur-md animate-fade-in pointer-events-none">
+                                        <div className="text-center border-b border-white/10 pb-1 mb-2">
+                                            <p className="text-xs font-bold text-slate-400 uppercase">{d.month}</p>
+                                        </div>
+
+                                        {mode === 'statement' ? (
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="text-slate-400">Saldo Final:</span>
+                                                    <span className={`font-bold ${d.runningBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(d.runningBalance)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-[10px]">
+                                                    <span className="text-slate-500">Entradas:</span>
+                                                    <span className="text-slate-300">+{formatCurrency(d.income)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-[10px]">
+                                                    <span className="text-slate-500">Saídas:</span>
+                                                    <span className="text-rose-400">-{formatCurrency(d.expense)}</span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="text-slate-400">Patrimônio:</span>
+                                                    <span className={`font-bold ${d.runningNetWorth >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(d.runningNetWorth)}</span>
+                                                </div>
+                                                {/* NOVO: Investimento Acumulado - Volta pro Slate para seguir logica do Income */}
+                                                <div className="flex justify-between items-center text-[10px]">
+                                                    <span className="text-slate-500">Inv. Acumulado:</span>
+                                                    <span className="text-slate-300">{formatCurrency(d.runningInvested)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-[10px]">
+                                                    <span className="text-slate-500">Aporte Mês:</span>
+                                                    <span className="text-slate-300">+{formatCurrency(d.invested)}</span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* SETINHA DO TOOLTIP */}
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-slate-900/95"></div>
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
@@ -1640,7 +1713,7 @@
             const dailyCharts = top5;
             const investCharts = Object.keys(investCatMap).map(k => ({ name: k, amount: investCatMap[k], pct: inv > 0 ? (investCatMap[k] / inv) * 100 : 0, icon: CATEGORIES.investment.find(c => c.name === k)?.icon || '📈', color: CATEGORIES.investment.find(c => c.name === k)?.barColor || 'bg-indigo-500' })).sort((a, b) => b.amount - a.amount);
 
-            // History (Mantido simples)
+            // History (Refeito para acumular Saldo e Patrimônio)
             const historyMap = {};
             txs.forEach(t => {
                 const m = t.date.slice(0, 7);
@@ -1648,7 +1721,37 @@
                 if (t.type === 'income') historyMap[m].income += Number(t.amount);
                 if (t.type === 'expense') historyMap[m].expense += Number(t.amount);
                 if (t.type === 'investment') historyMap[m].invested += Number(t.amount);
+                // Acertos: se eu paguei (expense), se recebi (income) - Simplificado para o gráfico
+                if (t.isSettlement) {
+                    if (t.ownerId === profile) historyMap[m].expense += Number(t.amount);
+                    else historyMap[m].income += Number(t.amount);
+                }
             });
+
+            // Converte para array e ordena
+            let historyArray = Object.values(historyMap).sort((a, b) => a.month.localeCompare(b.month));
+
+            // Calcula Acumulados (Running Totals) para o Gráfico de Evolução
+            let currentRunningBalance = 0;
+            let currentRunningInvested = 0;
+
+            historyArray = historyArray.map(h => {
+                // Balanço do mês = Entradas - Saídas - Investimentos
+                // OBS: Investimento sai do "Caixa" (Saldo), mas entra no "Patrimônio"
+                const monthFlow = h.income - h.expense - h.invested;
+                currentRunningBalance += monthFlow;
+                currentRunningInvested += h.invested;
+
+                return {
+                    ...h,
+                    runningBalance: currentRunningBalance,
+                    runningInvested: currentRunningInvested, // NOVO: Expondo acumulado de aportes
+                    runningNetWorth: currentRunningBalance + currentRunningInvested // Simplificado: Saldo + Investido
+                };
+            });
+
+            // Pega apenas os últimos 6 meses (ou mais se quiser)
+            const finalHistory = historyArray.slice(-6);
 
             return {
                 list: currentMonthList, fullList, bal, inc, exp, inv,
@@ -1659,7 +1762,7 @@
                 operationalBalance,
                 pendingSettlements,
                 planning, dreamsProgress, netWorth, economicExp,
-                analysis: { daily: { charts: dailyCharts, bankFlow: dailyBankFlow }, invest: { charts: investCharts, bankFlow: investBankFlow }, history: Object.values(historyMap).sort((a, b) => a.month.localeCompare(b.month)).slice(-6), health: { savingsRate: inc > 0 ? ((inc - exp) / inc) * 100 : 0, burnRate: exp, coverage: exp > 0 ? (portfolioCurrentTotal / exp) : 0, freedom: exp > 0 ? (monthlyDividends / exp) * 100 : 0, investRate: inc > 0 ? (inv / inc) * 100 : 0, totalNetWorth: netWorth, totalOutflows: totalOutflows, strictScopeInv: strictScopeInv } },
+                analysis: { daily: { charts: dailyCharts, bankFlow: dailyBankFlow }, invest: { charts: investCharts, bankFlow: investBankFlow }, history: finalHistory, health: { savingsRate: inc > 0 ? ((inc - exp) / inc) * 100 : 0, burnRate: exp, coverage: exp > 0 ? (portfolioCurrentTotal / exp) : 0, freedom: exp > 0 ? (monthlyDividends / exp) * 100 : 0, investRate: inc > 0 ? (inv / inc) * 100 : 0, totalNetWorth: netWorth, totalOutflows: totalOutflows, strictScopeInv: strictScopeInv } },
                 investData: { totalInvested, totalCurrent: portfolioCurrentTotal, profit, yieldPct, byBank: investBankFlow, byType: investCatMap, dividends: monthlyDividends, portfolio: Object.values(portfolio).sort((a, b) => b.currentTotal - a.currentTotal) }
             };
             // --- CORREÇÃO: ADICIONADO 'isForecast' NAS DEPENDÊNCIAS ABAIXO ---
