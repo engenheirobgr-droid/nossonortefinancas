@@ -1233,6 +1233,10 @@
 
         // --- NOVO (FASE 3): Recorrência e Sonhos ---
         const [fRecurrent, setFRecurrent] = useState(false);
+        const [fRecurrenceEndMode, setFRecurrenceEndMode] = useState('forever'); // 'forever' | 'date' | 'count'
+        const [fRecurrenceEndDate, setFRecurrenceEndDate] = useState('');
+        const [fRecurrenceCount, setFRecurrenceCount] = useState(12);
+
         const [fDreamId, setFDreamId] = useState('');
         const [dreams, setDreams] = useState([]);
         const [dreamModal, setDreamModal] = useState(false);
@@ -1361,8 +1365,22 @@
                         t.title.toLowerCase().trim() === template.title.toLowerCase().trim()
                     );
                     if (!existsInMonth) {
-                        const day = template.date.split('-')[2] || '05';
-                        fullList.push({ ...template, id: 'ghost_' + template.id, date: `${selectedMonth}-${day}`, isProjection: true, displayTitle: template.title + ' (Previsto)' });
+                        // --- LÓGICA DE FIM DA RECORRÊNCIA (NOVO) ---
+                        let shouldProject = true;
+                        if (template.recurrenceEndMode === 'date' && template.recurrenceEndDate) {
+                            if (selectedMonth > template.recurrenceEndDate.slice(0, 7)) shouldProject = false;
+                        }
+                        else if (template.recurrenceEndMode === 'count' && template.recurrenceCount) {
+                            const start = new Date(template.date);
+                            const current = new Date(selectedMonth + '-01');
+                            const diffMonths = (current.getFullYear() - start.getFullYear()) * 12 + (current.getMonth() - start.getMonth());
+                            if (diffMonths >= template.recurrenceCount) shouldProject = false;
+                        }
+
+                        if (shouldProject) {
+                            const day = template.date.split('-')[2] || '05';
+                            fullList.push({ ...template, id: 'ghost_' + template.id, date: `${selectedMonth}-${day}`, isProjection: true, displayTitle: template.title + ' (Previsto)' });
+                        }
                     }
                 });
             }
@@ -1411,6 +1429,14 @@
 
             previousTxs.forEach(t => {
                 const val = Number(t.amount);
+
+                // CORREÇÃO: Lógica de Acertos exclusiva (Igual ao loop do mês atual)
+                if (t.isSettlement) {
+                    if (t.ownerId === profile) previousBalance -= val; // Eu paguei = saiu
+                    else previousBalance += val; // Recebi = entrou
+                    return; // Retorna para não contar duas vezes
+                }
+
                 if (t.type === 'income') previousBalance += val;
                 else if (t.type === 'expense') previousBalance -= val;
 
@@ -1418,13 +1444,6 @@
                 else if (t.type === 'investment') {
                     previousBalance -= val;
                     accumInvest += val;
-                }
-
-                // Tratamento de Acertos no Passado
-                // --- FIM DA ALTERAÇÃO ---
-                if (t.isSettlement) {
-                    if (t.ownerId === profile) previousBalance -= val; // Eu paguei = saiu
-                    else previousBalance += val; // Recebi = entrou
                 }
             });
             // -----------------------------------------------------------
@@ -1591,25 +1610,64 @@
             const investments = txs.filter(t => {
                 if (t.type !== 'investment') return false;
                 if (viewMode === 'joint') return t.isShared; // Nosso Mundo: Só compartilhados
-                return !t.isShared && t.ownerId === profile; // Meu Mundo: Só MEUS e PRIVADOS (Item 4 resolvido)
+                return !t.isShared && t.ownerId === profile; // Meu Mundo: Só MEUS e PRIVADOS
             });
 
-            const totalInvested = investments.reduce((acc, t) => acc + Number(t.amount), 0);
+            // CORREÇÃO: Filtrar investimentos até a data selecionada para o Dashboard
+            // Se não, mostra o valor ATUAL (Futuro) em meses passados
+            const historicalInvestments = investments.filter(t => t.date <= lastDayOfMonth);
+
+            // CORREÇÃO: Calcular valor HISTÓRICO do mês anterior para o Dashboard "Mês Anterior"
+            const lastDayOfPrevMonth = new Date(selYear, selMonth - 1, 0).toISOString().split('T')[0];
+            const prevInvestments = investments.filter(t => t.date <= lastDayOfPrevMonth);
+
+            const totalInvested = historicalInvestments.reduce((acc, t) => acc + Number(t.amount), 0);
 
             let portfolio = {};
             let portfolioCurrentTotal = 0;
-            let investBankFlow = {}; // Calculado APENAS com os investimentos do escopo atual (Item 5 resolvido)
+            let portfolioPreviousTotal = 0; // Novo Total do Mês Anterior
+
+            let investBankFlow = {};
             let investCatMap = {};
 
-            investments.forEach(t => {
+            // Função helper para calcular total de carteira em data específica
+            const calculatePortfolioTotal = (investmentList) => {
+                let tempPortfolio = {};
+                let total = 0;
+                investmentList.forEach(t => {
+                    const assetName = t.market || t.category || 'Outros';
+                    if (!tempPortfolio[assetName]) tempPortfolio[assetName] = { qty: 0, totalCost: 0, currentPrice: currentPrices[assetName] || 0 };
+
+                    const qty = t.quantity > 0 ? Number(t.quantity) : 0;
+                    tempPortfolio[assetName].qty += qty;
+                    tempPortfolio[assetName].totalCost += Number(t.amount);
+                });
+
+                Object.values(tempPortfolio).forEach(asset => {
+                    if (asset.qty > 0) {
+                        const avgPrice = asset.totalCost / asset.qty;
+                        const price = asset.currentPrice > 0 ? Number(asset.currentPrice) : avgPrice;
+                        total += asset.qty * price;
+                    } else {
+                        total += asset.totalCost;
+                    }
+                });
+                return total;
+            };
+
+            // Calcula Totais
+            portfolioCurrentTotal = calculatePortfolioTotal(historicalInvestments);
+            portfolioPreviousTotal = calculatePortfolioTotal(prevInvestments);
+
+            // Reconstrói Portfolio Detalhado para Exibição (Baseado no Mês Atual)
+            // (Mantém lógica original para popular a lista detalhada)
+            historicalInvestments.forEach(t => {
                 const assetName = t.market || t.category || 'Outros';
-                // Carteira
                 if (!portfolio[assetName]) portfolio[assetName] = { name: assetName, qty: 0, totalCost: 0, avgPrice: 0, currentPrice: currentPrices[assetName] || 0, currentTotal: 0 };
                 const qty = t.quantity > 0 ? Number(t.quantity) : 0;
                 portfolio[assetName].qty += qty;
                 portfolio[assetName].totalCost += Number(t.amount);
 
-                // Gráficos de Instituição/Categoria (Baseados na posse, não fluxo)
                 if (t.bank) investBankFlow[t.bank] = (investBankFlow[t.bank] || 0) + Number(t.amount);
                 const cName = t.category || 'Outros';
                 investCatMap[cName] = (investCatMap[cName] || 0) + Number(t.amount);
@@ -1623,7 +1681,6 @@
                 } else {
                     asset.currentTotal = asset.totalCost;
                 }
-                portfolioCurrentTotal += asset.currentTotal;
             });
 
             const profit = portfolioCurrentTotal - totalInvested;
@@ -1714,17 +1771,33 @@
             const investCharts = Object.keys(investCatMap).map(k => ({ name: k, amount: investCatMap[k], pct: inv > 0 ? (investCatMap[k] / inv) * 100 : 0, icon: CATEGORIES.investment.find(c => c.name === k)?.icon || '📈', color: CATEGORIES.investment.find(c => c.name === k)?.barColor || 'bg-indigo-500' })).sort((a, b) => b.amount - a.amount);
 
             // History (Refeito para acumular Saldo e Patrimônio)
+            // History (Refeito para acumular Saldo e Patrimônio)
             const historyMap = {};
-            txs.forEach(t => {
+            // CORREÇÃO: Aplica o filtro de universo (Meu/Nosso Norte) igual ao Dashboard
+            txs.filter(filterByUniverse).forEach(t => {
                 const m = t.date.slice(0, 7);
-                if (!historyMap[m]) historyMap[m] = { month: m, income: 0, expense: 0, invested: 0 };
-                if (t.type === 'income') historyMap[m].income += Number(t.amount);
-                if (t.type === 'expense') historyMap[m].expense += Number(t.amount);
-                if (t.type === 'investment') historyMap[m].invested += Number(t.amount);
-                // Acertos: se eu paguei (expense), se recebi (income) - Simplificado para o gráfico
+                if (!historyMap[m]) historyMap[m] = { month: m, income: 0, expense: 0, investedFlow: 0, investedAsset: 0 };
+
+                // CORREÇÃO: Lógica de Acertos exclusiva (evita duplicidade com income/expense)
                 if (t.isSettlement) {
                     if (t.ownerId === profile) historyMap[m].expense += Number(t.amount);
                     else historyMap[m].income += Number(t.amount);
+                    return; // Retorna para não contar novamente abaixo
+                }
+
+                if (t.type === 'income') historyMap[m].income += Number(t.amount);
+                else if (t.type === 'expense') historyMap[m].expense += Number(t.amount);
+                else if (t.type === 'investment') {
+                    // FLUXO DE CAIXA (Saiu do meu bolso?): Entra na conta do Saldo
+                    historyMap[m].investedFlow += Number(t.amount);
+
+                    // ATIVO (É meu patrimônio?): Entra na conta do Acumulado/Net Worth
+                    // Se estou em 'Meu Norte', só conta se for privado (!isShared).
+                    // Se estou em 'Nosso Norte', só conta se for compartilhado (isShared).
+                    const belongsToScope = viewMode === 'joint' ? t.isShared : !t.isShared;
+                    if (belongsToScope) {
+                        historyMap[m].investedAsset += Number(t.amount);
+                    }
                 }
             });
 
@@ -1736,17 +1809,18 @@
             let currentRunningInvested = 0;
 
             historyArray = historyArray.map(h => {
-                // Balanço do mês = Entradas - Saídas - Investimentos
-                // OBS: Investimento sai do "Caixa" (Saldo), mas entra no "Patrimônio"
-                const monthFlow = h.income - h.expense - h.invested;
+                // Balanço do mês = Entradas - Saídas - Investimentos (Fluxo de Caixa)
+                // OBS: Investimento sai do "Caixa" (Saldo), mas entra no "Patrimônio" (apenas se for do escopo)
+                const monthFlow = h.income - h.expense - h.investedFlow;
                 currentRunningBalance += monthFlow;
-                currentRunningInvested += h.invested;
+                currentRunningInvested += h.investedAsset; // Acumula apenas ativos do escopo
 
                 return {
                     ...h,
                     runningBalance: currentRunningBalance,
-                    runningInvested: currentRunningInvested, // NOVO: Expondo acumulado de aportes
-                    runningNetWorth: currentRunningBalance + currentRunningInvested // Simplificado: Saldo + Investido
+                    runningInvested: currentRunningInvested, // NOVO: Expondo acumulado de aportes filtrado
+                    runningNetWorth: currentRunningBalance + currentRunningInvested, // Saldo + Investido (do escopo)
+                    invested: h.investedFlow // Mantém compatibilidade com gráfico de barras (mostra o desembolso)
                 };
             });
 
@@ -1763,7 +1837,7 @@
                 pendingSettlements,
                 planning, dreamsProgress, netWorth, economicExp,
                 analysis: { daily: { charts: dailyCharts, bankFlow: dailyBankFlow }, invest: { charts: investCharts, bankFlow: investBankFlow }, history: finalHistory, health: { savingsRate: inc > 0 ? ((inc - exp) / inc) * 100 : 0, burnRate: exp, coverage: exp > 0 ? (portfolioCurrentTotal / exp) : 0, freedom: exp > 0 ? (monthlyDividends / exp) * 100 : 0, investRate: inc > 0 ? (inv / inc) * 100 : 0, totalNetWorth: netWorth, totalOutflows: totalOutflows, strictScopeInv: strictScopeInv } },
-                investData: { totalInvested, totalCurrent: portfolioCurrentTotal, profit, yieldPct, byBank: investBankFlow, byType: investCatMap, dividends: monthlyDividends, portfolio: Object.values(portfolio).sort((a, b) => b.currentTotal - a.currentTotal) }
+                investData: { totalInvested, totalCurrent: portfolioCurrentTotal, previousTotal: portfolioPreviousTotal, profit, yieldPct, byBank: investBankFlow, byType: investCatMap, dividends: monthlyDividends, portfolio: Object.values(portfolio).sort((a, b) => b.currentTotal - a.currentTotal) }
             };
             // --- CORREÇÃO: ADICIONADO 'isForecast' NAS DEPENDÊNCIAS ABAIXO ---
         }, [txs, profile, viewMode, budgets, selectedMonth, dashboardMode, currentPrices, dreams, isForecast]);
@@ -2000,6 +2074,9 @@
 
             // FASE 3: Recorrência e Sonho
             setFRecurrent(tx.isRecurrent || false);
+            setFRecurrenceEndMode(tx.recurrenceEndMode || 'forever');
+            setFRecurrenceEndDate(tx.recurrenceEndDate || '');
+            setFRecurrenceCount(tx.recurrenceCount || 12);
             setFDreamId(tx.dreamId || '');
 
             setFShared(tx.isShared || false);
@@ -2039,6 +2116,9 @@
 
                 // FASE 3: Novos Campos
                 isRecurrent: fRecurrent,
+                recurrenceEndMode: fRecurrent ? fRecurrenceEndMode : null,
+                recurrenceEndDate: fRecurrent && fRecurrenceEndMode === 'date' ? fRecurrenceEndDate : null,
+                recurrenceCount: fRecurrent && fRecurrenceEndMode === 'count' ? Number(fRecurrenceCount) : null,
                 dreamId: fType === 'investment' ? fDreamId : '', // Só salva vínculo se for investimento
                 groupId: newGroupId // <--- SALVA O DNA NO BANCO
             };
@@ -2077,6 +2157,7 @@
             setEditingId(null);
             setFTitle(''); setFQty(''); setFUnitPrice(''); setFAmount(''); setIsInstallment(false); setFDate(new Date().toISOString().split('T')[0]);
             setFSubCat(''); setFRecurrent(false); setFDreamId(''); // Reset Fase 3
+            setFRecurrenceEndMode('forever'); setFRecurrenceEndDate(''); setFRecurrenceCount(12); // Reset v53
         };
 
         // FASE 3: Salvar Sonho (Atualizado com Escopo)
@@ -2580,11 +2661,25 @@
                                 {/* 3. SUB-INFORMAÇÕES (Espaçamento Reduzido ao Máximo) */}
                                 <div className="space-y-0.5 mb-0">
                                     <p className="text-sm text-slate-300 font-medium">
-                                        Mês Anterior: <span className="text-slate-400 font-normal">{hideValues ? '••••' : formatCurrency(data.previousBalance)}</span>
+                                        Mês Anterior: <span className="text-slate-400 font-normal">
+                                            {hideValues ? '••••' : formatCurrency(
+                                                dashboardMode === 'investment'
+                                                    ? data.investData.previousTotal
+                                                    : data.previousBalance
+                                            )}
+                                        </span>
                                     </p>
                                     <p className="text-sm text-slate-300 font-medium">
-                                        Mês Atual: <span className={`font-normal ${data.bal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                            {hideValues ? '••••' : formatCurrency(data.bal)}
+                                        Mês Atual: <span className={`font-normal ${(dashboardMode === 'investment'
+                                            ? (data.investData.totalCurrent - data.investData.previousTotal)
+                                            : data.bal) >= 0
+                                            ? 'text-emerald-400' : 'text-rose-400'
+                                            }`}>
+                                            {hideValues ? '••••' : formatCurrency(
+                                                dashboardMode === 'investment'
+                                                    ? (data.investData.totalCurrent - data.investData.previousTotal)
+                                                    : data.bal
+                                            )}
                                         </span>
                                     </p>
                                 </div>
@@ -2658,8 +2753,17 @@
                                         </p>
                                         {/* CENÁRIO 1: TUDO QUITADO */}
                                         {Math.abs(data.coupleBal) < 1 ? (
-                                            <div>
-                                                <p className="font-bold text-emerald-400 text-sm mb-1">Tudo quitado! 🎉</p>
+                                            <div className="relative">
+                                                <div className="flex justify-between items-start">
+                                                    <p className="font-bold text-emerald-400 text-sm mb-1">Tudo quitado! 🎉</p>
+
+                                                    {/* SELO DE PAGAMENTO (Só aparece se houve acerto no mês) */}
+                                                    {data.list.some(t => t.isSettlement) && (
+                                                        <div className="border-[3px] border-emerald-500/40 text-emerald-500 text-[10px] font-black uppercase px-3 py-1 rounded-lg -rotate-12 tracking-widest opacity-80 animate-pop select-none shadow-[0_0_15px_rgba(16,185,129,0.15)] bg-emerald-500/5 backdrop-blur-sm transform origin-center">
+                                                            Mês Quitado
+                                                        </div>
+                                                    )}
+                                                </div>
 
                                                 {/* HISTÓRICO DO MÊS (Novo Recurso) */}
                                                 {data.list.filter(t => t.isSettlement).length > 0 && (
@@ -3549,26 +3653,99 @@
                                     <datalist id="marketOptions">{uniqueMarkets.map(m => <option key={m} value={m} />)}</datalist>
                                 </div>
 
-                                {/* 6. TOGGLES (POSIÇÃO INVERTIDA AQUI) */}
+                                {/* 6. VINCULAR A SONHO (NOVO) */}
+                                {fType === 'investment' && data.dreamsProgress.length > 0 && (
+                                    <div className="relative mb-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase ml-1 block mb-1">Vincular a um Sonho</label>
+                                        <div className="relative">
+                                            <select value={fDreamId} onChange={e => setFDreamId(e.target.value)} className="w-full bg-[#020617] p-3 pl-10 rounded-xl text-white font-bold text-sm outline-none border border-slate-700 shadow-inner appearance-none">
+                                                <option value="" className="text-slate-500">Não vincular (Carteira Geral)</option>
+                                                {data.dreamsProgress.map(d => (
+                                                    <option key={d.id} value={d.id}>{d.emoji} {d.title}</option>
+                                                ))}
+                                            </select>
+                                            <Sparkles size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-yellow-500" />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 7. TOGGLES (LAYOUT OTIMIZADO - GRADE DE 2 COLUNAS) */}
+                                {/* 7. TOGGLES (LAYOUT FINAL - GRADE DE 3 COLUNAS UNIFICADA) */}
                                 <div className="grid grid-cols-3 gap-2">
-                                    {/* 1. Recorrência (Mantido) */}
-                                    <div onClick={() => { setFRecurrent(!fRecurrent); setIsInstallment(false); }} className={`p-3 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all ${fRecurrent ? 'bg-amber-500/10 border-amber-500 text-amber-500' : 'bg-[#1e293b] border-slate-700 text-slate-500'}`}>
-                                        <span className="text-xs font-bold uppercase mb-1">Recorrência</span>
-                                        {fRecurrent ? <CheckCircle size={14} /> : <span className="text-xs font-bold">Não</span>}
+                                    {/* 1. Recorrência (Agora igual aos outros) */}
+                                    <div onClick={() => { setFRecurrent(!fRecurrent); setIsInstallment(false); }}
+                                        className={`p-3 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all gap-1 ${fRecurrent ? 'bg-amber-500/10 border-amber-500 text-amber-500' : 'bg-[#1e293b] border-slate-700 text-slate-500 hover:bg-slate-800'}`}>
+                                        <div className={`p-2 rounded-full mb-1 ${fRecurrent ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                                            <RefreshCw size={18} />
+                                        </div>
+                                        <span className="text-xs font-bold uppercase">Recorrência</span>
+                                        {fRecurrent && <span className="text-[10px] bg-amber-500 text-slate-900 px-1.5 rounded-full absolute top-2 right-2 font-bold">On</span>}
                                     </div>
 
-                                    {/* 2. Divisão (TROUXEMOS PARA O MEIO) */}
-                                    <div onClick={() => setFShared(!fShared)} className={`p-3 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all ${fShared ? 'bg-pink-500/10 border-pink-500 text-pink-500' : 'bg-[#1e293b] border-slate-700 text-slate-500'}`}>
-                                        <span className="text-xs font-bold uppercase mb-1">Divisão</span>
-                                        {fShared ? <Users size={14} /> : <User size={14} />}
+                                    {/* 2. Divisão */}
+                                    <div onClick={() => setFShared(!fShared)}
+                                        className={`p-3 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all gap-1 ${fShared ? 'bg-pink-500/10 border-pink-500 text-pink-500' : 'bg-[#1e293b] border-slate-700 text-slate-500 hover:bg-slate-800'}`}>
+                                        <div className={`p-2 rounded-full mb-1 ${fShared ? 'bg-pink-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                                            {fShared ? <Users size={18} /> : <User size={18} />}
+                                        </div>
+                                        <span className="text-xs font-bold uppercase">Divisão</span>
                                     </div>
 
-                                    {/* 3. Parcelado (AGORA É O ÚLTIMO) */}
-                                    <div onClick={() => { setIsInstallment(!isInstallment); setFRecurrent(false); }} className={`p-3 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all ${isInstallment ? 'bg-blue-500/10 border-blue-500 text-blue-500' : 'bg-[#1e293b] border-slate-700 text-slate-500'}`}>
-                                        <span className="text-xs font-bold uppercase mb-1">Parcelado</span>
-                                        {isInstallment ? <span className="text-xs font-bold">{installments}x</span> : <span className="text-xs font-bold">À Vista</span>}
+                                    {/* 3. Parcelado */}
+                                    <div onClick={() => { setIsInstallment(!isInstallment); setFRecurrent(false); }}
+                                        className={`p-3 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all gap-1 ${isInstallment ? 'bg-blue-500/10 border-blue-500 text-blue-500' : 'bg-[#1e293b] border-slate-700 text-slate-500 hover:bg-slate-800'}`}>
+                                        <div className={`p-2 rounded-full mb-1 ${isInstallment ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                                            <Calendar size={18} />
+                                        </div>
+                                        <span className="text-xs font-bold uppercase">Parcelado</span>
+                                        {isInstallment && <span className="text-[10px] bg-blue-500 text-white px-1.5 rounded-full absolute top-2 right-2">{installments}x</span>}
                                     </div>
                                 </div>
+
+                                {/* OPÇÕES DE RECORRÊNCIA (Detalhado) - MOVIDO PARA FORA DO GRID */}
+                                {fRecurrent && (
+                                    <div className="bg-amber-500/10 p-4 rounded-xl border border-amber-500/30 animate-slide-up flex flex-col gap-2 mt-2">
+                                        <div className="flex gap-2 bg-slate-900/50 p-1 rounded-lg">
+                                            {['forever', 'date', 'count'].map(mode => (
+                                                <button
+                                                    key={mode}
+                                                    type="button"
+                                                    onClick={() => setFRecurrenceEndMode(mode)}
+                                                    className={`flex-1 py-1.5 rounded text-[10px] font-bold uppercase transition-colors ${fRecurrenceEndMode === mode ? 'bg-amber-500 text-slate-900' : 'text-slate-400 hover:text-slate-200'}`}
+                                                >
+                                                    {mode === 'forever' ? 'Sempre' : mode === 'date' ? 'Até Data' : 'X Vezes'}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {fRecurrenceEndMode === 'date' && (
+                                            <div className="flex items-center gap-2 animate-fade-in">
+                                                <label className="text-xs font-bold text-amber-500/70 uppercase whitespace-nowrap">Até:</label>
+                                                <input
+                                                    type="month"
+                                                    value={fRecurrenceEndDate}
+                                                    onChange={e => setFRecurrenceEndDate(e.target.value)}
+                                                    className="w-full bg-slate-900 p-2 rounded-lg text-white font-bold text-xs border border-amber-500/30 outline-none"
+                                                />
+                                            </div>
+                                        )}
+
+                                        {fRecurrenceEndMode === 'count' && (
+                                            <div className="flex items-center gap-2 animate-fade-in">
+                                                <label className="text-xs font-bold text-amber-500/70 uppercase whitespace-nowrap">Repetir:</label>
+                                                <input
+                                                    type="number"
+                                                    min="2"
+                                                    max="60"
+                                                    value={fRecurrenceCount}
+                                                    onChange={e => setFRecurrenceCount(e.target.value)}
+                                                    className="flex-1 bg-slate-900 p-2 rounded-lg text-white font-bold text-xs border border-amber-500/30 outline-none text-center"
+                                                />
+                                                <span className="text-xs font-bold text-amber-500/70">meses</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* DETALHES DO PARCELAMENTO (CÁLCULOS ADICIONADOS) */}
                                 {isInstallment && (
