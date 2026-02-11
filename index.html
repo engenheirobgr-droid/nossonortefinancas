@@ -547,6 +547,14 @@
                             ? 'shadow-[0_0_15px_rgba(79,70,229,0.4)]'
                             : (mode === 'statement' ? 'shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'shadow-[0_0_15px_rgba(37,99,235,0.4)]'); // Blue-600
 
+                        // LÓGICA DE POSICIONAMENTO DO TOOLTIP (CORREÇÃO DE BORDAS)
+                        const isFirst = i === 0;
+                        const isLast = i === data.length - 1;
+
+                        // Se for o primeiro, alinha à esquerda (left-0). Se for o último, à direita (right-0). Se não, centraliza.
+                        const tooltipAlignment = isFirst ? 'left-0 translate-x-[-10%]' : isLast ? 'right-0 translate-x-[10%]' : 'left-1/2 -translate-x-1/2';
+                        // Ajuste fino: Se for first/last, a setinha precisa acompanhar a barra, mas o tooltip o container.
+
                         return (
                             <div
                                 key={i}
@@ -575,47 +583,50 @@
 
                                 {/* TOOLTIP DETALHADO (FLUTUANTE) */}
                                 {isHovered && (
-                                    <div className="absolute bottom-[140%] left-1/2 -translate-x-1/2 bg-slate-900/95 border border-white/10 p-3 rounded-xl shadow-2xl z-50 w-48 backdrop-blur-md animate-fade-in pointer-events-none">
-                                        <div className="text-center border-b border-white/10 pb-1 mb-2">
-                                            <p className="text-xs font-bold text-slate-400 uppercase">{d.month}</p>
+                                    <>
+                                        {/* CONTAINER DO CONTEÚDO (POSICIONADO RELATIVO AO CONTAINER PAI) */}
+                                        <div className={`absolute bottom-[140%] ${tooltipAlignment} bg-slate-900/95 border border-white/10 p-3 rounded-xl shadow-2xl z-50 w-48 backdrop-blur-md animate-fade-in pointer-events-none`}>
+                                            <div className="text-center border-b border-white/10 pb-1 mb-2">
+                                                <p className="text-xs font-bold text-slate-400 uppercase">{d.month}</p>
+                                            </div>
+
+                                            {mode === 'statement' ? (
+                                                <div className="space-y-1">
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="text-slate-400">Saldo Final:</span>
+                                                        <span className={`font-bold ${d.runningBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(d.runningBalance)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-[10px]">
+                                                        <span className="text-slate-500">Entradas:</span>
+                                                        <span className="text-slate-300">+{formatCurrency(d.income)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-[10px]">
+                                                        <span className="text-slate-500">Saídas:</span>
+                                                        <span className="text-rose-400">-{formatCurrency(d.expense)}</span>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-1">
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="text-slate-400">Patrimônio:</span>
+                                                        <span className={`font-bold ${d.runningNetWorth >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(d.runningNetWorth)}</span>
+                                                    </div>
+                                                    {/* NOVO: Investimento Acumulado - Volta pro Slate para seguir logica do Income */}
+                                                    <div className="flex justify-between items-center text-[10px]">
+                                                        <span className="text-slate-500">Inv. Acumulado:</span>
+                                                        <span className="text-slate-300">{formatCurrency(d.runningInvested)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-[10px]">
+                                                        <span className="text-slate-500">Aporte Mês:</span>
+                                                        <span className="text-slate-300">+{formatCurrency(d.invested)}</span>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {mode === 'statement' ? (
-                                            <div className="space-y-1">
-                                                <div className="flex justify-between items-center text-xs">
-                                                    <span className="text-slate-400">Saldo Final:</span>
-                                                    <span className={`font-bold ${d.runningBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(d.runningBalance)}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center text-[10px]">
-                                                    <span className="text-slate-500">Entradas:</span>
-                                                    <span className="text-slate-300">+{formatCurrency(d.income)}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center text-[10px]">
-                                                    <span className="text-slate-500">Saídas:</span>
-                                                    <span className="text-rose-400">-{formatCurrency(d.expense)}</span>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-1">
-                                                <div className="flex justify-between items-center text-xs">
-                                                    <span className="text-slate-400">Patrimônio:</span>
-                                                    <span className={`font-bold ${d.runningNetWorth >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(d.runningNetWorth)}</span>
-                                                </div>
-                                                {/* NOVO: Investimento Acumulado - Volta pro Slate para seguir logica do Income */}
-                                                <div className="flex justify-between items-center text-[10px]">
-                                                    <span className="text-slate-500">Inv. Acumulado:</span>
-                                                    <span className="text-slate-300">{formatCurrency(d.runningInvested)}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center text-[10px]">
-                                                    <span className="text-slate-500">Aporte Mês:</span>
-                                                    <span className="text-slate-300">+{formatCurrency(d.invested)}</span>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* SETINHA DO TOOLTIP */}
-                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-slate-900/95"></div>
-                                    </div>
+                                        {/* SETINHA (SEMPRE CENTRALIZADA NA BARRA, INDEPENDENTE DO TOOLTIP) */}
+                                        <div className="absolute bottom-[130%] left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-slate-900/95 z-50 pointer-events-none"></div>
+                                    </>
                                 )}
                             </div>
                         );
