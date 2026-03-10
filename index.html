@@ -613,6 +613,12 @@
                                                         <span className="text-slate-500">Saídas:</span>
                                                         <span className="text-rose-400">-{formatCurrency(d.expense + (d.invested || 0))}</span>
                                                     </div>
+                                                    {d.resg > 0 && (
+                                                        <div className="flex justify-between items-center text-[10px]">
+                                                            <span className="text-slate-500">Resgates:</span>
+                                                            <span className="text-emerald-400">+{formatCurrency(d.resg)}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <div className="space-y-1">
@@ -1226,6 +1232,7 @@
         const [budgetModal, setBudgetModal] = useState(false);
         const [settingsModal, setSettingsModal] = useState(false);
         const [isProcessingAI, setIsProcessingAI] = useState(false);
+        const [selectedAssetHistory, setSelectedAssetHistory] = useState(null); // Estado gerencia o Modal de Histórico de Ativos
 
         // Novos estados para Revisão, Seleção e Expansão
         const [reviewData, setReviewData] = useState([]);
@@ -1385,13 +1392,19 @@
             if (isFutureView) {
                 // ... (Lógica de projeção continua igual aqui ...)
                 const recurrenceMap = new Map();
-                txs.forEach(t => { if (t.isRecurrent && !t.isSettlement) recurrenceMap.set(t.title.toLowerCase().trim(), t); });
+                txs.forEach(t => { if (t.isRecurrent && !t.isSettlement) recurrenceMap.set(t.groupId || t.id, t); });
+
+                // PERFORMANCE FIX: Substituição do .some loop O(N*M) por um Set O(1) de cache para busca rápida
+                const existingRecurrencesThisMonth = new Set();
+                txs.forEach(t => {
+                    if (t.date.startsWith(selectedMonth)) {
+                        if (t.groupId) existingRecurrencesThisMonth.add(t.groupId);
+                        existingRecurrencesThisMonth.add(t.title.toLowerCase().trim());
+                    }
+                });
 
                 recurrenceMap.forEach(template => {
-                    const existsInMonth = txs.some(t =>
-                        t.date.startsWith(selectedMonth) &&
-                        (t.title.toLowerCase().trim() === template.title.toLowerCase().trim() || (template.groupId && t.groupId === template.groupId))
-                    );
+                    const existsInMonth = existingRecurrencesThisMonth.has(template.groupId || template.id) || existingRecurrencesThisMonth.has(template.title.toLowerCase().trim());
                     if (!existsInMonth) {
                         // --- LÓGICA DE FIM DA RECORRÊNCIA (NOVO) ---
                         let shouldProject = true;
@@ -1406,8 +1419,11 @@
                         }
 
                         if (shouldProject) {
-                            const day = template.date.split('-')[2] || '05';
-                            fullList.push({ ...template, id: 'ghost_' + template.id, date: `${selectedMonth}-${day}`, isProjection: true, displayTitle: template.title + ' (Previsto)' });
+                            const dayStr = template.date.split('-')[2] || '05';
+                            const [year, month] = selectedMonth.split('-').map(Number);
+                            const daysInMonth = new Date(year, month, 0).getDate();
+                            const validDay = Math.min(Number(dayStr), daysInMonth).toString().padStart(2, '0');
+                            fullList.push({ ...template, id: 'ghost_' + template.id, date: `${selectedMonth}-${validDay}`, isProjection: true, displayTitle: template.title + ' (Previsto)' });
                         }
                     }
                 });
@@ -1618,8 +1634,8 @@
 
             // O Resgate devolve dinheiro para o Saldo Disponível do Caixa
             const bal = inc - exp - inv + resg;
-            // CORREÇÃO 1: Total de Saídas para o Gráfico (Despesa + Investimento)
-            const totalOutflows = exp + inv;
+            // CORREÇÃO 1: Total de Saídas (Custo Líquido = Despesa + Investimento - Resgates)
+            const totalOutflows = exp + inv - resg;
 
 
             // --- 4. CÁLCULO DO ACERTO CASAL (CORREÇÃO v60: Regime de Caixa Estrito) ---
@@ -1658,7 +1674,7 @@
                     // CORREÇÃO: Lógica de Acerto depende se é Entrada ou Saída
                     // Se for DESPESA (ou Compra de Investimento), quem pagou tem CRÉDITO (Paguei pelos dois).
                     // Se for RECEITA (ou Venda de Investimento), quem recebeu tem DÉBITO (Recebi pelos dois, devo a metade).
-                    const isExpenseLike = t.type === 'expense' || (t.type === 'investment' && Number(t.quantity || 0) >= 0);
+                    const isExpenseLike = t.type === 'expense' || (t.type === 'investment' && (Number(t.quantity || 0) >= 0));
 
                     // 1. Soma no Total Global (Sempre - inclui futuro)
                     if (isExpenseLike) {
@@ -1810,17 +1826,18 @@
                     } else {
                         // VENDA: Reduz Qty e Custo Proporcional (Mantém PM)
                         const sellQty = Math.abs(txQty);
+                        const qtyToDeductOuter = Math.min(sellQty, tempPortfolio[assetName].qty);
                         if (isFixed) {
-                            tempPortfolio[assetName].qty -= sellQty;
+                            tempPortfolio[assetName].qty -= qtyToDeductOuter;
                             // CUSTO BLINDADO: Não subtrai txAmt do totalCost para manter histórico bruto
                             tempPortfolio[assetName].pureBalance -= txAmt;
                             if (tempPortfolio[assetName].pureBalance < 0) tempPortfolio[assetName].pureBalance = 0;
                         } else {
                             if (tempPortfolio[assetName].qty > 0) {
                                 const currentPM = tempPortfolio[assetName].totalCost / tempPortfolio[assetName].qty;
-                                tempPortfolio[assetName].qty -= sellQty;
-                                tempPortfolio[assetName].totalCost -= (sellQty * currentPM);
-                                tempPortfolio[assetName].pureBalance -= (sellQty * currentPM);
+                                tempPortfolio[assetName].qty -= qtyToDeductOuter;
+                                tempPortfolio[assetName].totalCost -= (qtyToDeductOuter * currentPM);
+                                tempPortfolio[assetName].pureBalance -= (qtyToDeductOuter * currentPM);
                             } else {
                                 // Aporte original foi sem cotas, deduz direto do valor financeiro
                                 tempPortfolio[assetName].totalCost -= txAmt;
@@ -1894,18 +1911,19 @@
                     portfolio[assetName].pureBalance += txAmt;
                 } else {
                     const sellQty = Math.abs(txQty);
+                    const qtyToDeductOuter = Math.min(sellQty, portfolio[assetName].qty);
                     const isFixed = ['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(t.category);
                     if (isFixed) {
-                        portfolio[assetName].qty -= sellQty;
+                        portfolio[assetName].qty -= qtyToDeductOuter;
                         // CUSTO BLINDADO: Mantém o Aporte intocável na Renda Fixa
                         portfolio[assetName].pureBalance -= txAmt;
                         if (portfolio[assetName].pureBalance < 0) portfolio[assetName].pureBalance = 0;
                     } else {
                         if (portfolio[assetName].qty > 0) {
                             const currentPM = portfolio[assetName].totalCost / portfolio[assetName].qty;
-                            portfolio[assetName].qty -= sellQty;
-                            portfolio[assetName].totalCost -= (sellQty * currentPM);
-                            portfolio[assetName].pureBalance -= (sellQty * currentPM);
+                            portfolio[assetName].qty -= qtyToDeductOuter;
+                            portfolio[assetName].totalCost -= (qtyToDeductOuter * currentPM);
+                            portfolio[assetName].pureBalance -= (qtyToDeductOuter * currentPM);
                         } else {
                             portfolio[assetName].totalCost -= txAmt;
                             portfolio[assetName].pureBalance -= txAmt;
@@ -2138,7 +2156,7 @@
             historyTxs.forEach(t => {
                 const m = t.date.slice(0, 7);
                 if (!historyMap[m]) historyMap[m] = {
-                    month: m, income: 0, expense: 0,
+                    month: m, income: 0, expense: 0, resg: 0,
                     investedFlow: 0,  // Fluxo de caixa (compras - vendas)
                     investedAsset: 0, // Saldo de ativos no escopo (strict)
                     investedGross: 0  // Apenas aportes brutos no escopo (sem descontar resgates)
@@ -2160,8 +2178,8 @@
 
                     // CORREÇÃO: Alinhar com a lógica do Dashboard (appfinancasnossonorte_v53.html ~linha 1580)
                     if (isRedemption) {
-                        // Resgate: entra como Receita no fluxo de caixa real
-                        historyMap[m].income += val;
+                        // Segregar resgate para não inflar artificialmente a receita
+                        historyMap[m].resg += val;
                     } else {
                         // Aporte: sai como despesa de investimento
                         historyMap[m].investedFlow += val;
@@ -2257,7 +2275,7 @@
                 selectedEntry.runningBalance = accumulatedCash;
                 selectedEntry.runningPatrimony = portfolioCurrentTotal;
                 selectedEntry.runningNetWorth = accumulatedCash + portfolioCurrentTotal;
-                selectedEntry.invested = strictScopeInv;
+                selectedEntry.invested = dashboardMode === 'investment' ? strictScopeInv : inv;
                 selectedEntry.income = inc;
                 selectedEntry.expense = exp;
             }
@@ -2291,8 +2309,6 @@
                 Tipo: t.type === 'expense' ? 'Despesa' : t.type === 'income' ? 'Receita' : 'Investimento',
                 Categoria: t.category,
                 Banco: t.bank ? (BANKS.find(b => b.id === t.bank)?.name || t.bank) : '',
-                Local: t.market || '',
-                Compartilhado: t.isShared ? 'Sim' : 'Não',
                 Local: t.market || '',
                 Compartilhado: t.isShared ? 'Sim' : 'Não',
                 QuemPagou: (() => {
@@ -2329,18 +2345,25 @@
                 const result = await model.generateContent(contentParts);
                 return result.response.text();
             };
-            try {
-                const text = await tryModel("gemini-2.5-flash");
-                return JSON.parse(text.replace(/```json|```/g, '').trim());
-            } catch (e) {
+
+            // Fallback robusto alinhado às novas versões do Gemini (V2.5, V3 e V3.1)
+            const modelsToTry = [
+                "gemini-2.5-flash",
+                "gemini-2.5-pro",
+            ];
+            let lastError = null;
+
+            for (const modelName of modelsToTry) {
                 try {
-                    const text = await tryModel("gemini-1.5-flash");
+                    const text = await tryModel(modelName);
                     return JSON.parse(text.replace(/```json|```/g, '').trim());
-                } catch (finalError) {
-                    alert("Erro na IA: " + finalError.message);
-                    return null;
+                } catch (e) {
+                    console.warn(`[IA] Falha ao tentar o modelo ${modelName}:`, e.message);
+                    lastError = e;
                 }
             }
+            alert("Erro na IA: Nenhum modelo disponível funcionou. Detalhe: " + (lastError?.message || "Erro desconhecido"));
+            return null;
         };
 
         const handleUniversalUpload = async (e) => {
@@ -2360,29 +2383,31 @@
 
             const promptBase = `
                     ATENÇÃO: Você é um assistente financeiro contábil experiente.
-                    Sua missão: Ler este arquivo e encontrar despesas/receitas REAIS relativas ao mês de ${currentMonthName} de ${selYear}.
+                    Sua missão: Ler este arquivo e extrair despesas/receitas relativas a faturas, extratos ou recibos.
                     
                     REGRAS CRÍTICAS:
-                    1. Se houver detalhamento de itens (ex: lista de produtos no mercado), extraia-os no campo 'items'. 
+                    1. EXTRAÇÃO DE VALORES (MUITO IMPORTANTE): Os valores podem aparecer de várias formas: com ou sem "R$" (ex: "R$ 1.234,50", "1234.50" ou "1,234.50"), e usando ponto ou vírgula como decimal. Você DEVE ser inteligente para limpar a string (remover "R$" e caracteres de formatação de milhar), padronizar o separador decimal como PONTO, e sempre converter para número final (float puro, ex: 1234.50 ou -3565.29). NUNCA retorne null se o valor existir na tela/tabela.
+                    2. Se houver detalhamento de itens (ex: lista de produtos no mercado), extraia-os no campo 'items'. 
                        IMPORTANTE: Tente identificar a QUANTIDADE (qty), PREÇO UNITÁRIO (unitPrice) e UNIDADE (unit - ex: kg, un, l).
                        Formato: items: [{name: 'Queijo', value: 20.00, qty: 0.5, unitPrice: 40.00, unit: 'kg'}, ...].
-                    2. Se for uma PLANILHA MATRIZ (meses nas colunas): IGNORE colunas de outros meses. Foque APENAS na coluna referente a ${currentMonthName}.
-                    3. IGNORE linhas de "Total", "Saldo", "Cartão de Crédito" (se for o pagamento da fatura, ok, mas evite duplicidade).
-                    4. Tente identificar o nome do ESTABELECIMENTO (Loja, Mercado, etc) e coloque no campo 'market'.
-                    5. Se for possível identificar o BANCO/CONTA de origem, coloque no campo 'bank' (ex: Nubank, Itaú).
+                    3. Se for uma PLANILHA MATRIZ (meses nas colunas): IGNORE colunas de outros meses. Foque APENAS na coluna referente a ${currentMonthName}.
+                    4. IGNORE linhas de "Total", "Saldo", "Pagamentos Validos" (se for o pagamento da fatura, ok, mas evite duplicidade).
+                    5. Tente identificar o nome do ESTABELECIMENTO (Loja, Mercado, etc) e coloque no campo 'market' ou no 'title'.
+                    6. Se for possível identificar o BANCO/CONTA de origem, coloque no campo 'bank' (ex: Nubank, Itaú, XP).
+                    7. Se o arquivo relatar "Parcela" (ex: "5 de 6"), mantenha-o no título, se relevante.
                     
                     SAÍDA OBRIGATÓRIA (JSON puro sem markdown):
                     {
                         "transactions": [
                             { 
                                 "date": "YYYY-MM-DD", 
-                                "title": "Nome da despesa", 
+                                "title": "Nome da despesa (e parcela se tiver)", 
                                 "amount": 0.00, 
                                 "type": "expense", 
                                 "category": "Alimentação",
                                 "market": "Nome da Loja",
                                 "bank": "Nome do Banco",
-                                "items": [ {"name": "Item A", "value": 10.00, "qty": 1, "unitPrice": 10.00, "unit": "un"} ] 
+                                "items": [] 
                             }
                         ]
                     }
@@ -2952,7 +2977,6 @@
             if (val === 0) return;
 
             // 1. Define quem é você na transação
-            // const isPayer = currentBal < 0; // <-- REMOVIDO: Era a lógica antiga incorreta
 
             // 2. Define Tipo e Título
             const type = isPayer ? 'expense' : 'income';
@@ -3278,15 +3302,106 @@
 
                 {/* MODAL REVISÃO - MANTIDO (Conteúdo oculto para brevidade, mas ele existe no seu código) */}
                 {isReviewOpen && (
-                    <div className="fixed inset-0 z-[70] bg-slate-900/95 backdrop-blur-sm flex flex-col animate-fade-in">
-                        <div className="bg-white rounded-t-3xl mt-10 flex-1 flex flex-col overflow-hidden">
-                            <div className="p-6 border-b flex justify-between items-center">
-                                <h3 className="font-bold text-xl flex gap-2"><CheckSquare className="text-indigo-600" /> Revisar Importação</h3>
-                                <button onClick={() => { setIsReviewOpen(false); setReviewData([]); }} className="bg-gray-100 p-2 rounded-full"><X size={20} /></button>
+                    <div className="fixed inset-0 z-[70] bg-slate-900/95 backdrop-blur-sm flex flex-col animate-fade-in p-2 md:p-6">
+                        <div className="glass-card mt-10 rounded-[2rem] flex-1 flex flex-col overflow-hidden border border-white/10 shadow-2xl max-w-2xl mx-auto w-full">
+                            <div className="p-6 border-b border-white/10 flex justify-between items-center bg-slate-800/80">
+                                <h3 className="font-bold text-xl flex gap-2 text-white"><CheckSquare className="text-emerald-400" /> Revisar Importação</h3>
+                                <button onClick={() => { setIsReviewOpen(false); setReviewData([]); }} className="bg-white/10 p-2 rounded-full text-white hover:bg-white/20 transition-colors"><X size={20} /></button>
                             </div>
-                            {/* ... (MANTENHA O RESTO DO MODAL IGUAL AO ORIGINAL AQUI) ... */}
-                            {/* Para facilitar: Não delete o código do modal isReviewOpen, apenas pule ele na substituição se preferir, ou copie ele todo de volta */}
-                            {/* Vou assumir que você manteve o modal isReviewOpen inalterado acima desta troca */}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-transparent scrollbar-hide">
+                                {reviewData.map((item, index) => (
+                                    <div key={index} className="bg-slate-800/60 p-5 rounded-2xl shadow-sm border border-white/10 flex flex-col gap-4">
+                                        <div className="flex justify-between items-start gap-4">
+                                            <input
+                                                className="font-bold text-lg text-white bg-transparent border-b border-dashed border-white/20 focus:border-emerald-500 outline-none w-full"
+                                                value={item.title}
+                                                onChange={(e) => {
+                                                    const newData = [...reviewData];
+                                                    newData[index].title = e.target.value;
+                                                    setReviewData(newData);
+                                                }}
+                                            />
+                                            <button onClick={() => {
+                                                const newData = reviewData.filter((_, i) => i !== index);
+                                                setReviewData(newData);
+                                            }} className="text-rose-400 hover:text-rose-300 p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                                                <Trash2 size={20} />
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] uppercase text-slate-400 font-bold ml-1 mb-1">Valor do Item</span>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    className="p-3 bg-slate-900/80 rounded-xl text-white font-bold text-lg border border-white/10 focus:border-emerald-500 outline-none w-full"
+                                                    value={item.amount !== undefined ? item.amount : ''}
+                                                    onChange={(e) => {
+                                                        const newData = [...reviewData];
+                                                        newData[index].amount = e.target.value === '' ? '' : Number(e.target.value);
+                                                        setReviewData(newData);
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] uppercase text-slate-400 font-bold ml-1 mb-1">Data</span>
+                                                <input
+                                                    type="date"
+                                                    className="p-3 bg-slate-900/80 rounded-xl text-white text-sm border border-white/10 focus:border-emerald-500 outline-none w-full"
+                                                    value={item.date}
+                                                    onChange={(e) => {
+                                                        const newData = [...reviewData];
+                                                        newData[index].date = e.target.value;
+                                                        setReviewData(newData);
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] uppercase text-slate-400 font-bold ml-1 mb-1">Responsável</span>
+                                                <select
+                                                    className="p-3 bg-slate-900/80 rounded-xl text-white text-sm border border-white/10 focus:border-emerald-500 outline-none w-full [&>option]:bg-slate-800"
+                                                    value={item.ownerId}
+                                                    onChange={(e) => {
+                                                        const newData = [...reviewData];
+                                                        newData[index].ownerId = e.target.value;
+                                                        setReviewData(newData);
+                                                    }}
+                                                >
+                                                    <option value="bruno">Bruno</option>
+                                                    <option value="maiara">Maiara</option>
+                                                    <option value="joint">Casal</option>
+                                                </select>
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] uppercase text-slate-400 font-bold ml-1 mb-1">Categoria</span>
+                                                <select
+                                                    className="p-3 bg-slate-900/80 rounded-xl text-white text-sm border border-white/10 focus:border-emerald-500 outline-none w-full [&>option]:bg-slate-800"
+                                                    value={item.category}
+                                                    onChange={(e) => {
+                                                        const newData = [...reviewData];
+                                                        newData[index].category = e.target.value;
+                                                        setReviewData(newData);
+                                                    }}
+                                                >
+                                                    <option value="">Categoria...</option>
+                                                    {CATEGORIES[item.type === 'income' ? 'income' : 'expense']?.map(c => (
+                                                        <option key={c.id} value={c.name}>{c.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {reviewData.length === 0 && (
+                                    <div className="text-center text-slate-400 mt-10">
+                                        Nenhum item para revisar.
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-6 bg-slate-800/90 border-t border-white/10 flex gap-4 safe-pb relative z-10">
+                                <button onClick={() => { setIsReviewOpen(false); setReviewData([]); }} className="flex-1 py-4 bg-white/10 text-white font-bold rounded-2xl active:scale-95 transition-all hover:bg-white/20 border border-white/10">Cancelar</button>
+                                <button onClick={confirmImport} disabled={reviewData.length === 0} className="flex-1 py-4 bg-emerald-600 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold rounded-2xl active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:brightness-110">Importar {reviewData.length} itens</button>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -3834,10 +3949,12 @@
 
                                         {(() => {
                                             // Agrupamento Semanal Direto (Isolado da Lógica Principal)
+                                            const [year, month] = selectedMonth.split('-').map(Number);
+                                            const daysInMonthLocal = new Date(year, month, 0).getDate();
                                             const weeks = [1, 2, 3, 4];
                                             const weekData = weeks.map(w => {
                                                 const startDay = (w - 1) * 7 + 1;
-                                                const endDay = w === 4 ? 31 : w * 7;
+                                                const endDay = w === 4 ? daysInMonthLocal : w * 7;
                                                 const txsInWeek = data.list.filter(t => {
                                                     const day = parseInt(t.date.split('-')[2]);
                                                     return day >= startDay && day <= endDay;
@@ -3847,7 +3964,8 @@
                                                     label: `Sem ${w}`,
                                                     exp: txsInWeek.filter(t => t.type === 'expense').reduce((acc, t) => acc + Number(t.amount), 0),
                                                     inc: txsInWeek.filter(t => t.type === 'income').reduce((acc, t) => acc + Number(t.amount), 0),
-                                                    inv: txsInWeek.filter(t => t.type === 'investment').reduce((acc, t) => acc + Number(t.amount), 0),
+                                                    inv: txsInWeek.filter(t => t.type === 'investment' && Number(t.quantity || 0) >= 0).reduce((acc, t) => acc + Number(t.amount), 0),
+                                                    resg: txsInWeek.filter(t => t.type === 'investment' && Number(t.quantity || 0) < 0).reduce((acc, t) => acc + Number(t.amount), 0),
                                                 };
                                             });
                                             const maxVal = Math.max(...weekData.map(d => Math.max(d.exp, d.inc, d.inv)), 1);
@@ -3952,32 +4070,39 @@
                                 </div>
                                 <div className="space-y-3">
                                     {data.investData.portfolio.map((asset, i) => {
-                                        const assetProfit = asset.currentTotal - asset.totalCost;
-                                        const assetYield = asset.totalCost > 0 ? (assetProfit / asset.totalCost) * 100 : 0;
+                                        // CORREÇÃO: Usa pureBalance em Renda Fixa para não causar Falsa Rentabilidade Negativa
+                                        const isRF = ['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(asset.category);
+                                        const baseCalc = isRF ? asset.pureBalance : asset.totalCost;
+                                        const assetProfit = asset.currentTotal - baseCalc;
+                                        const assetYield = baseCalc > 0 ? (assetProfit / baseCalc) * 100 : 0;
 
                                         return (
-                                            <div key={i} className="flex justify-between items-center border-b border-white/5 pb-2 last:border-0 last:pb-0">
+                                            <div 
+                                                key={i} 
+                                                className="flex justify-between items-center border-b border-white/5 pb-2 last:border-0 last:pb-0 cursor-pointer hover:bg-white/5 transition-colors p-2 -mx-2 rounded-lg"
+                                                onClick={() => setSelectedAssetHistory(asset.name)}
+                                            >
                                                 <div>
                                                     <p className="font-bold text-sm text-slate-200 flex items-center gap-2">
                                                         {asset.name}
                                                         {(asset.qty > 0 || (['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(asset.category) && asset.pureBalance > 0)) && (
                                                             <div className="flex bg-slate-800 rounded-lg border border-white/5 overflow-hidden">
-                                                                <button onClick={() => handleQuickInvest(asset.name, false)} className="px-2 py-0.5 hover:bg-indigo-500 hover:text-white transition-colors text-slate-400 text-xs flex items-center justify-center border-r border-white/5" title="Aportar +"><Plus size={10} /></button>
-                                                                <button onClick={() => handleQuickInvest(asset.name, true)} className="px-2 py-0.5 hover:bg-rose-500 hover:text-white transition-colors text-slate-400 text-xs flex items-center justify-center border-r border-white/5" title="Resgatar -"><Minus size={10} /></button>
-                                                                <button onClick={() => handleQuickDividend(asset.name)} className="px-2 py-0.5 hover:bg-emerald-500 hover:text-white transition-colors text-slate-400 text-xs flex items-center justify-center" title="Lançar Rendimento/Dividendo"><Banknote size={10} /></button>
+                                                                <button onClick={(e) => { e.stopPropagation(); handleQuickInvest(asset.name, false); }} className="px-2 py-0.5 hover:bg-indigo-500 hover:text-white transition-colors text-slate-400 text-xs flex items-center justify-center border-r border-white/5" title="Aportar +"><Plus size={10} /></button>
+                                                                <button onClick={(e) => { e.stopPropagation(); handleQuickInvest(asset.name, true); }} className="px-2 py-0.5 hover:bg-rose-500 hover:text-white transition-colors text-slate-400 text-xs flex items-center justify-center border-r border-white/5" title="Resgatar -"><Minus size={10} /></button>
+                                                                <button onClick={(e) => { e.stopPropagation(); handleQuickDividend(asset.name); }} className="px-2 py-0.5 hover:bg-emerald-500 hover:text-white transition-colors text-slate-400 text-xs flex items-center justify-center" title="Lançar Rendimento/Dividendo"><Banknote size={10} /></button>
                                                             </div>
                                                         )}
                                                     </p>
                                                     <p className="text-xs text-slate-400">
                                                         {['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(asset.category)
-                                                            ? `Valor Investido: ${formatCurrency(asset.totalCost)}`
+                                                            ? `Custo Líquido: ${formatCurrency(asset.pureBalance)}`
                                                             : ((asset.qty > 0 || asset.totalCost > 0) ? `${asset.qty} cotas • PM ${formatCurrency(asset.avgPrice)}` : 'Saldo Financeiro')
                                                         }
                                                     </p>
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="font-bold text-sm text-slate-200">{formatCurrency(asset.currentTotal)}</p>
-                                                    {asset.qty > 0 && (
+                                                    {(asset.qty > 0 || isRF) && (
                                                         <div className="flex flex-col items-end">
                                                             {/* Rentabilidade Capital */}
                                                             <span className={`text-xs font-bold ${assetProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -3986,7 +4111,7 @@
                                                             {/* Rentabilidade Total (Se tiver dividendos) */}
                                                             {(asset.dividends || 0) > 0 && (
                                                                 <span className={`text-[10px] font-bold ${assetProfit + asset.dividends >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
-                                                                    Total: {((assetProfit + asset.dividends) / asset.totalCost * 100).toFixed(1)}% <span className="opacity-70">({formatCurrency(assetProfit + asset.dividends)})</span>
+                                                                    Total: {((assetProfit + asset.dividends) / baseCalc * 100).toFixed(1)}% <span className="opacity-70">({formatCurrency(assetProfit + asset.dividends)})</span>
                                                                 </span>
                                                             )}
                                                         </div>
@@ -4879,11 +5004,15 @@
                                         const priceKey = isFixed ? `${asset.name}@@${viewMode}` : asset.name;
 
                                         return (
-                                            <div key={asset.name} className="flex gap-3 items-center justify-between">
+                                            <div 
+                                                key={asset.name} 
+                                                className="flex gap-3 items-center justify-between cursor-pointer hover:bg-white/5 p-2 -mx-2 rounded-lg transition-colors border-b border-white/5 last:border-0"
+                                                onClick={() => setSelectedAssetHistory(asset.name)}
+                                            >
                                                 <div className="flex-1">
                                                     <p className="text-sm font-bold text-slate-200">{asset.name}</p>
                                                     <p className="text-xs text-slate-400">
-                                                        {isFixed ? `Valor Investido: ${formatCurrency(asset.totalCost)}` : `PM: ${formatCurrency(asset.avgPrice)}`}
+                                                        {isFixed ? `Custo Líquido: ${formatCurrency(asset.pureBalance)}` : `PM: ${formatCurrency(asset.avgPrice)}`}
                                                     </p>
                                                 </div>
                                                 <div className="relative w-36">
@@ -4957,6 +5086,92 @@
                                         <button onClick={() => deleteDream(editingDreamId)} className="w-full bg-transparent border border-rose-500/30 text-rose-400 py-3 rounded-xl font-bold hover:bg-rose-500/10 transition-colors flex items-center justify-center gap-2">
                                             <Trash2 size={16} /> Excluir Sonho
                                         </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )
+                }
+
+                {/* MODAL HISTÓRICO DE ATIVO (Extrato) */}
+                {
+                    selectedAssetHistory && (
+                        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+                            <div className="bg-slate-800 w-full max-w-md rounded-[2rem] p-6 shadow-2xl border border-white/10 flex flex-col max-h-[85vh] animate-slide-up">
+                                <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/10 shrink-0">
+                                    <div>
+                                        <h3 className="font-bold text-xl text-white flex items-center gap-2">
+                                            <PieChart className="text-indigo-400" />
+                                            {selectedAssetHistory}
+                                        </h3>
+                                        <p className="text-xs text-slate-400 mt-1">Histórico de Movimentações</p>
+                                    </div>
+                                    <button onClick={() => setSelectedAssetHistory(null)} className="bg-white/5 hover:bg-white/10 p-2 rounded-full text-white transition-colors">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                <div className="overflow-y-auto pr-2 space-y-4 custom-scrollbar flex-1 relative">
+                                    {/* Linha vertical da Timeline */}
+                                    <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-white/5 rounded-full z-0"></div>
+
+                                    {txs
+                                        .filter(t => t.market === selectedAssetHistory)
+                                        .sort((a, b) => new Date(b.date) - new Date(a.date)) // Mais recentes primeiro
+                                        .map(t => {
+                                            const isResgate = Number(t.quantity) < 0 || (t.type === 'investment' && t.category === 'Resgate de Investimento');
+                                            const isRendimento = t.category === 'Rendimentos/Dividendos';
+                                            const isAporte = t.type === 'investment' && !isResgate && !isRendimento;
+
+                                            let icon = <Plus size={14} className="text-indigo-400" />;
+                                            let iconBg = 'bg-indigo-500/10 border-indigo-500/30';
+                                            let title = 'Aporte';
+                                            let valColor = 'text-indigo-400';
+
+                                            if (isResgate) {
+                                                icon = <Minus size={14} className="text-rose-400" />;
+                                                iconBg = 'bg-rose-500/10 border-rose-500/30';
+                                                title = 'Resgate';
+                                                valColor = 'text-rose-400';
+                                            } else if (isRendimento) {
+                                                icon = <Banknote size={14} className="text-emerald-400" />;
+                                                iconBg = 'bg-emerald-500/10 border-emerald-500/30';
+                                                title = 'Rendimento';
+                                                valColor = 'text-emerald-400';
+                                            }
+
+                                            return (
+                                                <div key={t.id} className="relative z-10 flex gap-4 pl-1">
+                                                    <div className={`w-7 h-7 shrink-0 rounded-full border flex items-center justify-center mt-1 ${iconBg}`}>
+                                                        {icon}
+                                                    </div>
+                                                    <div className="flex-1 bg-white/5 rounded-xl p-3 border border-white/5">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <p className="text-sm font-bold text-slate-200">{title}</p>
+                                                            <p className={`text-sm font-bold ${valColor}`}>
+                                                                {isResgate ? '-' : '+'}{formatCurrency(t.amount)}
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex justify-between items-center mt-2">
+                                                            <p className="text-xs text-slate-500">{new Date(t.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</p>
+                                                            {isAporte && Number(t.quantity) > 0 && (
+                                                                <p className="text-[10px] font-bold text-slate-400 px-2 py-0.5 bg-black/20 rounded-md">
+                                                                    {t.quantity} cotas
+                                                                </p>
+                                                            )}
+                                                            {isResgate && Number(t.quantity) < 0 && (
+                                                                <p className="text-[10px] font-bold text-slate-400 px-2 py-0.5 bg-black/20 rounded-md">
+                                                                    {Math.abs(Number(t.quantity))} cotas
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    
+                                    {txs.filter(t => t.market === selectedAssetHistory).length === 0 && (
+                                        <p className="text-center text-slate-500 text-sm mt-8">Nenhuma movimentação encontrada para este ativo.</p>
                                     )}
                                 </div>
                             </div>
