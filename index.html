@@ -1826,13 +1826,13 @@
                     } else {
                         // VENDA: Reduz Qty e Custo Proporcional (Mantém PM)
                         const sellQty = Math.abs(txQty);
-                        const qtyToDeductOuter = Math.min(sellQty, tempPortfolio[assetName].qty);
                         if (isFixed) {
-                            tempPortfolio[assetName].qty -= qtyToDeductOuter;
+                            tempPortfolio[assetName].qty -= sellQty;
                             // CUSTO BLINDADO: Não subtrai txAmt do totalCost para manter histórico bruto
                             tempPortfolio[assetName].pureBalance -= txAmt;
                             if (tempPortfolio[assetName].pureBalance < 0) tempPortfolio[assetName].pureBalance = 0;
                         } else {
+                            const qtyToDeductOuter = Math.min(sellQty, tempPortfolio[assetName].qty);
                             if (tempPortfolio[assetName].qty > 0) {
                                 const currentPM = tempPortfolio[assetName].totalCost / tempPortfolio[assetName].qty;
                                 tempPortfolio[assetName].qty -= qtyToDeductOuter;
@@ -1911,14 +1911,14 @@
                     portfolio[assetName].pureBalance += txAmt;
                 } else {
                     const sellQty = Math.abs(txQty);
-                    const qtyToDeductOuter = Math.min(sellQty, portfolio[assetName].qty);
                     const isFixed = ['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(t.category);
                     if (isFixed) {
-                        portfolio[assetName].qty -= qtyToDeductOuter;
+                        portfolio[assetName].qty -= sellQty;
                         // CUSTO BLINDADO: Mantém o Aporte intocável na Renda Fixa
                         portfolio[assetName].pureBalance -= txAmt;
                         if (portfolio[assetName].pureBalance < 0) portfolio[assetName].pureBalance = 0;
                     } else {
+                        const qtyToDeductOuter = Math.min(sellQty, portfolio[assetName].qty);
                         if (portfolio[assetName].qty > 0) {
                             const currentPM = portfolio[assetName].totalCost / portfolio[assetName].qty;
                             portfolio[assetName].qty -= qtyToDeductOuter;
@@ -1991,6 +1991,8 @@
 
             const profit = portfolioCurrentTotal - totalInvested;
             const yieldPct = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
+            const allTimeInv = historicalInvestments.reduce((acc, t) => acc + (Number(t.quantity || 0) >= 0 ? Number(t.amount) : 0), 0);
+            const allTimeResgCost = allTimeInv - totalInvested;
 
             // --- INÍCIO DA ALTERAÇÃO ---
             // 1. Patrimônio Real (Meu Mundo): Soma Saldo Acumulado + Investimentos
@@ -2292,7 +2294,7 @@
                 planning, dreamsProgress, netWorth, economicExp,
                 // CORREÇÃO FINAL: totalNetWorth agora reflete Saldo + Valor Atual (Marked to Market)
                 analysis: { daily: { charts: dailyCharts, bankFlow: dailyBankFlow }, invest: { charts: investCharts, bankFlow: investBankFlow }, history: finalHistory, health: { savingsRate: inc > 0 ? ((inc - exp) / inc) * 100 : 0, burnRate: exp, coverage: exp > 0 ? (portfolioCurrentTotal / exp) : 0, freedom: exp > 0 ? (monthlyDividends / exp) * 100 : 0, investRate: inc > 0 ? (inv / inc) * 100 : 0, totalNetWorth: (previousBalance + bal) + portfolioCurrentTotal, totalOutflows: totalOutflows, strictScopeInv: strictScopeInv } },
-                investData: { totalInvested, totalCurrent: portfolioCurrentTotal, previousTotal: portfolioPreviousTotal, profit, yieldPct, byBank: investBankFlow, byType: investCatMap, dividends: monthlyDividends, totalDividends, portfolio: Object.values(portfolio).sort((a, b) => b.currentTotal - a.currentTotal) }
+                investData: { totalInvested, allTimeInv, allTimeResgCost, totalCurrent: portfolioCurrentTotal, previousTotal: portfolioPreviousTotal, profit, yieldPct, byBank: investBankFlow, byType: investCatMap, dividends: monthlyDividends, totalDividends, portfolio: Object.values(portfolio).sort((a, b) => b.currentTotal - a.currentTotal) }
             };
             // --- CORREÇÃO: ADICIONADO 'isForecast' NAS DEPENDÊNCIAS ABAIXO ---
             // --- CORREÇÃO: ADICIONADO 'isForecast' e 'fullList' NAS DEPENDÊNCIAS ABAIXO ---
@@ -3638,17 +3640,19 @@
 
                                     {/* Investimentos */}
                                     <div className="text-center flex flex-col justify-center">
-                                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Investimentos</p>
+                                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">
+                                            {dashboardMode === 'statement' ? 'Aportes Líquidos' : 'Investimentos'}
+                                        </p>
 
                                         {/* Líquido (Grande) */}
                                         <p className="text-lg font-bold text-white tracking-tight leading-none mb-1">
-                                            {hideValues ? '•••' : formatCurrency(dashboardMode === 'investment' ? ((data.strictScopeInv || 0) - (data.strictScopeResg || 0)) : ((data.inv || 0) - (data.resg || 0)))}
+                                            {hideValues ? '•••' : formatCurrency(dashboardMode === 'investment' ? data.investData.totalInvested : ((data.inv || 0) - (data.resg || 0)))}
                                         </p>
 
                                         {/* Mini breakdown Aporte/Resgate */}
                                         <div className="flex justify-center gap-1 text-[9px] font-bold">
-                                            <span className="text-indigo-400 bg-indigo-500/10 px-1 py-px rounded" title="Aportes">+{hideValues ? '•••' : formatCurrency(dashboardMode === 'investment' ? (data.strictScopeInv || 0) : data.inv)}</span>
-                                            <span className="text-emerald-400 bg-emerald-500/10 px-1 py-px rounded" title="Resgates">-{hideValues ? '•••' : formatCurrency(dashboardMode === 'investment' ? (data.strictScopeResg || 0) : data.resg)}</span>
+                                            <span className="text-indigo-400 bg-indigo-500/10 px-1 py-px rounded" title="Aportes">+{hideValues ? '•••' : formatCurrency(dashboardMode === 'investment' ? (data.investData.allTimeInv || 0) : data.inv)}</span>
+                                            <span className="text-emerald-400 bg-emerald-500/10 px-1 py-px rounded" title="Resgates">-{hideValues ? '•••' : formatCurrency(dashboardMode === 'investment' ? (data.investData.allTimeResgCost || 0) : data.resg)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -3973,10 +3977,11 @@
                                             return (
                                                 <div onClick={() => setActiveBar(null)}>
                                                     {/* Legenda */}
-                                                    <div className="flex justify-center gap-4 mb-4 text-xs font-bold">
+                                                    <div className="flex justify-center flex-wrap gap-4 mb-4 text-xs font-bold">
                                                         <span className="flex items-center gap-1 text-emerald-500"><span className="w-2 h-2 rounded-full bg-emerald-500"></span>Receita</span>
                                                         <span className="flex items-center gap-1 text-rose-500"><span className="w-2 h-2 rounded-full bg-rose-500"></span>Despesa</span>
                                                         <span className="flex items-center gap-1 text-indigo-400"><span className="w-2 h-2 rounded-full bg-indigo-400"></span>Aporte</span>
+                                                        <span className="flex items-center gap-1 text-amber-500"><span className="w-2 h-2 rounded-full bg-amber-500"></span>Resgate</span>
                                                     </div>
 
                                                     {/* Gráfico SVG Customizado Interativo */}
@@ -3985,14 +3990,16 @@
                                                             const hExp = (d.exp / maxVal) * 100;
                                                             const hInc = (d.inc / maxVal) * 100;
                                                             const hInv = (d.inv / maxVal) * 100;
+                                                            const hResg = (d.resg / maxVal) * 100;
 
                                                             const isIncActive = activeBar && activeBar.index === i && activeBar.type === 'inc';
                                                             const isExpActive = activeBar && activeBar.index === i && activeBar.type === 'exp';
                                                             const isInvActive = activeBar && activeBar.index === i && activeBar.type === 'inv';
+                                                            const isResgActive = activeBar && activeBar.index === i && activeBar.type === 'resg';
 
                                                             return (
                                                                 <div key={i} className="flex flex-col items-center flex-1 relative z-10">
-                                                                    <div className="w-full flex justify-center items-end gap-1 h-32">
+                                                                    <div className="w-full flex justify-center items-end gap-1 h-32 relative">
                                                                         {/* Receita */}
                                                                         <div
                                                                             onClick={(e) => { e.stopPropagation(); setActiveBar({ index: i, type: 'inc' }); }}
@@ -4013,9 +4020,17 @@
                                                                         <div
                                                                             onClick={(e) => { e.stopPropagation(); setActiveBar({ index: i, type: 'inv' }); }}
                                                                             style={{ height: `${hInv}%` }}
-                                                                            className={`w-2 rounded-t-sm transition-all duration-300 cursor-pointer ${isInvActive ? 'bg-indigo-300 shadow-[0_0_10px_rgba(165,180,252,0.8)] scale-110' : 'bg-indigo-500 hover:bg-indigo-400'}`}
+                                                                            className={`w-2 rounded-t-sm transition-all duration-300 cursor-pointer relative ${isInvActive ? 'bg-indigo-300 shadow-[0_0_10px_rgba(165,180,252,0.8)] scale-110 z-20' : 'bg-indigo-500 hover:bg-indigo-400'}`}
                                                                         >
-                                                                            {isInvActive && <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-indigo-900 border border-indigo-500 text-indigo-300 text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xl whitespace-nowrap z-20 animate-pop">{formatCurrency(d.inv)}</div>}
+                                                                            {isInvActive && <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-indigo-900 border border-indigo-500 text-indigo-300 text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xl whitespace-nowrap z-30 animate-pop">{formatCurrency(d.inv)}</div>}
+                                                                        </div>
+                                                                        {/* Resgate (Nova Coluna Lateral) */}
+                                                                        <div
+                                                                            onClick={(e) => { e.stopPropagation(); setActiveBar({ index: i, type: 'resg' }); }}
+                                                                            style={{ height: `${hResg}%` }}
+                                                                            className={`w-2 rounded-t-sm transition-all duration-300 cursor-pointer relative ${isResgActive ? 'bg-amber-300 shadow-[0_0_10px_rgba(252,211,77,0.8)] scale-110 z-20' : 'bg-amber-500 hover:bg-amber-400'}`}
+                                                                        >
+                                                                            {isResgActive && <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-amber-900 border border-amber-500 text-amber-300 text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xl whitespace-nowrap z-30 animate-pop">-{formatCurrency(d.resg)}</div>}
                                                                         </div>
                                                                     </div>
                                                                     <span className="text-xs text-slate-500 font-bold mt-2">{d.label}</span>
@@ -4064,7 +4079,7 @@
                             <div className="glass-card p-5">
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="font-bold text-lg flex items-center gap-2 text-white uppercase tracking-wider"><PieChart className="text-indigo-400" /> Minha Carteira</h3>
-                                    <button onClick={() => setPricesModal(true)} className="text-xs text-indigo-400 font-bold bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors">
+                                    <button onClick={(e) => { e.stopPropagation(); setPricesModal(true); }} className="text-xs text-indigo-400 font-bold bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors">
                                         Atualizar Cotações
                                     </button>
                                 </div>
@@ -5027,6 +5042,7 @@
                                                                 step="0.01"
                                                                 value={currentPrices[priceKey] !== undefined ? currentPrices[priceKey] : (currentPrices[asset.name] || '')}
                                                                 onChange={e => setCurrentPrices({ ...currentPrices, [priceKey]: e.target.value })}
+                                                                onClick={(e) => e.stopPropagation()}
                                                                 className="w-full border-b border-white/10 pl-6 font-bold py-1 outline-none focus:border-indigo-500 text-right text-white bg-transparent"
                                                                 placeholder={asset.currentPrice || (isFixed ? asset.totalCost.toFixed(2) : "0.00")}
                                                             />
@@ -5115,60 +5131,115 @@
                                     {/* Linha vertical da Timeline */}
                                     <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-white/5 rounded-full z-0"></div>
 
-                                    {txs
-                                        .filter(t => t.market === selectedAssetHistory)
-                                        .sort((a, b) => new Date(b.date) - new Date(a.date)) // Mais recentes primeiro
-                                        .map(t => {
-                                            const isResgate = Number(t.quantity) < 0 || (t.type === 'investment' && t.category === 'Resgate de Investimento');
-                                            const isRendimento = t.category === 'Rendimentos/Dividendos';
-                                            const isAporte = t.type === 'investment' && !isResgate && !isRendimento;
+                                    {(() => {
+                                        let currentQty = 0;
+                                        let totalCost = 0;
+                                        
+                                        // Processamento cronológico (mais antigo para mais recente)
+                                        const enrichedTxs = txs
+                                            .filter(t => t.market === selectedAssetHistory)
+                                            .sort((a, b) => {
+                                                const dateDiff = new Date(a.date) - new Date(b.date);
+                                                if (dateDiff !== 0) return dateDiff;
+                                                
+                                                // Mesma data: Aportes vêm antes de Resgates, para gerar base de PM
+                                                const qtyA = a.quantity ? Number(a.quantity) : 0;
+                                                const qtyB = b.quantity ? Number(b.quantity) : 0;
+                                                return qtyB - qtyA; // Sort decrescente (positivos antes de negativos)
+                                            })
+                                            .map(t => {
+                                                let historicalPM = 0;
+                                                let transactionCost = 0;
+                                                const isRendimento = t.category === 'Rendimentos/Dividendos';
+                                                
+                                                if (!isRendimento && t.quantity) {
+                                                    const qtyNum = Number(t.quantity);
+                                                    const isResgate = qtyNum < 0 || (t.type === 'investment' && t.category === 'Resgate de Investimento');
+                                                    
+                                                    if (!isResgate) {
+                                                        currentQty += qtyNum;
+                                                        totalCost += Number(t.amount);
+                                                        historicalPM = currentQty > 0 ? totalCost / currentQty : 0;
+                                                    } else {
+                                                        historicalPM = currentQty > 0 ? totalCost / currentQty : 0;
+                                                        transactionCost = historicalPM * Math.abs(qtyNum);
+                                                        currentQty += qtyNum;
+                                                        totalCost -= Math.min(transactionCost, totalCost); // Prevent negatives
+                                                        
+                                                        if (currentQty <= 0) {
+                                                            currentQty = 0;
+                                                            totalCost = 0;
+                                                        }
+                                                    }
+                                                }
+                                                return { ...t, historicalPM, transactionCost };
+                                            });
 
-                                            let icon = <Plus size={14} className="text-indigo-400" />;
-                                            let iconBg = 'bg-indigo-500/10 border-indigo-500/30';
-                                            let title = 'Aporte';
-                                            let valColor = 'text-indigo-400';
+                                        return enrichedTxs
+                                            .sort((a, b) => new Date(b.date) - new Date(a.date)) // Mais recentes primeiro para display
+                                            .map(t => {
+                                                const isResgate = Number(t.quantity) < 0 || (t.type === 'investment' && t.category === 'Resgate de Investimento');
+                                                const isRendimento = t.category === 'Rendimentos/Dividendos';
+                                                const isAporte = t.type === 'investment' && !isResgate && !isRendimento;
 
-                                            if (isResgate) {
-                                                icon = <Minus size={14} className="text-rose-400" />;
-                                                iconBg = 'bg-rose-500/10 border-rose-500/30';
-                                                title = 'Resgate';
-                                                valColor = 'text-rose-400';
-                                            } else if (isRendimento) {
-                                                icon = <Banknote size={14} className="text-emerald-400" />;
-                                                iconBg = 'bg-emerald-500/10 border-emerald-500/30';
-                                                title = 'Rendimento';
-                                                valColor = 'text-emerald-400';
-                                            }
+                                                let icon = <Plus size={14} className="text-indigo-400" />;
+                                                let iconBg = 'bg-indigo-500/10 border-indigo-500/30';
+                                                let title = 'Aporte';
+                                                let valColor = 'text-indigo-400';
 
-                                            return (
-                                                <div key={t.id} className="relative z-10 flex gap-4 pl-1">
-                                                    <div className={`w-7 h-7 shrink-0 rounded-full border flex items-center justify-center mt-1 ${iconBg}`}>
-                                                        {icon}
-                                                    </div>
-                                                    <div className="flex-1 bg-white/5 rounded-xl p-3 border border-white/5">
-                                                        <div className="flex justify-between items-start mb-1">
-                                                            <p className="text-sm font-bold text-slate-200">{title}</p>
-                                                            <p className={`text-sm font-bold ${valColor}`}>
-                                                                {isResgate ? '-' : '+'}{formatCurrency(t.amount)}
-                                                            </p>
+                                                if (isResgate) {
+                                                    icon = <Minus size={14} className="text-rose-400" />;
+                                                    iconBg = 'bg-rose-500/10 border-rose-500/30';
+                                                    title = 'Resgate';
+                                                    valColor = 'text-rose-400';
+                                                } else if (isRendimento) {
+                                                    icon = <Banknote size={14} className="text-emerald-400" />;
+                                                    iconBg = 'bg-emerald-500/10 border-emerald-500/30';
+                                                    title = 'Rendimento';
+                                                    valColor = 'text-emerald-400';
+                                                }
+
+                                                return (
+                                                    <div key={t.id} className="relative z-10 flex gap-4 pl-1">
+                                                        <div className={`w-7 h-7 shrink-0 rounded-full border flex items-center justify-center mt-1 ${iconBg}`}>
+                                                            {icon}
                                                         </div>
-                                                        <div className="flex justify-between items-center mt-2">
-                                                            <p className="text-xs text-slate-500">{new Date(t.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</p>
-                                                            {isAporte && Number(t.quantity) > 0 && (
-                                                                <p className="text-[10px] font-bold text-slate-400 px-2 py-0.5 bg-black/20 rounded-md">
-                                                                    {t.quantity} cotas
-                                                                </p>
-                                                            )}
-                                                            {isResgate && Number(t.quantity) < 0 && (
-                                                                <p className="text-[10px] font-bold text-slate-400 px-2 py-0.5 bg-black/20 rounded-md">
-                                                                    {Math.abs(Number(t.quantity))} cotas
-                                                                </p>
-                                                            )}
+                                                        <div className="flex-1 bg-white/5 rounded-xl p-3 border border-white/5">
+                                                            <div className="flex gap-2 justify-between items-start mb-1">
+                                                                <p className="text-sm font-bold text-slate-200">{title}</p>
+                                                                <div className="text-right flex-col items-end">
+                                                                    <p className={`text-sm font-bold ${valColor}`}>
+                                                                        {isResgate ? '-' : '+'}{formatCurrency(t.amount)}
+                                                                    </p>
+                                                                    {t.quantity && !isRendimento && (
+                                                                        <div className="mt-1 flex flex-col items-end opacity-90">
+                                                                            <p className="text-[10px] text-slate-300 font-medium tracking-wide">Preço Cota: {formatCurrency(Math.abs(t.amount / t.quantity))}</p>
+                                                                            <p className="text-[10px] text-indigo-300 font-medium tracking-wide mt-0.5">PM: {formatCurrency(t.historicalPM)}</p>
+                                                                            {isResgate && (
+                                                                                <p className="text-[10px] text-amber-300 font-medium tracking-wide mt-0.5">Custo: {formatCurrency(t.transactionCost)}</p>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex justify-between items-center mt-2">
+                                                                <p className="text-[11px] font-medium text-slate-500">{new Date(t.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</p>
+                                                                {isAporte && Number(t.quantity) > 0 && (
+                                                                    <p className="text-[10px] font-bold text-slate-300 px-2 py-0.5 bg-black/20 rounded-md">
+                                                                        {t.quantity} cotas
+                                                                    </p>
+                                                                )}
+                                                                {isResgate && Number(t.quantity) < 0 && (
+                                                                    <p className="text-[10px] font-bold text-slate-300 px-2 py-0.5 bg-black/20 rounded-md">
+                                                                        {Math.abs(Number(t.quantity))} cotas
+                                                                    </p>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
+                                                );
+                                            });
+                                    })()}
                                     
                                     {txs.filter(t => t.market === selectedAssetHistory).length === 0 && (
                                         <p className="text-center text-slate-500 text-sm mt-8">Nenhuma movimentação encontrada para este ativo.</p>
