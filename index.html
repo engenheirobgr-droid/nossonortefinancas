@@ -1278,6 +1278,7 @@
 
         // --- NOVO: Estado para Edição ---
         const [editingId, setEditingId] = useState(null);
+        const [fIsProjection, setFIsProjection] = useState(false); // NOVO: Flag para desativar recorrência em ghosts
         // NOVO: Estado para Edição de Sonho
         const [editingDreamId, setEditingDreamId] = useState(null);
 
@@ -1335,8 +1336,20 @@
                     list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                     setTxs(list);
                 });
-            const unsubBudgets = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('budgets')
-                .onSnapshot(s => { if (s.exists) setBudgets(s.data()); });
+            // FASE 2: Orçamentos (Separado por Perfil + Conjunto)
+            const unsubPersonal = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc(`budgets_${profile}`)
+                .onSnapshot(s => {
+                    if (s.exists) {
+                        setBudgets(prev => ({ ...prev, personal: s.data().personal || [] }));
+                    }
+                });
+
+            const unsubJoint = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('budgets_joint')
+                .onSnapshot(s => {
+                    if (s.exists) {
+                        setBudgets(prev => ({ ...prev, joint: s.data().joint || [] }));
+                    }
+                });
 
             // FASE 3: Carregar Sonhos (CORRIGIDO)
             const unsubDreams = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('dreams')
@@ -1367,7 +1380,7 @@
             const unsubChoreSettings = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('chores')
                 .onSnapshot(s => { if (s.exists) setWeekCycle(s.data().weekCycle || 0); });
 
-            return () => { unsubTx(); unsubBudgets(); unsubDreams(); unsubPrices(); unsubChores(); unsubShopping(); unsubChoreSettings(); }; // <--- ADICIONE unsubShopping() NO RETURN
+            return () => { unsubTx(); unsubPersonal(); unsubJoint(); unsubDreams(); unsubPrices(); unsubChores(); unsubShopping(); unsubChoreSettings(); }; // <--- ADICIONE unsubShopping() NO RETURN
         }, [user]);
 
         // --- BLOCO DE DADOS CORRIGIDO (v27) ---
@@ -1798,7 +1811,14 @@
                 let tempPortfolio = {};
                 let total = 0;
                 // Copia da array e reverte para calcular cronologicamente (Mais antigo primeiro)
-                [...investmentList].reverse().forEach(t => {
+                [...investmentList].sort((a, b) => {
+                    const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+                    if (dateDiff !== 0) return dateDiff;
+                    // Se for no mesmo dia, processa Aportes (qty > 0) antes de Resgates (qty < 0)
+                    const qtyA = a.quantity ? Number(a.quantity) : 0;
+                    const qtyB = b.quantity ? Number(b.quantity) : 0;
+                    return qtyB - qtyA;
+                }).forEach(t => {
                     const assetName = t.market || t.category || 'Outros';
                     // CORREÇÃO: Respeita o priceKey correto para não zerar Renda Fixa no Histórico
                     const isFixed = ['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(t.category);
@@ -1881,7 +1901,13 @@
 
             // Reconstrói Portfolio Detalhado para Exibição (Baseado no Mês Atual)
             // (Mantém lógica original para popular a lista detalhada)
-            [...historicalInvestments].reverse().forEach(t => {
+            [...historicalInvestments].sort((a, b) => {
+                const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+                if (dateDiff !== 0) return dateDiff;
+                const qtyA = a.quantity ? Number(a.quantity) : 0;
+                const qtyB = b.quantity ? Number(b.quantity) : 0;
+                return qtyB - qtyA;
+            }).forEach(t => {
                 const assetName = t.market || t.category || 'Outros';
 
                 // CORREÇÃO: Chave de Preço Escopada (Para evitar vazamento entre Personal/Joint em Renda Fixa)
@@ -1970,7 +1996,8 @@
                     asset.currentTotal = asset.totalCost;
                 }
 
-                totalInvested += asset.totalCost;
+                // Garante que o Resgate diminua o valor exibido na aba de Renda Fixa
+                totalInvested += isFixed ? asset.pureBalance : asset.totalCost;
 
                 // NOVO (Regra UX 4): Aggregate based on Market Value (currentTotal) instead of Historical Cost
                 // Uso a lógica do fallback para currentTotal caso algo vaze (pureBalance para precaver zeroing)
@@ -2009,19 +2036,40 @@
             // --- SONHOS e METAS (Mantido) ---
             const filteredDreams = dreams.filter(d => {
                 if (viewMode === 'joint') return d.scope === 'joint';
-                return d.scope === 'personal' || !d.scope;
+                // Sonho pessoal: só aparece para o dono
+                return (d.scope === 'personal' || !d.scope) && d.ownerId === profile;
             });
             const dreamsProgress = filteredDreams.map(d => {
                 // 1. Identifica transações vinculadas a este sonho
-                const dreamTxs = txs.filter(t => t.type === 'investment' && t.dreamId === d.id);
+                const dreamTxs = txs.filter(t => {
+                    if (t.type !== 'investment' || t.dreamId !== d.id) return false;
+                    // Sonho pessoal: só conta aportes do dono
+                    if (d.scope !== 'joint') return t.ownerId === profile;
+                    // Sonho conjunto: conta aportes compartilhados
+                    return t.isShared;
+                });
 
                 // 2. Agrupa por Ativo e Calcula Quantidade
                 const assetQtyMap = {};
                 dreamTxs.forEach(t => {
                     const assetName = t.market || t.category || 'Outros';
-                    // Nota: Se for venda, quantity é negativo, então subtrai corretamente
-                    const qty = Number(t.quantity);
+                    // Resgate COM dreamId = usado para o sonho, não desconta
+                    // Resgate SEM dreamId de mesmo ativo = dinheiro escapou, desconta
+                    const isRedemption = Number(t.quantity) < 0;
+                    const qty = isRedemption ? 0 : Number(t.quantity);
                     assetQtyMap[assetName] = (assetQtyMap[assetName] || 0) + qty;
+                });
+
+                // Resgates do mesmo ativo SEM dreamId descontam o progresso
+                const unlinkedRedemptions = txs.filter(t =>
+                    t.type === 'investment' &&
+                    Number(t.quantity) < 0 &&
+                    !t.dreamId &&
+                    Object.keys(assetQtyMap).includes(t.market || t.category || 'Outros')
+                );
+                unlinkedRedemptions.forEach(t => {
+                    const assetName = t.market || t.category || 'Outros';
+                    assetQtyMap[assetName] = (assetQtyMap[assetName] || 0) + Number(t.quantity); // qty negativo subtrai
                 });
 
                 // 3. Marcação a Mercado (Usa preço atual do Portfolio)
@@ -2034,15 +2082,21 @@
                     if (portAsset) {
                         const isFixed = ['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(portAsset.category);
                         if (isFixed) {
+                            // Apenas aportes COM dreamId compõem o custo investido para o sonho
                             const historicCost = dreamTxs
-                                .filter(t => (t.market || t.category || 'Outros') === name)
-                                .reduce((acc, t) => acc + (Number(t.quantity) < 0 ? -Number(t.amount) : Number(t.amount)), 0);
+                                .filter(t => (t.market || t.category || 'Outros') === name && Number(t.quantity) >= 0)
+                                .reduce((acc, t) => acc + Number(t.amount), 0);
 
-                            if (portAsset.totalCost > 0) {
-                                currentValue += (historicCost / portAsset.totalCost) * portAsset.currentTotal;
-                            } else {
-                                currentValue += historicCost;
-                            }
+                            // Resgates COM dreamId = valor já realizado do sonho (soma como conquistado)
+                            const redeemedForDream = dreamTxs
+                                .filter(t => (t.market || t.category || 'Outros') === name && Number(t.quantity) < 0)
+                                .reduce((acc, t) => acc + Number(t.amount), 0);
+
+                            // safeCost limita a proporção a no máximo 100% do ativo
+                            const safeCost = Math.min(historicCost, portAsset.totalCost);
+                            currentValue += (portAsset.totalCost > 0
+                                ? (safeCost / portAsset.totalCost) * portAsset.currentTotal
+                                : safeCost) + redeemedForDream;
                         } else {
                             // Prioridade: Preço Atual > Preço Médio
                             const price = portAsset.currentPrice > 0 ? Number(portAsset.currentPrice) : portAsset.avgPrice;
@@ -2058,17 +2112,23 @@
                     }
                 });
 
-                const totalRedeemed = dreamTxs.filter(t => Number(t.quantity) < 0).reduce((acc, t) => acc + Number(t.amount), 0);
-                const isCompleted = d.targetAmount > 0 && (currentValue >= d.targetAmount || totalRedeemed >= d.targetAmount);
+                // totalRedeemed agora = resgates COM dreamId (intencionais = realizei o sonho)
+                const totalRedeemed = dreamTxs
+                    .filter(t => Number(t.quantity) < 0)
+                    .reduce((acc, t) => acc + Number(t.amount), 0);
+                const isCompleted = d.targetAmount > 0 && totalRedeemed >= d.targetAmount;
 
                 let pct = d.targetAmount > 0 ? (currentValue / d.targetAmount) * 100 : 0;
 
                 if (isCompleted) {
                     pct = 100;
-                    if (currentValue < d.targetAmount) currentValue = d.targetAmount;
                 }
 
-                return { ...d, currentAmount: currentValue, pct, isCompleted };
+                // Após concluído, congela o valor exibido na meta
+                const displayValue = isCompleted
+                    ? Math.max(currentValue, d.targetAmount)
+                    : Math.min(currentValue, d.targetAmount * 1.5); // evita barra estourar demais antes de concluir
+                return { ...d, currentAmount: displayValue, pct, isCompleted };
             });
 
             // Orçamentos (Mantido)
@@ -2524,13 +2584,23 @@
             // 1. Identifica transações selecionadas na lista completa (para pegar o groupId)
             const selectedTxs = txs.filter(t => selectedIds.has(t.id));
 
+            // NOVO: Filtra para ignorar ghosts (projeções) que não existem no banco
+            const realTxs = selectedTxs.filter(t => !t.isProjection);
+
+            // Se só houver ghosts selecionados, apenas limpa a seleção e sai (eles "somem" visualmente)
+            if (realTxs.length === 0) {
+                setSelectedIds(new Set());
+                setSelectionMode(false);
+                return;
+            }
+
             // 2. Verifica se há grupos (Recorrência/Parcelamento)
-            const groupIds = new Set(selectedTxs.map(t => t.groupId).filter(Boolean));
+            const groupIds = new Set(realTxs.map(t => t.groupId).filter(Boolean));
             let deleteScope = 'selected'; // 'selected' | 'future' | 'series'
 
             // Se houver itens que pertencem a uma série, pergunta o que fazer
             if (groupIds.size > 0) {
-                const msg = `Você selecionou ${selectedIds.size} ite${selectedIds.size > 1 ? 'ns' : 'm'}.\n` +
+                const msg = `Você selecionou ${realTxs.length} ite${realTxs.length > 1 ? 'ns' : 'm'} reais.\n` +
                     `Detectamos que parte deles pertence a uma série recorrente ou parcelada.\n\n` +
                     `Como deseja apagar?\n` +
                     `[1] = Apenas Selecionados\n` +
@@ -2545,11 +2615,11 @@
                 else return; // Cancelou se não digitou 1, 2 ou 3 (ou fechou o prompt)
             } else {
                 // Confirmação Padrão (Sem séries envolvidas)
-                if (!confirm(`Excluir ${selectedIds.size} itens selecionados permanentemente?`)) return;
+                if (!confirm(`Excluir ${realTxs.length} itens selecionados permanentemente?`)) return;
             }
 
             // 3. Prepara IDs para deletar
-            const finalIdsToDelete = new Set(selectedIds);
+            const finalIdsToDelete = new Set(realTxs.map(t => t.id));
 
             if (deleteScope === 'series') {
                 // Busca TODAS as transações que possuem os mesmos groupIds detectados
@@ -2559,7 +2629,7 @@
             else if (deleteScope === 'future') {
                 // Busca transações da mesma série com DATA >= Data referência
                 // Referência: Menor data da seleção atual (para garantir coerência)
-                const refDate = selectedTxs.reduce((min, t) => t.date < min ? t.date : min, selectedTxs[0].date);
+                const refDate = realTxs.reduce((min, t) => t.date < min ? t.date : min, realTxs[0].date);
 
                 const relatedTxs = txs.filter(t =>
                     t.groupId &&
@@ -2617,6 +2687,7 @@
                 setFCat(lastTx.category || '');
                 setFTitle(lastTx.title || '');
                 setFSubCat(lastTx.subCategory || '');
+                setFDreamId(lastTx.dreamId || '');
             } else {
                 // Limpa se não achar
                 setFBank('');
@@ -2681,6 +2752,19 @@
             setFRecurrenceEndDate(tx.recurrenceEndDate || '');
             setFRecurrenceCount(tx.recurrenceCount || 12);
             setFDreamId(tx.dreamId || '');
+
+            setFIsProjection(tx.isProjection || false); // NOVO: Detecta se é ghost
+
+            // CORREÇÃO: Ghosts NÃO herdam recorrência
+            if (tx.isProjection) {
+                setFRecurrent(false);
+                setFRecurrenceEndMode('forever');
+                setFRecurrenceCount(1);
+            } else {
+                setFRecurrent(tx.isRecurrent || false);
+                setFRecurrenceEndMode(tx.recurrenceEndMode || 'forever');
+                setFRecurrenceCount(tx.recurrenceCount || 12);
+            }
 
             setFShared(tx.isShared || false);
 
@@ -2912,6 +2996,7 @@
                 setFTitle(''); setFQty(''); setFUnitPrice(''); setFAmount(''); setIsInstallment(false); setFDate(new Date().toISOString().split('T')[0]);
                 setFSubCat(''); setFRecurrent(false); setFDreamId('');
                 setFRecurrenceEndMode('forever'); setFRecurrenceEndDate(''); setFRecurrenceCount(12);
+                setFIsProjection(false); // Reset
                 setFormPayer('me'); setFShared(false); setFType('expense'); setFCat('Outros'); setIsSell(false); // Reset v53 Fix
             } catch (error) {
                 console.error("Erro ao salvar transação:", error);
@@ -3100,7 +3185,14 @@
 
                 const newB = { ...budgets, [viewMode]: updatedBudgets };
 
-                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('budgets').set(newB);
+                // Determina o documento de destino (Pessoal ou Conjunto)
+                const budgetDocId = viewMode === 'joint' ? 'budgets_joint' : `budgets_${profile}`;
+
+                // Salva apenas a parte correspondente no respectivo documento
+                // Nota: Mantemos a estrutura { [viewMode]: [...] } para compatibilidade com o listener
+                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc(budgetDocId).set({
+                    [viewMode]: updatedBudgets
+                });
 
                 setBudgets(newB);
                 setBudgetModal(false);
@@ -3135,10 +3227,13 @@
                     batch.delete(doc.ref);
                 });
 
-                // 3. Resetar Orçamentos para o Padrão (Overwrite com DEFAULT_BUDGETS)
+                // 3. Resetar Orçamentos para o Padrão (Separado por Perfil + Conjunto)
                 // Isso garante que a estrutura volte limpa, sem duplicatas
-                const budgetRef = basePath.collection('settings').doc('budgets');
-                batch.set(budgetRef, DEFAULT_BUDGETS);
+                batch.set(basePath.collection('settings').doc(`budgets_${profile}`), DEFAULT_BUDGETS);
+                batch.set(basePath.collection('settings').doc('budgets_joint'), DEFAULT_BUDGETS);
+                
+                // Limpeza: Apaga o documento antigo 'budgets' se ele ainda existir
+                batch.delete(basePath.collection('settings').doc('budgets'));
 
                 // 4. Apagar Cotações Manuais e outras configs
                 batch.delete(basePath.collection('settings').doc('assetPrices'));
@@ -3578,15 +3673,23 @@
                                     </h2>
 
                                     {/* Variação % (Seta + Valor) */}
-                                    {!hideValues && (
-                                        <div className={`flex items-center text-lg font-medium ${(dashboardMode === 'statement' ? data.bal >= 0 : data.investData.yieldPct >= 0) ? 'text-emerald-500' : 'text-rose-400'}`}>
-                                            {(dashboardMode === 'statement' ? data.bal >= 0 : data.investData.yieldPct >= 0) ? <TrendingUp size={20} className="mr-1" /> : <TrendingDown size={20} className="mr-1" />}
-                                            {dashboardMode === 'statement'
-                                                ? (data.previousBalance !== 0 ? Math.abs((data.bal / data.previousBalance) * 100).toFixed(1) : '0.0')
-                                                : Math.abs(data.investData.yieldPct).toFixed(1)
-                                            }%
-                                        </div>
-                                    )}
+                                    {!hideValues && (() => {
+                                        const investDiff = data.investData.totalCurrent - data.investData.previousTotal;
+                                        const investPct = data.investData.previousTotal !== 0
+                                            ? (investDiff / data.investData.previousTotal) * 100
+                                            : 0;
+                                        const isInvestPositive = investDiff >= 0;
+
+                                        return (
+                                            <div className={`flex items-center text-lg font-medium ${(dashboardMode === 'statement' ? data.bal >= 0 : isInvestPositive) ? 'text-emerald-500' : 'text-rose-400'}`}>
+                                                {(dashboardMode === 'statement' ? data.bal >= 0 : isInvestPositive) ? <TrendingUp size={20} className="mr-1" /> : <TrendingDown size={20} className="mr-1" />}
+                                                {dashboardMode === 'statement'
+                                                    ? (data.previousBalance !== 0 ? Math.abs((data.bal / data.previousBalance) * 100).toFixed(1) : '0.0')
+                                                    : Math.abs(investPct).toFixed(1)
+                                                }%
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
 
                                 {/* 3. SUB-INFORMAÇÕES (Espaçamento Reduzido ao Máximo) */}
@@ -4175,21 +4278,25 @@
                                     <div className="space-y-4">
                                         {data.dreamsProgress.map(d => (
                                             // ADICIONADO "pr-7" ABAIXO PARA EVITAR SOBREPOSIÇÃO COM O BOTÃO X
-                                            <div key={d.id} className="relative pr-7 cursor-pointer group hover:bg-white/5 transition-colors rounded-xl p-2" onClick={() => handleEditDream(d)}>
-                                                <div className="flex justify-between items-end mb-1">
-                                                    <div>
-                                                        <span className="text-2xl mr-2">{d.emoji}</span>
-                                                        <span className="font-bold text-slate-200">{d.title}</span>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-xs text-slate-400">Meta: {formatCurrency(d.targetAmount)}</p>
-                                                        <p className="font-bold text-indigo-400">{formatCurrency(d.currentAmount)}</p>
-                                                    </div>
+                                            <div key={d.id} className={`relative pr-7 cursor-pointer group transition-colors rounded-xl p-2 ${d.isCompleted ? 'bg-amber-500/10 border border-amber-500/30' : 'hover:bg-white/5'}`} onClick={() => handleEditDream(d)}>
+
+                                              <div className="flex justify-between items-end mb-1">
+                                                <div>
+                                                  <span className={`mr-2 ${d.isCompleted ? 'text-3xl' : 'text-2xl'}`}>{d.emoji}</span>
+                                                  <span className="font-bold text-slate-200">{d.title}</span>
                                                 </div>
-                                                <div className="h-4 bg-slate-700/50 rounded-full overflow-hidden relative">
-                                                    <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-1000" style={{ width: `${d.pct}%` }} />
+                                                <div className="text-right">
+                                                  {d.isCompleted && (<p className="text-xs font-bold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-full inline-block mb-0.5">✅ Realizado!</p>)}
+                                                  <p className="text-xs text-slate-400">Meta: {formatCurrency(d.targetAmount)}</p>
+                                                  <p className={`font-bold ${d.isCompleted ? 'text-amber-400' : 'text-indigo-400'}`}>{formatCurrency(d.currentAmount)}</p>
+                                                  <p className="text-xs text-slate-400 font-bold mt-0.5">{d.pct.toFixed(0)}% concluído</p>
                                                 </div>
-                                                {/* Botão de Exclusão (Removido - Agora é Editar ao clicar) */}
+                                              </div>
+
+                                              <div className="h-4 bg-slate-700/50 rounded-full overflow-hidden relative">
+                                                <div className={`h-full transition-all duration-1000 ${d.isCompleted ? 'bg-gradient-to-r from-amber-400 to-yellow-300' : 'bg-gradient-to-r from-indigo-500 to-purple-500'}`} style={{ width: `${d.pct}%` }} />
+                                              </div>
+                                              {/* Botão de Exclusão (Removido - Agora é Editar ao clicar) */}
                                             </div>
                                         ))}
                                     </div>
@@ -4768,12 +4875,12 @@
                                     {/* 7. TOGGLES (LAYOUT FINAL - GRADE DE 3 COLUNAS UNIFICADA) */}
                                     <div className="grid grid-cols-3 gap-2">
                                         {/* 1. Recorrência (Agora igual aos outros) */}
-                                        <div onClick={() => { setFRecurrent(!fRecurrent); setIsInstallment(false); }}
-                                            className={`p-3 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all gap-1 ${fRecurrent ? 'bg-amber-500/10 border-amber-500 text-amber-500' : 'bg-[#1e293b] border-slate-700 text-slate-500 hover:bg-slate-800'}`}>
+                                        <div onClick={() => { if (!fIsProjection) { setFRecurrent(!fRecurrent); setIsInstallment(false); } }}
+                                            className={`p-3 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all gap-1 ${fIsProjection ? 'opacity-50 cursor-not-allowed bg-slate-800/50 border-slate-700 text-slate-500' : (fRecurrent ? 'bg-amber-500/10 border-amber-500 text-amber-500' : 'bg-[#1e293b] border-slate-700 text-slate-500 hover:bg-slate-800')}`}>
                                             <div className={`p-2 rounded-full mb-1 ${fRecurrent ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
                                                 <RefreshCw size={18} />
                                             </div>
-                                            <span className="text-xs font-bold uppercase">Recorrência</span>
+                                            <span className="text-xs font-bold uppercase">{fIsProjection ? "Projeção (única)" : "Recorrência"}</span>
                                             {fRecurrent && <span className="text-[10px] bg-amber-500 text-slate-900 px-1.5 rounded-full absolute top-2 right-2 font-bold">On</span>}
                                         </div>
 
@@ -5137,7 +5244,14 @@
                                         
                                         // Processamento cronológico (mais antigo para mais recente)
                                         const enrichedTxs = txs
-                                            .filter(t => t.market === selectedAssetHistory)
+                                            .filter(t => {
+                                                if (t.market !== selectedAssetHistory) return false;
+                                                // Filtro de escopo: idêntico ao usado em investData (linha ~1779)
+                                                const belongsToScope = viewMode === 'joint'
+                                                    ? t.isShared
+                                                    : (!t.isShared && t.ownerId === profile);
+                                                return belongsToScope;
+                                            })
                                             .sort((a, b) => {
                                                 const dateDiff = new Date(a.date) - new Date(b.date);
                                                 if (dateDiff !== 0) return dateDiff;
@@ -5241,7 +5355,11 @@
                                             });
                                     })()}
                                     
-                                    {txs.filter(t => t.market === selectedAssetHistory).length === 0 && (
+                                    {txs.filter(t => {
+                                        if (t.market !== selectedAssetHistory) return false;
+                                        const belongs = viewMode === 'joint' ? t.isShared : (!t.isShared && t.ownerId === profile);
+                                        return belongs;
+                                    }).length === 0 && (
                                         <p className="text-center text-slate-500 text-sm mt-8">Nenhuma movimentação encontrada para este ativo.</p>
                                     )}
                                 </div>
