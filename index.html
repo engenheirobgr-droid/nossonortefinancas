@@ -1246,6 +1246,7 @@
         // Novos estados para Revisão, Seleção e Expansão
         const [reviewData, setReviewData] = useState([]);
         const [isReviewOpen, setIsReviewOpen] = useState(false);
+        const [importScope, setImportScope] = useState('month'); // 'month' | 'all'
         const [selectionMode, setSelectionMode] = useState(false);
         const [selectedIds, setSelectedIds] = useState(new Set());
         const [expandedReviewId, setExpandedReviewId] = useState(null);
@@ -2546,7 +2547,10 @@
                     2. Se houver detalhamento de itens (ex: lista de produtos no mercado), extraia-os no campo 'items'. 
                        IMPORTANTE: Tente identificar a QUANTIDADE (qty), PREÇO UNITÁRIO (unitPrice) e UNIDADE (unit - ex: kg, un, l).
                        Formato: items: [{name: 'Queijo', value: 20.00, qty: 0.5, unitPrice: 40.00, unit: 'kg'}, ...].
-                    3. Se for uma PLANILHA MATRIZ (meses nas colunas): IGNORE colunas de outros meses. Foque APENAS na coluna referente a ${currentMonthName}.
+                    3. ${importScope === 'all'
+                        ? `Leia TODO o conteúdo fornecido. É expressamente proibido resumir ou omitir transações. Retorne TODAS as linhas de TODOS os meses com as suas respetivas datas originais. Se o ficheiro tiver mais transações do que cabem numa única resposta, retorne o máximo possível em ordem cronológica, do mais antigo para o mais recente. Nunca agregues nem omitas linhas.
+                     /* NOTA TÉCNICA: o limite de tokens do modelo pode truncar históricos muito longos — isso é esperado e não é um bug */`
+                        : `Se for uma PLANILHA MATRIZ (meses nas colunas): IGNORE colunas de outros meses. Foque APENAS na coluna referente a ${currentMonthName}.`}
                     4. IGNORE linhas de "Total", "Saldo", "Pagamentos Validos" (se for o pagamento da fatura, ok, mas evite duplicidade).
                     5. Tente identificar o nome do ESTABELECIMENTO (Loja, Mercado, etc) e coloque no campo 'market' ou no 'title'.
                     6. Se for possível identificar o BANCO/CONTA de origem, coloque no campo 'bank' (ex: Nubank, Itaú, XP).
@@ -2631,6 +2635,20 @@
             } else {
                 alert("Não encontrei transações."); setIsProcessingAI(false);
             }
+        };
+
+        // --- RADAR DE DUPLICIDADE (Etapa 2 v84 — apenas visual, nunca deleta automaticamente) ---
+        const isDuplicate = (newTx, existingTxs, newTxId) => {
+            const newTitle = (newTx.title || '').toLowerCase().trim();
+            return existingTxs.some(ex => {
+                if (ex.id === newTxId) return false; // ignora auto-match
+                const exTitle = (ex.title || '').toLowerCase().trim();
+                const sameDate   = ex.date   === newTx.date;
+                const sameAmount = Number(ex.amount) === Number(newTx.amount);
+                const sameType   = ex.type   === newTx.type;
+                const similarName = newTitle.includes(exTitle) || exTitle.includes(newTitle);
+                return sameDate && sameAmount && sameType && similarName;
+            });
         };
 
         const confirmImport = async () => {
@@ -3500,8 +3518,18 @@
                                 <button onClick={() => { setIsReviewOpen(false); setReviewData([]); }} className="bg-white/10 p-2 rounded-full text-white hover:bg-white/20 transition-colors"><X size={20} /></button>
                             </div>
                             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-transparent scrollbar-hide">
-                                {reviewData.map((item, index) => (
-                                    <div key={index} className="bg-slate-800/60 p-5 rounded-2xl shadow-sm border border-white/10 flex flex-col gap-4">
+                                {reviewData.map((item, index) => {
+                                    const dupFound = isDuplicate(item, data.fullList, item.id);
+                                    return (
+                                    <div key={index} className={`p-5 rounded-2xl shadow-sm flex flex-col gap-4 border transition-colors
+                                        ${dupFound
+                                            ? 'bg-yellow-500/10 border-yellow-500/40'
+                                            : 'bg-slate-800/60 border-white/10'}`}>
+                                        {dupFound && (
+                                            <div className="flex items-center gap-2 text-yellow-400 text-xs font-bold bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/20">
+                                                ⚠️ Possível duplicata — verifique antes de confirmar
+                                            </div>
+                                        )}
                                         <div className="flex justify-between items-start gap-4">
                                             <input
                                                 className="font-bold text-lg text-white bg-transparent border-b border-dashed border-white/20 focus:border-emerald-500 outline-none w-full"
@@ -3582,7 +3610,8 @@
                                             </div>
                                         </div>
                                     </div>
-                                ))}
+                                    );
+                                })}
                                 {reviewData.length === 0 && (
                                     <div className="text-center text-slate-400 mt-10">
                                         Nenhum item para revisar.
@@ -4697,6 +4726,21 @@
                 {
                     menuOpen && (
                         <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-3 items-center animate-pop w-64 px-4">
+
+                            {/* 0. SELETOR DE ÂMBITO DE IMPORTAÇÃO */}
+                            <div className="w-full bg-slate-900/80 backdrop-blur-lg p-3 rounded-2xl border border-white/10 flex flex-col gap-2">
+                                <p className="text-[10px] font-bold uppercase text-slate-400 text-center tracking-wider">Âmbito da Importação</p>
+                                <div className="flex gap-2">
+                                    <button type="button" onClick={() => setImportScope('month')}
+                                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border ${importScope === 'month' ? 'bg-indigo-600 text-white border-indigo-500 shadow' : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'}`}>
+                                        📅 Mês atual
+                                    </button>
+                                    <button type="button" onClick={() => setImportScope('all')}
+                                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border ${importScope === 'all' ? 'bg-emerald-600 text-white border-emerald-500 shadow' : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'}`}>
+                                        📚 Histórico
+                                    </button>
+                                </div>
+                            </div>
 
                             {/* 1. Botão Arquivo com IA - Estilo Glassmorphism Premium */}
                             <button onClick={() => fileInputRef.current.click()}
