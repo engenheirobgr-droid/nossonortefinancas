@@ -1289,6 +1289,9 @@
         // --- NOVO: Estado para Edição ---
         const [editingId, setEditingId] = useState(null);
         const [fIsProjection, setFIsProjection] = useState(false); // NOVO: Flag para desativar recorrência em ghosts
+        // Cartão de Crédito
+        const [fIsCard, setFIsCard] = useState(false);
+        const [fInvoiceMonth, setFInvoiceMonth] = useState('');
         // NOVO: Estado para Edição de Sonho
         const [editingDreamId, setEditingDreamId] = useState(null);
 
@@ -1493,7 +1496,7 @@
 
             // Filtra tudo que aconteceu ANTES deste mês, respeitando o mesmo filtro de mundo (Segurança Total)
             const previousTxs = fullList
-                .filter(t => t.date < startOfSelectedMonth && !t.isProjection) // Ignora futuro e projeções
+                .filter(t => t.date < startOfSelectedMonth && (!t.isProjection || (isForecast && t.isCardExpense))) // Em prev, inclui despesas de cartão (fantasmas intencionais)
                 .filter(filterByUniverse); // Aplica a regra: Só soma o que é MEU (se pessoal) ou NOSSO (se conjunto)
 
             // Calcula o saldo histórico
@@ -2469,19 +2472,12 @@
                 Local: t.market || '',
                 Compartilhado: t.isShared ? 'Sim' : 'Não',
                 QuemPagou: (() => {
-                    // Resolução Robusta do Pagador (Mesma lógica do App)
-                    const isOwnerPayer = t.payer === 'me';
-                    // Se payer é undefined, a lista assume logicamente que NÃO foi o owner (Partner)
-                    // Se payer é 'partner', foi o Partner.
-                    // Se payer é 'me', foi o Owner.
-
-                    const owner = t.ownerId;
-                    const partner = owner === 'bruno' ? 'maiara' : 'bruno';
-
-                    // Se tiver payer definido: respeita. Se não, fallback para parceiro (match lista)
-                    const realPayerId = t.payer ? (t.payer === 'me' ? owner : partner) : partner;
-
-                    return realPayerId === 'bruno' ? 'Bruno' : 'Maiara';
+                  const owner = t.ownerId || profile;
+                  const partner = owner === 'bruno' ? 'maiara' : 'bruno';
+                  const realPayerId = t.payer
+                    ? (t.payer === 'me' ? owner : partner)
+                    : partner;
+                  return realPayerId === 'bruno' ? 'Bruno' : 'Maiara';
                 })()
             }));
 
@@ -2555,18 +2551,44 @@
                     5. Tente identificar o nome do ESTABELECIMENTO (Loja, Mercado, etc) e coloque no campo 'market' ou no 'title'.
                     6. Se for possível identificar o BANCO/CONTA de origem, coloque no campo 'bank' (ex: Nubank, Itaú, XP).
                     7. Se o arquivo relatar "Parcela" (ex: "5 de 6"), mantenha-o no título, se relevante.
+                    8. COMPARTILHAMENTO E PAGADOR:
+                       - Se houver coluna 'Compartilhado' (ou similar: 'Divisão', 'Conjunto', 'Casal'):
+                         Valor 'Sim', 'S', 'X', 'yes', 'true' → isShared: true
+                         Qualquer outro valor → isShared: false
+                       - Se houver coluna 'QuemPagou' (ou 'Pagador', 'Responsável'):
+                         Retorne o NOME EXATO em minúsculas no campo 'payerName'
+                         (ex: 'bruno' ou 'maiara').
+                         NÃO retorne 'me' ou 'partner' — apenas o nome bruto.
+                       - Se a coluna 'QuemPagou' estiver ausente: retorne payerName: null.
+                    9. INVESTIMENTOS:
+                       - Aportes / Compras:
+                         type: 'investment', quantity: [valor positivo das Cotas]
+                       - Resgates / Vendas:
+                         type: 'investment', quantity: [valor NEGATIVO das Cotas]
+                       - Rendimentos / Dividendos / JCP / Proventos:
+                         type: 'income', category: 'Dividendos', quantity: 0
+                       - Se o campo 'Valor' contiver uma fórmula (ex: '=D2*E2')
+                         ou estiver vazio: calcule amount = Cotas × Preço médio.
+                       - Se houver coluna 'Preço médio' ou 'Preço unitário':
+                         retorne no campo 'unitPrice'.
+                       - O ticker ou código do ativo (coluna 'Local' ou 'Titulo'):
+                         retorne no campo 'market'.
                     
                     SAÍDA OBRIGATÓRIA (JSON puro sem markdown):
                     {
                         "transactions": [
                             { 
                                 "date": "YYYY-MM-DD", 
-                                "title": "Nome da despesa (e parcela se tiver)", 
+                                "title": "Nome da transação", 
                                 "amount": 0.00, 
                                 "type": "expense", 
                                 "category": "Alimentação",
-                                "market": "Nome da Loja",
+                                "market": "Nome da Loja ou Ticker",
                                 "bank": "Nome do Banco",
+                                "isShared": false,
+                                "payerName": "bruno",
+                                "quantity": 0,
+                                "unitPrice": 0.00,
                                 "items": [] 
                             }
                         ]
@@ -2626,11 +2648,43 @@
 
         const processAIResponse = (respData) => {
             if (respData && respData.transactions && respData.transactions.length > 0) {
-                const prepared = respData.transactions.map((t, idx) => ({
-                    ...t, id: idx, isShared: false, amount: Number(t.amount),
-                    date: t.date || new Date().toISOString().split('T')[0],
-                    items: t.items || [], market: t.market || '', bank: t.bank || ''
-                }));
+                let prepared = respData.transactions.map((t, idx) => {
+                    const resolvedPayer = t.payerName?.toLowerCase() || profile.toLowerCase();
+                    return {
+                        ...t,
+                        id:        idx,
+                        isShared:  t.isShared === true
+                                   || t.isShared === 'true'
+                                   || ['sim', 's', 'x', 'yes'].includes(
+                                        String(t.isShared).toLowerCase()),
+                        ownerId:   profile,   // sempre o usuário logado — nunca o da IA
+                        payer:     resolvedPayer !== profile.toLowerCase()
+                                   ? 'partner' : 'me',
+                        amount:    Number(t.amount),
+                        date:      t.date || new Date().toISOString().split('T')[0],
+                        quantity:  t.quantity  || 0,
+                        unitPrice: t.unitPrice || 0,
+                        items:     t.items  || [],
+                        market:    t.market || '',
+                        bank:      t.bank   || '',
+                    };
+                });
+
+                // Filtro de privacidade: descarta transações individuais do parceiro
+                prepared = prepared.filter(t => {
+                    if (t.isShared === false && t.payer === 'partner') return false;
+                    return true;
+                });
+
+                if (prepared.length === 0) {
+                    alert(
+                        'As transações encontradas pertencem individualmente ao seu ' +
+                        'parceiro e foram ignoradas por segurança.'
+                    );
+                    setIsProcessingAI(false);
+                    return;
+                }
+
                 setReviewData(prepared); setIsReviewOpen(true); setIsProcessingAI(false);
             } else {
                 alert("Não encontrei transações."); setIsProcessingAI(false);
@@ -2651,6 +2705,33 @@
             });
         };
 
+        // --- LIQUIDAÇÃO DE FATURA EM LOTE (v84) ---
+        // Após a liquidação, o saldo dos meses anteriores ao invoiceMonth
+        // será recalculado retroativamente para refletir a saída do dinheiro — comportamento esperado.
+        const handlePayCardInvoice = async (invoiceMonth) => {
+            const collRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions');
+            try {
+                const snap = await collRef
+                    .where('isCardExpense', '==', true)
+                    .where('invoiceMonth', '==', invoiceMonth)
+                    .where('ownerId', '==', profile)
+                    .where('isProjection', '==', true)
+                    .get();
+                if (snap.empty) return;
+                // Máx 500 docs por batch (limite do Firestore). Se houver mais, múltiplos batches sequenciais.
+                const chunks = [];
+                for (let i = 0; i < snap.docs.length; i += 500) chunks.push(snap.docs.slice(i, i + 500));
+                for (const chunk of chunks) {
+                    const b = db.batch();
+                    chunk.forEach(doc => b.update(doc.ref, { isProjection: false }));
+                    await b.commit();
+                }
+            } catch (err) {
+                console.error('Erro ao liquidar fatura:', err);
+                alert('Erro ao pagar fatura: ' + err.message);
+            }
+        };
+
         const confirmImport = async () => {
             const batch = db.batch();
             reviewData.forEach(t => {
@@ -2663,17 +2744,20 @@
 
                 batch.set(ref, {
                     ...dataToSave,
-                    title: t.title || "Importado",
-                    amount: Number(t.amount),
-                    type: t.type || 'expense',
-                    category: t.category || 'Outros',
-                    market: finalMarket, // Salva o mercado corretamente
-                    bank: finalBank,     // Salva o banco corretamente
-                    payer: 'me',
-                    ownerId: profile,
+                    title:     t.title    || 'Importado',
+                    amount:    Number(t.amount),
+                    type:      t.type     || 'expense',
+                    category:  t.category || 'Outros',
+                    market:    finalMarket,
+                    bank:      finalBank,
+                    isShared:  t.isShared === true,
+                    ownerId:   profile,              // sempre o logado — segurança
+                    payer:     t.payer     || 'me',
+                    quantity:  t.quantity  || 0,
+                    unitPrice: t.unitPrice || 0,
                     createdAt: new Date().toISOString(),
-                    userId: user.uid,
-                    isSettlement: false
+                    userId:    user.uid,
+                    isSettlement: false,
                 });
             });
             await batch.commit();
@@ -2850,7 +2934,8 @@
         // NOVO: Função para carregar edição
         const handleEdit = (tx) => {
             // FASE 2: Se for projeção (Fantasma), id vira null (cria novo), mas mantém os dados para facilitar o lançamento
-            setEditingId(tx.isProjection ? null : tx.id);
+            // Card expenses are intentional ghosts — they ARE editable. Only block pure projection ghosts (recurring).
+            setEditingId((tx.isProjection && !tx.isCardExpense) ? null : tx.id);
 
             setFTitle(tx.title);
             setFAmount(tx.amount);
@@ -2866,6 +2951,8 @@
             setFDreamId(tx.dreamId || '');
 
             setFIsProjection(tx.isProjection || false); // NOVO: Detecta se é ghost
+            setFIsCard(tx.isCardExpense || false); // Cartão de crédito
+            setFInvoiceMonth(tx.invoiceMonth || '');
 
             // CORREÇÃO: Ghosts NÃO herdam recorrência
             if (tx.isProjection) {
@@ -2954,7 +3041,11 @@
                     recurrenceEndDate: fRecurrent && fRecurrenceEndMode === 'date' ? (fRecurrenceEndDate || null) : null,
                     recurrenceCount: fRecurrent && fRecurrenceEndMode === 'count' ? (Number(fRecurrenceCount) || 12) : null,
                     dreamId: fType === 'investment' ? (fDreamId || '') : '', // Só salva vínculo se for investimento
-                    groupId: newGroupId // <--- SALVA O DNA NO BANCO
+                    groupId: newGroupId, // <--- SALVA O DNA NO BANCO
+                    // Cartão de Crédito: isProjection = true até liquidação da fatura
+                    isProjection: fIsCard ? true : (fIsProjection || false),
+                    isCardExpense: fIsCard || false,
+                    invoiceMonth: fIsCard ? fInvoiceMonth : null,
                 };
 
                 // Remove undefined keys just in case
@@ -3109,6 +3200,7 @@
                 setFSubCat(''); setFRecurrent(false); setFDreamId('');
                 setFRecurrenceEndMode('forever'); setFRecurrenceEndDate(''); setFRecurrenceCount(12);
                 setFIsProjection(false); // Reset
+                setFIsCard(false); setFInvoiceMonth(''); // Reset cartão crédito
                 setFormPayer('me'); setFShared(false); setFType('expense'); setFCat('Outros'); setIsSell(false); // Reset v53 Fix
             } catch (error) {
                 console.error("Erro ao salvar transação:", error);
@@ -3608,6 +3700,25 @@
                                                     ))}
                                                 </select>
                                             </div>
+                                            <div className="flex flex-col col-span-2">
+                                                <label className="flex items-center gap-2 cursor-pointer mt-1">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={item.isShared === true}
+                                                        onChange={() =>
+                                                            setReviewData(prev =>
+                                                                prev.map((t, idx) =>
+                                                                    idx === index ? { ...t, isShared: !t.isShared } : t
+                                                                )
+                                                            )
+                                                        }
+                                                        className="w-4 h-4 accent-indigo-500"
+                                                    />
+                                                    <span className="text-xs font-bold text-slate-400">
+                                                        Compartilhado
+                                                    </span>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                     );
@@ -4049,6 +4160,27 @@
                             {extratoMode === 'list' ? (
                                 // AJUSTE: Removemos 'space-y-4' e adicionamos o estilo de Container Único (borda única, fundo único)
                                 <div className="animate-fade-in -mt-4 bg-slate-900/40 rounded-3xl overflow-hidden shadow-sm">
+                                    {/* BANNER DE FATURA (só no mês da fatura, com Previsão ON) */}
+                                    {(() => {
+                                        // Busca em fullList (todas as datas) pois a compra está no mês da compra, não no mês da fatura
+                                        const cardItems = data.fullList.filter(t => t.isCardExpense && t.invoiceMonth === selectedMonth && t.isProjection);
+                                        if (!isForecast || cardItems.length === 0) return null;
+                                        const total = cardItems.reduce((s, t) => s + Number(t.amount), 0);
+                                        return (
+                                            <div className="flex items-center justify-between gap-3 px-4 py-3 bg-sky-500/10 border-b border-sky-500/20">
+                                                <div className="flex items-center gap-2 text-sky-300 text-xs font-bold">
+                                                    <span>💳</span>
+                                                    <span>Fatura {selectedMonth}: <span className="text-white">{formatCurrency(total)}</span></span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handlePayCardInvoice(selectedMonth)}
+                                                    className="shrink-0 px-3 py-1.5 bg-sky-500 text-white text-xs font-bold rounded-xl active:scale-95 transition-all hover:bg-sky-400 shadow">
+                                                    Pagar Agora
+                                                </button>
+                                            </div>
+                                        );
+                                    })()}
                                     {data.list.map(t => {
                                         // Lógica de Long Press (Segurar)
                                         let pressTimer;
@@ -4149,6 +4281,11 @@
                                                             <span>{t.date.split('-')[2]}/{t.date.split('-')[1]}</span>
                                                             <span className="opacity-30">•</span>
                                                             <span className="truncate max-w-[150px]">{t.category} {t.subCategory ? `(${t.subCategory})` : ''}</span>
+                                                             {t.isCardExpense && t.invoiceMonth && (
+                                                                <span className="text-sky-400 shrink-0 whitespace-nowrap">
+                                                                    💳 Fat: {(() => { const [y,m] = t.invoiceMonth.split('-'); return new Date(y,m-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}); })()}
+                                                                </span>
+                                                             )}
                                                         </div>
                                                         {t.market && (
                                                             <span className="text-slate-600 truncate max-w-[100px] italic">
@@ -5063,6 +5200,43 @@
                                             {isInstallment && <span className="text-[10px] bg-blue-500 text-white px-1.5 rounded-full absolute top-2 right-2">{installments}x</span>}
                                         </div>
                                     </div>
+                                    {/* CARTÃO DE CRÉDITO (só para despesas) */}
+                                    {fType === 'expense' && (
+                                        <div className="animate-slide-up">
+                                            <div onClick={() => { setFIsCard(!fIsCard); if (!fIsCard && !fInvoiceMonth) { const d = new Date(); d.setMonth(d.getMonth() + 1); setFInvoiceMonth(d.toISOString().slice(0,7)); } }}
+                                                className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${fIsCard ? 'bg-sky-500/10 border-sky-500 text-sky-400' : 'bg-[#1e293b] border-slate-700 text-slate-500 hover:bg-slate-800'}`}>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-lg">💳</span>
+                                                    <span className="text-xs font-bold uppercase">Cartão de Crédito</span>
+                                                </div>
+                                                <div className={`w-8 h-4 rounded-full transition-all relative ${fIsCard ? 'bg-sky-500' : 'bg-slate-700'}`}>
+                                                    <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${fIsCard ? 'left-4' : 'left-0.5'}`}></div>
+                                                </div>
+                                            </div>
+                                            {fIsCard && (
+                                                <div className="mt-2 bg-sky-500/5 border border-sky-500/20 rounded-xl p-3 animate-slide-up">
+                                                    <p className="text-[10px] font-bold uppercase text-sky-400 mb-2">Mês da Fatura</p>
+                                                    <select
+                                                        value={fInvoiceMonth}
+                                                        onChange={e => setFInvoiceMonth(e.target.value)}
+                                                        className="w-full p-2.5 bg-slate-900/80 rounded-xl text-white text-sm border border-sky-500/30 focus:border-sky-500 outline-none [&>option]:bg-slate-800">
+                                                        {(() => {
+                                                            const opts = [];
+                                                            const now = new Date();
+                                                            for (let i = 1; i <= 6; i++) {
+                                                                const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+                                                                const val = d.toISOString().slice(0,7);
+                                                                const label = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                                                                opts.push(<option key={val} value={val}>{label.charAt(0).toUpperCase()+label.slice(1)}</option>);
+                                                            }
+                                                            return opts;
+                                                        })()}
+                                                    </select>
+                                                    <p className="text-[10px] text-sky-400/60 mt-2">💡 A compra aparece agora, o saldo só cai ao pagar a fatura.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* OPÇÕES DE RECORRÊNCIA (Detalhado) - MOVIDO PARA FORA DO GRID */}
                                     {fRecurrent && (
