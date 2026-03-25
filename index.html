@@ -2560,20 +2560,65 @@
                          (ex: 'bruno' ou 'maiara').
                          NÃO retorne 'me' ou 'partner' — apenas o nome bruto.
                        - Se a coluna 'QuemPagou' estiver ausente: retorne payerName: null.
-                    9. INVESTIMENTOS:
-                       - Aportes / Compras:
-                         type: 'investment', quantity: [valor positivo das Cotas]
-                       - Resgates / Vendas:
-                         type: 'investment', quantity: [valor NEGATIVO das Cotas]
-                       - Rendimentos / Dividendos / JCP / Proventos:
-                         type: 'income', category: 'Dividendos', quantity: 0
-                       - Se o campo 'Valor' contiver uma fórmula (ex: '=D2*E2')
-                         ou estiver vazio: calcule amount = Cotas × Preço médio.
-                       - Se houver coluna 'Preço médio' ou 'Preço unitário':
-                         retorne no campo 'unitPrice'.
-                       - O ticker ou código do ativo (coluna 'Local' ou 'Titulo'):
-                         retorne no campo 'market'.
-                    
+                      9. INVESTIMENTOS
+                      A coluna que define o tipo da operacao pode se chamar
+                      Tipo, Operacao, Movimentacao ou similar.
+                      Mapeie o VALOR dessa coluna conforme abaixo. ATENCAO: retorne o
+                      tipo EXATO indicado, nao generalize para investment:
+
+                      - Valor Aporte, Compra, Aplicacao, Subscricao -> retorne
+                        type: aporte, quantity: valor POSITIVO das cotas (coluna Cotas
+                        ou Quantidade), amount: positivo.
+
+                      - Valor Resgate, Venda, Saque, Retirada -> retorne
+                        type: resgate, quantity: valor POSITIVO das cotas (coluna Cotas
+                        ou Quantidade), amount: positivo.
+                        IMPORTANTE: para Resgates, retorne quantity SEMPRE POSITIVO -
+                        o sistema aplica o sinal negativo automaticamente.
+                        NUNCA retorne quantity negativo.
+
+                      - Valor Dividendos, Dividendo, JCP, Juros sobre Capital
+                        Proprio, Rendimentos, Rendimento, Provento, Proventos
+                        -> retorne type: income, category: Dividendos, quantity: 0,
+                        amount: positivo.
+
+                      - O campo amount deve ser sempre POSITIVO. NUNCA retorne quantity
+                        negativo para nenhum tipo.
+                      - Se o campo Valor contiver uma formula (ex: =D2*E2) ou estiver
+                        vazio, calcule: amount = Cotas x Preco medio.
+                      - Se houver coluna Cotas ou Quantidade, retorne o valor
+                        POSITIVO no campo quantity.
+                      - Se houver coluna Preco medio, Preco unitario ou Cotacao,
+                        retorne o valor no campo unitPrice.
+                      - O ticker/codigo do ativo (coluna Ativo, Ticker, Local ou
+                        Titulo) retorne no campo market.
+                       - Para definir o campo category, use a coluna Investimento,
+                         Tipo de Ativo ou Classe e normalize o valor encontrado usando
+                         obrigatoriamente o mapeamento abaixo. NUNCA retorne o valor
+                         bruto da planilha.
+                         ESTA REGRA NAO SE APLICA a linhas cujo Tipo seja Dividendos,
+                         JCP, Rendimentos, Provento ou similares: nessas linhas
+                         mantenha category Dividendos conforme definido acima,
+                         ignorando as colunas Investimento e Categoria.
+                         Mapeamento obrigatorio para Aportes, Resgates e Compras
+                         (normalize sem excecao):
+                         - Acao, Acoes, Acao BR, Acoes BR -> retorne: Acoes BR
+                         - FII, FIIs, Fundo Imobiliario -> retorne: FIIs
+                         - Renda fixa, Renda Fixa, CDB, Tesouro, LCI, LCA
+                           -> retorne: Renda Fixa CDB/Tesouro
+                         - Fundo de investimento, Fundos, Fundo -> retorne: Fundos
+                         - Acoes EUA, Acao EUA, BDR, Internacional -> retorne: Acoes EUA
+                         - Cripto, Crypto, Bitcoin -> retorne: Cripto
+                         - Reserva Emergencia, Reserva -> retorne: Reserva Emergencia
+                         - Qualquer outro valor nao mapeado -> retorne: Fundos
+                         - Se a coluna Investimento estiver ausente, infira pelo ticker:
+                           terminado em 11 -> FIIs;
+                           4 letras + 1 numero -> Acoes BR;
+                           CDB/LCI/LCA/Tesouro no titulo -> Renda Fixa CDB/Tesouro;
+                           senao -> Fundos.
+                       - Se houver coluna Categoria com valores de setor ou subsetor
+                         (ex: Logistica, Shoppings, Financeiro, Consumo nao ciclico,
+                         etc.), retorne o valor EXATO no campo subCategory.
                     SAÍDA OBRIGATÓRIA (JSON puro sem markdown):
                     {
                         "transactions": [
@@ -2583,6 +2628,7 @@
                                 "amount": 0.00, 
                                 "type": "expense", 
                                 "category": "Alimentação",
+                                "subCategory": "",
                                 "market": "Nome da Loja ou Ticker",
                                 "bank": "Nome do Banco",
                                 "isShared": false,
@@ -2648,21 +2694,84 @@
 
         const processAIResponse = (respData) => {
             if (respData && respData.transactions && respData.transactions.length > 0) {
+                const INVEST_CAT_NORM = {
+                    'acao': 'A\u00e7\u00f5es BR', 'acoes': 'A\u00e7\u00f5es BR',
+                    'acao br': 'A\u00e7\u00f5es BR', 'acoes br': 'A\u00e7\u00f5es BR',
+                    'fii': 'FIIs', 'fiis': 'FIIs',
+                    'fundo imobiliario': 'FIIs',
+                    'renda fixa': 'Renda Fixa CDB/Tesouro',
+                    'renda fixa cdb tesouro': 'Renda Fixa CDB/Tesouro',
+                    'renda fixa cdbtesouro': 'Renda Fixa CDB/Tesouro',
+                    'cdb': 'Renda Fixa CDB/Tesouro',
+                    'tesouro': 'Renda Fixa CDB/Tesouro',
+                    'lci': 'Renda Fixa CDB/Tesouro',
+                    'lca': 'Renda Fixa CDB/Tesouro',
+                    'fundo de investimento': 'Fundos',
+                    'fundos': 'Fundos', 'fundo': 'Fundos',
+                    'acoes eua': 'A\u00e7\u00f5es EUA', 'acao eua': 'A\u00e7\u00f5es EUA',
+                    'bdr': 'A\u00e7\u00f5es EUA', 'internacional': 'A\u00e7\u00f5es EUA',
+                    'cripto': 'Cripto', 'crypto': 'Cripto',
+                    'bitcoin': 'Cripto',
+                    'reserva emergencia': 'Reserva Emerg\u00eancia',
+                    'reserva': 'Reserva Emerg\u00eancia',
+                };
+                const normCatKey = raw => (raw ?? '') // --- FIX v82 ---
+                    .toLowerCase()
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .replace(/[^a-z0-9 ]/g, '')
+                        .trim();
+
                 let prepared = respData.transactions.map((t, idx) => {
                     const resolvedPayer = t.payerName?.toLowerCase() || profile.toLowerCase();
+                    const rawType = String(t.type || '').toLowerCase().trim();
+
+                    const isResgate = ['resgate','venda','saque','retirada',
+                        'redemption','resgate/venda'].includes(rawType);
+
+                    const isAporte = ['aporte','compra','aplicação','aplicacao',
+                        'investment','investimento','compra/aporte','subscrição','subscricao',
+                        'subscricão'].includes(rawType);
+
+                    const isProvento = [
+                        'dividendos','dividendo','jcp',
+                        'juros sobre capital próprio','juros sobre capital proprio',
+                        'rendimentos','rendimento','provento','proventos'
+                    ].includes(rawType);
+
+                    const normalizedType =
+                        ['income','receita'].includes(rawType) || isProvento ? 'income' :
+                        (isAporte || isResgate)                              ? 'investment' :
+                        ['expense','despesa'].includes(rawType)              ? 'expense' :
+                        'expense';
+
+                    const rawQty = Math.abs(Number(t.quantity) || 0);
+                    const normalizedQty = normalizedType === 'investment'
+                        ? (isResgate ? -rawQty : rawQty)
+                        : 0;
                     return {
                         ...t,
-                        id:        idx,
-                        isShared:  t.isShared === true
-                                   || t.isShared === 'true'
-                                   || ['sim', 's', 'x', 'yes'].includes(
-                                        String(t.isShared).toLowerCase()),
+                         id:        idx,
+                         type:      normalizedType,
+                         category:  (() => {
+                             if (isProvento) return 'Dividendos';
+                             if (normalizedType === 'investment') {
+                                 return INVEST_CAT_NORM[normCatKey(t.category)] || t.category || 'Outros';
+                             }
+                             return t.category || 'Outros';
+                         })(),
+                         isShared:  t.isShared === true
+                                    || t.isShared === 'true'
+                                    || ['sim', 's', 'x', 'yes'].includes(
+                                         String(t.isShared).toLowerCase()),
                         ownerId:   profile,   // sempre o usuário logado — nunca o da IA
                         payer:     resolvedPayer !== profile.toLowerCase()
                                    ? 'partner' : 'me',
                         amount:    Number(t.amount),
-                        date:      t.date || new Date().toISOString().split('T')[0],
-                        quantity:  t.quantity  || 0,
+                        date:      (t.date && /^\d{4}-\d{2}-\d{2}$/.test(t.date))
+                                       ? t.date
+                                       : new Date().toISOString().split('T')[0],
+                        quantity:  normalizedQty,
                         unitPrice: t.unitPrice || 0,
                         items:     t.items  || [],
                         market:    t.market || '',
@@ -2728,7 +2837,12 @@
                 }
             } catch (err) {
                 console.error('Erro ao liquidar fatura:', err);
-                alert('Erro ao pagar fatura: ' + err.message);
+                // --- FIX v82 ---
+                if (err?.code === 'failed-precondition' || err?.message?.includes('index')) {
+                    alert('Erro de índice no banco. Abra o console do Firebase e crie o índice composto sugerido no link do erro.');
+                } else {
+                    alert('Erro ao pagar fatura: ' + err.message);
+                }
             }
         };
 
@@ -2737,28 +2851,34 @@
             reviewData.forEach(t => {
                 const ref = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('transactions').doc();
                 const { id, ...dataToSave } = t;
-
-                // Prioriza o dado específico do item, senão usa o "Padrão" digitado no topo
                 const finalMarket = t.market || importMarket;
-                const finalBank = t.bank || importBank;
+                const finalBank   = t.bank   || importBank;
 
-                batch.set(ref, {
+                const payload = {
                     ...dataToSave,
-                    title:     t.title    || 'Importado',
-                    amount:    Number(t.amount),
-                    type:      t.type     || 'expense',
-                    category:  t.category || 'Outros',
-                    market:    finalMarket,
-                    bank:      finalBank,
-                    isShared:  t.isShared === true,
-                    ownerId:   profile,              // sempre o logado — segurança
-                    payer:     t.payer     || 'me',
-                    quantity:  t.quantity  || 0,
-                    unitPrice: t.unitPrice || 0,
-                    createdAt: new Date().toISOString(),
-                    userId:    user.uid,
+                    title:        t.title     || 'Importado',
+                    amount:       Number(t.amount),
+                    type:         t.type      || 'expense',
+                    category:     t.category  || 'Outros',
+                    market:       finalMarket,
+                    bank:         finalBank,
+                    isShared:     t.isShared === true,
+                    ownerId:      profile,
+                    payer:        t.payer     || 'me',
+                    quantity:     Number(t.quantity)  || 0,
+                    unitPrice:    Number(t.unitPrice) || 0,
+                    items:        t.items     || [],
+                    isProjection: false,
+                    isRecurrent:  false,
                     isSettlement: false,
+                    subCategory:  t.subCategory || '',
+                    createdAt:    new Date().toISOString(),
+                    userId:       user?.uid   || 'anon',
+                };
+                Object.keys(payload).forEach(key => {
+                    if (payload[key] === undefined) delete payload[key];
                 });
+                batch.set(ref, payload);
             });
             await batch.commit();
             setIsReviewOpen(false);
@@ -3256,8 +3376,10 @@
 
         // CORREÇÃO INTELIGENTE (Pagar vs Receber)
         const settleDebt = async () => {
+            const numericSettle = Number(settleAmount);
+            if (!numericSettle || numericSettle <= 0) return; // --- FIX B2 v83 ---
             // Aceita o valor do input (parcial) ou o total se o input estiver vazio (segurança)
-            const inputVal = Number(settleAmount);
+            const inputVal = numericSettle; // --- FIX v82 ---
 
             // CORREÇÃO: O valor digitado é apenas a MAGNITUDE. 
             // A direção (Pagar vs Receber) é determinada pelo estado atual da Dívida.
@@ -3626,11 +3748,11 @@
                                             <input
                                                 className="font-bold text-lg text-white bg-transparent border-b border-dashed border-white/20 focus:border-emerald-500 outline-none w-full"
                                                 value={item.title}
-                                                onChange={(e) => {
-                                                    const newData = [...reviewData];
-                                                    newData[index].title = e.target.value;
-                                                    setReviewData(newData);
-                                                }}
+                                                onChange={e => setReviewData(prev =>
+                                                    prev.map((t, i) =>
+                                                        i === index ? { ...t, title: e.target.value } : t
+                                                    )
+                                                )}
                                             />
                                             <button onClick={() => {
                                                 const newData = reviewData.filter((_, i) => i !== index);
@@ -3647,11 +3769,13 @@
                                                     step="0.01"
                                                     className="p-3 bg-slate-900/80 rounded-xl text-white font-bold text-lg border border-white/10 focus:border-emerald-500 outline-none w-full"
                                                     value={item.amount !== undefined ? item.amount : ''}
-                                                    onChange={(e) => {
-                                                        const newData = [...reviewData];
-                                                        newData[index].amount = e.target.value === '' ? '' : Number(e.target.value);
-                                                        setReviewData(newData);
-                                                    }}
+                                                    onChange={e => setReviewData(prev =>
+                                                        prev.map((t, i) =>
+                                                            i === index
+                                                                ? { ...t, amount: e.target.value !== '' ? Number(e.target.value) : t.amount }
+                                                                : t
+                                                        )
+                                                    )}
                                                 />
                                             </div>
                                             <div className="flex flex-col">
@@ -3660,27 +3784,64 @@
                                                     type="date"
                                                     className="p-3 bg-slate-900/80 rounded-xl text-white text-sm border border-white/10 focus:border-emerald-500 outline-none w-full"
                                                     value={item.date}
-                                                    onChange={(e) => {
-                                                        const newData = [...reviewData];
-                                                        newData[index].date = e.target.value;
-                                                        setReviewData(newData);
-                                                    }}
+                                                    onChange={e => setReviewData(prev =>
+                                                        prev.map((t, i) =>
+                                                            i === index ? { ...t, date: e.target.value } : t
+                                                        )
+                                                    )}
                                                 />
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="text-[10px] uppercase text-slate-400 font-bold ml-1 mb-1">Responsável</span>
                                                 <select
                                                     className="p-3 bg-slate-900/80 rounded-xl text-white text-sm border border-white/10 focus:border-emerald-500 outline-none w-full [&>option]:bg-slate-800"
-                                                    value={item.ownerId}
-                                                    onChange={(e) => {
-                                                        const newData = [...reviewData];
-                                                        newData[index].ownerId = e.target.value;
-                                                        setReviewData(newData);
-                                                    }}
+                                                    value={item.payer === 'partner' ? (profile === 'bruno' ? 'maiara' : 'bruno') : profile}
+                                                    onChange={(e) =>
+                                                        setReviewData(prev =>
+                                                            prev.map((t, i) =>
+                                                                i === index
+                                                                    ? { ...t, payer: e.target.value === profile ? 'me' : 'partner' }
+                                                                    : t
+                                                            )
+                                                        )
+                                                    }
                                                 >
                                                     <option value="bruno">Bruno</option>
                                                     <option value="maiara">Maiara</option>
-                                                    <option value="joint">Casal</option>
+                                                </select>
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] uppercase text-slate-400 font-bold ml-1 mb-1">Tipo</span>
+                                                <select
+                                                    className="p-3 bg-slate-900/80 rounded-xl text-white text-sm border border-white/10 focus:border-emerald-500 outline-none w-full [&>option]:bg-slate-800"
+                                                    value={
+                                                        item.type !== 'investment'
+                                                            ? item.type
+                                                            : Number(item.quantity) >= 0
+                                                                ? 'investment_aporte'
+                                                                : 'investment_resgate'
+                                                    }
+                                                    onChange={e => {
+                                                        const val = e.target.value;
+                                                        const isResgate = val === 'investment_resgate';
+                                                        const isInvest = val.startsWith('investment');
+                                                        const rawQty = Math.abs(Number(item.quantity) || 0);
+                                                        setReviewData(prev =>
+                                                            prev.map((t, i) => i === index ? {
+                                                                ...t,
+                                                                type: isInvest ? 'investment' : val,
+                                                                quantity: isInvest
+                                                                    ? (isResgate ? -rawQty : rawQty)
+                                                                    : 0,
+                                                                category: ''
+                                                            } : t)
+                                                        );
+                                                    }}
+                                                >
+                                                    <option value="expense">💸 Despesa</option>
+                                                    <option value="income">💰 Receita</option>
+                                                    <option value="investment_aporte">📈 Investimento — Aporte</option>
+                                                    <option value="investment_resgate">📉 Investimento — Resgate</option>
                                                 </select>
                                             </div>
                                             <div className="flex flex-col">
@@ -3688,18 +3849,42 @@
                                                 <select
                                                     className="p-3 bg-slate-900/80 rounded-xl text-white text-sm border border-white/10 focus:border-emerald-500 outline-none w-full [&>option]:bg-slate-800"
                                                     value={item.category}
-                                                    onChange={(e) => {
-                                                        const newData = [...reviewData];
-                                                        newData[index].category = e.target.value;
-                                                        setReviewData(newData);
-                                                    }}
+                                                    onChange={e => setReviewData(prev =>
+                                                        prev.map((t, i) =>
+                                                            i === index ? { ...t, category: e.target.value } : t
+                                                        )
+                                                    )}
                                                 >
                                                     <option value="">Categoria...</option>
-                                                    {CATEGORIES[item.type === 'income' ? 'income' : 'expense']?.map(c => (
+                                                    {CATEGORIES[item.type === 'income' ? 'income' : item.type === 'investment' ? 'investment' : 'expense']?.map(c => (
                                                         <option key={c.id} value={c.name}>{c.name}</option>
                                                     ))}
                                                 </select>
                                             </div>
+                                            {(() => {
+                                                const catKey = item.type === 'income' ? 'income' : item.type === 'investment' ? 'investment' : 'expense';
+                                                const subcats = CATEGORIES[catKey]?.find(c => c.name === item.category)?.subcategories;
+                                                if (!subcats || subcats.length === 0) return null;
+                                                return (
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] uppercase text-slate-400 font-bold ml-1 mb-1">Subcategoria</span>
+                                                        <select
+                                                            className="p-3 bg-slate-900/80 rounded-xl text-white text-sm border border-white/10 focus:border-emerald-500 outline-none w-full [&>option]:bg-slate-800"
+                                                            value={item.subCategory || ''}
+                                                            onChange={e => setReviewData(prev =>
+                                                                prev.map((t, i) =>
+                                                                    i === index ? { ...t, subCategory: e.target.value } : t
+                                                                )
+                                                            )}
+                                                        >
+                                                            <option value="">Subcategoria...</option>
+                                                            {subcats.map(sub => (
+                                                                <option key={sub} value={sub}>{sub}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                );
+                                            })()}
                                             <div className="flex flex-col col-span-2">
                                                 <label className="flex items-center gap-2 cursor-pointer mt-1">
                                                     <input
