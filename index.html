@@ -4023,13 +4023,13 @@
                 </div>
 
                 {/* --- MENU CONTEXTUAL FLUTUANTE (FUNDO DO APP) --- */}
-                <div className="px-2 pt-4 pb-4 shrink-0 z-30 relative flex gap-4 w-full border-b border-white/20">
+                <div className="px-2 py-2 shrink-0 z-30 relative flex gap-4 w-full border-b border-white/20">
 
                     {/* 1. ESCOPO (TEXTO PURO + SETA) */}
                     <div className="relative flex-1 min-w-0">
                         <button
                             onClick={() => setActiveDropdown(activeDropdown === 'scope' ? null : 'scope')}
-                            className="flex items-center gap-2 text-white group w-full border-b border-white/20 pb-2"
+                            className="flex items-center gap-2 text-white group w-full"
                         >
                             <div className={`p-1.5 rounded-full shrink-0 ${viewMode === 'personal' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-pink-500/20 text-pink-400'}`}>
                                 {viewMode === 'personal' ? <User size={14} strokeWidth={3} /> : <Users size={14} strokeWidth={3} />}
@@ -4057,7 +4057,7 @@
                     <div className="relative flex-1 min-w-0">
                         <button
                             onClick={() => setActiveDropdown(activeDropdown === 'context' ? null : 'context')}
-                            className="flex items-center gap-2 text-white group w-full border-b border-white/20 pb-2"
+                            className="flex items-center gap-2 text-white group w-full"
                         >
                             <div className={`p-1.5 rounded-full shrink-0 ${dashboardMode === 'statement' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
                                 {dashboardMode === 'statement' ? <Banknote size={14} strokeWidth={3} /> : <TrendingUp size={14} strokeWidth={3} />}
@@ -4089,7 +4089,7 @@
 
                     {/* --- CARD PRINCIPAL (Agora dentro da rolagem) --- */}
                     {tab === 'home' && (
-                        <div className="pt-6 mb-6 relative z-20 shrink-0 animate-fade-in">
+                        <div className="pt-4 mb-2 relative z-20 shrink-0 animate-fade-in">
                             {/* --- NOVO LAYOUT HERO (Imagem 5) --- */}
                             <div className="px-1 relative z-10">
 
@@ -4170,9 +4170,9 @@
                                 </div>
 
                                 {/* 4. GRID DE RESUMO (Subindo mais para o topo) */}
-                                <div className="grid grid-cols-3 border-y border-white/20 py-3 mt-2 mb-4">
+                                <div className="grid grid-cols-3 border-y border-slate-500 py-3 mt-2 mb-4">
                                     {/* Receita */}
-                                    <div className="text-center border-r border-white/20">
+                                    <div className="text-center border-r border-slate-500">
                                         <p className="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-1">Receita</p>
                                         <p className="text-lg font-bold text-emerald-400 tracking-tight">
                                             {hideValues ? '•••' : formatCurrency(data.inc)}
@@ -4180,7 +4180,7 @@
                                     </div>
 
                                     {/* Despesa + Extrato */}
-                                    <div className="text-center border-r border-white/20">
+                                    <div className="text-center border-r border-slate-500">
                                         <p className="text-xs font-bold text-rose-500 uppercase tracking-widest mb-1">Despesa</p>
                                         <p className="text-lg font-bold text-rose-400 tracking-tight">
                                             {hideValues ? '•••' : formatCurrency(data.exp)}
@@ -4378,10 +4378,6 @@
                     )}
                     {/* --- FIM ITENS 7 e 8 --- */}
 
-                    {/* AJUSTE: Linha divisória entre o Resumo (Extrato) e a Lista de Transações */}
-                    {tab === 'home' && dashboardMode === 'statement' && (
-                        <div className="h-px w-full bg-white/20 mb-4 mx-auto max-w-[95%]"></div>
-                    )}
 
                     {tab === 'home' && dashboardMode === 'statement' && (
                         <>
@@ -4458,7 +4454,7 @@
                                                                 className={`shrink-0 px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
                                                                     listFilterType === opt.val
                                                                         ? 'bg-indigo-600 text-white border-indigo-500'
-                                                                        : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'
+                                                                        : 'bg-white/5 text-slate-400 border-slate-600 hover:bg-white/10'
                                                                 }`}
                                                             >
                                                                 {opt.label}
@@ -4472,7 +4468,7 @@
                                                             className={`shrink-0 px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
                                                                 listFilterBank === 'all'
                                                                     ? 'bg-indigo-600 text-white border-indigo-500'
-                                                                    : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'
+                                                                    : 'bg-white/5 text-slate-400 border-slate-600 hover:bg-white/10'
                                                             }`}
                                                         >
                                                             Todos os bancos
@@ -4484,7 +4480,7 @@
                                                                 className={`shrink-0 px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
                                                                     listFilterBank === bank
                                                                         ? 'bg-indigo-600 text-white border-indigo-500'
-                                                                        : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'
+                                                                        : 'bg-white/5 text-slate-400 border-slate-600 hover:bg-white/10'
                                                                 }`}
                                                             >
                                                                 {bank}
@@ -4982,21 +4978,21 @@
                                 <div className="grid grid-cols-2 gap-4 relative z-10">
                                     {dashboardMode === 'statement' ? (
                                         <>
-                                            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/20">
+                                            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-slate-500">
                                                 <p className="text-xs text-slate-300 font-bold uppercase mb-1">Taxa de Poupança</p>
                                                 <p className={`text-xl font-extrabold ${data.analysis.health.savingsRate > 20 ? 'text-emerald-400' : data.analysis.health.savingsRate > 0 ? 'text-amber-400' : 'text-rose-400'}`}>
                                                     {data.analysis.health.savingsRate.toFixed(0)}%
                                                 </p>
                                                 <p className="text-xs text-slate-400">Meta ideal: &gt;20%</p>
                                             </div>
-                                            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/20">
+                                            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-slate-500">
                                                 <p className="text-xs text-slate-300 font-bold uppercase mb-1">Poder de Aporte</p>
                                                 <p className="text-xl font-extrabold text-indigo-400">
                                                     {data.analysis.health.investRate.toFixed(0)}%
                                                 </p>
                                                 <p className="text-xs text-slate-400">da renda foi investida</p>
                                             </div>
-                                            <div className="col-span-2 bg-white/5 p-3 rounded-2xl border border-white/20 flex justify-between items-center mt-1">
+                                            <div className="col-span-2 bg-white/5 p-3 rounded-2xl border border-slate-500 flex justify-between items-center mt-1">
                                                 <div>
                                                     <p className="text-xs text-slate-400 font-bold uppercase">
                                                         {viewMode === 'joint' ? 'Custo p/ Pessoa' : 'Sobras (Saldo)'}
@@ -5045,14 +5041,14 @@
                                                 )}
                                             </div>
 
-                                            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/20">
+                                            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-slate-500">
                                                 <p className="text-xs text-slate-300 font-bold uppercase mb-1">Liberdade Fin.</p>
                                                 <p className="text-xl font-extrabold text-amber-400">
                                                     {data.analysis.health.freedom.toFixed(2)}%
                                                 </p>
                                                 <p className="text-xs text-slate-400">Pagos por dividendos</p>
                                             </div>
-                                            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/20">
+                                            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-slate-500">
                                                 <p className="text-xs text-slate-300 font-bold uppercase mb-1">Sobrevivência</p>
                                                 <p className="text-xl font-extrabold text-emerald-400">
                                                     {data.analysis.health.coverage.toFixed(1)} <span className="text-sm font-normal text-slate-300">meses</span>
@@ -5060,9 +5056,9 @@
                                                 <p className="text-xs text-slate-400">Sem renda ativa</p>
                                             </div>
 
-                                            <div className="col-span-2 mt-2 bg-slate-800/40 rounded-2xl border border-white/5 overflow-hidden relative">
+                                            <div className="col-span-2 mt-2 bg-slate-800/40 rounded-2xl border border-slate-500 overflow-hidden relative">
                                                 {/* Header & Button */}
-                                                <div className="flex justify-between items-center p-3 pb-2 border-b border-white/5">
+                                                <div className="flex justify-between items-center p-3 pb-2 border-b border-slate-500">
                                                     <p className="text-xs text-slate-400 font-bold uppercase flex items-center gap-1.5 tracking-wider">
                                                         <TrendingUp size={14} className="text-indigo-400" /> Rentabilidade
                                                     </p>
