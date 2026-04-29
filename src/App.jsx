@@ -12,10 +12,12 @@ import {
 import {
     buildAssetHistoryTimeline,
     buildDetailedPortfolio,
-    calculatePortfolioTotal
+    calculatePortfolioTotal,
+    FIXED_INCOME_CATEGORIES
 } from './domain/finance/portfolio.js';
 import './styles.css';
 import { BANKS, CATEGORIES, DEFAULT_BUDGETS, DEFAULT_CHORES, P2P_CATEGORY, USER_CONFIG } from './config/appData.js';
+import { BRAPI_TOKEN, GEMINI_MODELS_TO_TRY, MONTH_NAMES_EN_SHORT } from './config/appSettings.js';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -1351,7 +1353,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                     // Busca o ativo no objeto de Portfolio já calculado acima
                     const portAsset = portfolio[name];
                     if (portAsset) {
-                        const isFixed = ['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(portAsset.category);
+                        const isFixed = FIXED_INCOME_CATEGORIES.includes(portAsset.category);
                         if (isFixed) {
                             // Apenas aportes COM dreamId compõem o custo investido para o sonho
                             const historicCost = dreamTxs
@@ -1698,9 +1700,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
             };
 
             // Fallback robusto alinhado às novas versões do Gemini (V2.5, V3 e V3.1)
-            const modelsToTry = [
-                "gemini-2.5-flash",
-            ];
+            const modelsToTry = GEMINI_MODELS_TO_TRY;
             let lastError = null;
 
             for (const modelName of modelsToTry) {
@@ -1728,7 +1728,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
             // em vez do mês real vigente (new Date()). Assim ele consegue subir planilhas velhas.
             const [selYear, selMonthStr] = selectedMonth.split('-');
             const selMonthZeroIdx = Number(selMonthStr) - 1; // 0-11
-            const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            const months = MONTH_NAMES_EN_SHORT;
             const currentMonthName = months[selMonthZeroIdx];
 
             const promptBase = `
@@ -2347,10 +2347,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                     market: fMarket || '',
                     bank: fBank || '',
                     quantity: fType === 'investment'
-                        ? (['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(fCat) ? (isSell ? -1 : 1) : (isSell ? -Math.abs(Number(fQty) || 0) : Math.abs(Number(fQty) || 0)))
+                        ? (FIXED_INCOME_CATEGORIES.includes(fCat) ? (isSell ? -1 : 1) : (isSell ? -Math.abs(Number(fQty) || 0) : Math.abs(Number(fQty) || 0)))
                         : 0,
                     unitPrice: fType === 'investment'
-                        ? (['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(fCat) ? (Number(fAmount) || 0) : (Number(fUnitPrice) || 0))
+                        ? (FIXED_INCOME_CATEGORIES.includes(fCat) ? (Number(fAmount) || 0) : (Number(fUnitPrice) || 0))
                         : 0,
 
                     // FASE 3: Novos Campos
@@ -2485,7 +2485,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                 await batch.commit();
 
                 // REQUIREMENT 3: Atualizar currentPrice customizado se for Renda Fixa para não perder rendimento
-                if (!editingId && fType === 'investment' && ['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(fCat) && fMarket) {
+                if (!editingId && fType === 'investment' && FIXED_INCOME_CATEGORIES.includes(fCat) && fMarket) {
                     try {
                         const assetKeyStr = `${fMarket}@@${viewMode}`;
                         const pricesRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('assetPrices');
@@ -2861,7 +2861,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                     return;
                 }
 
-                const token = 'q8JYwF9vesohbnMd2csLPs'; // Token fornecido pelo usuário
+                const token = BRAPI_TOKEN; // Token fornecido pelo usuário
 
                 // 2. Chamar a API Brapi para cada ticker, ignorando silenciosamente os 400 Bad Request de tickers zumbis
                 const sanitizedPrices = {};
@@ -3957,7 +3957,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                                 <div className="space-y-3">
                                     {data.investData.portfolio.map((asset, i) => {
                                         // CORREÇÃO: Usa pureBalance em Renda Fixa para não causar Falsa Rentabilidade Negativa
-                                        const isRF = ['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(asset.category);
+                                        const isRF = FIXED_INCOME_CATEGORIES.includes(asset.category);
                                         const baseCalc = isRF ? asset.pureBalance : asset.totalCost;
                                         const assetProfit = asset.currentTotal - baseCalc;
                                         const assetYield = baseCalc > 0 ? (assetProfit / baseCalc) * 100 : 0;
@@ -3971,7 +3971,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                                                 <div>
                                                     <p className="font-bold text-sm text-slate-200 flex items-center gap-2">
                                                         {asset.name}
-                                                        {(asset.qty > 0 || (['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(asset.category) && asset.pureBalance > 0)) && (
+                                                        {(asset.qty > 0 || (FIXED_INCOME_CATEGORIES.includes(asset.category) && asset.pureBalance > 0)) && (
                                                             <div className="flex bg-slate-800 rounded-lg border border-white/5 overflow-hidden">
                                                                 <button onClick={(e) => { e.stopPropagation(); handleQuickInvest(asset.name, false); }} className="px-2 py-0.5 hover:bg-indigo-500 hover:text-white transition-colors text-slate-400 text-xs flex items-center justify-center border-r border-white/5" title="Aportar +"><Plus size={10} /></button>
                                                                 <button onClick={(e) => { e.stopPropagation(); handleQuickInvest(asset.name, true); }} className="px-2 py-0.5 hover:bg-rose-500 hover:text-white transition-colors text-slate-400 text-xs flex items-center justify-center border-r border-white/5" title="Resgatar -"><Minus size={10} /></button>
@@ -3980,7 +3980,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                                                         )}
                                                     </p>
                                                     <p className="text-xs text-slate-400">
-                                                        {['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(asset.category)
+                                                        {FIXED_INCOME_CATEGORIES.includes(asset.category)
                                                             ? `Custo Líquido: ${formatCurrency(asset.pureBalance)}`
                                                             : ((asset.qty > 0 || asset.totalCost > 0) ? `${asset.qty} cotas • PM ${formatCurrency(asset.avgPrice)}` : 'Saldo Financeiro')
                                                         }
@@ -4541,7 +4541,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                                             </div>
 
                                             {/* CONDICIONAL: SE FOR RENDA FIXA, SÓ MOSTRA VALOR TOTAL */}
-                                            {['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(fCat) ? (
+                                            {FIXED_INCOME_CATEGORIES.includes(fCat) ? (
                                                 <div className="relative py-2">
                                                     <span className="absolute left-6 top-1/2 -translate-y-1/2 font-bold text-slate-600 text-xl">R$</span>
                                                     <input
@@ -4948,8 +4948,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                                 </button>
                                 <p className="text-xs text-slate-400 mb-4">Informe o preço unitário atual de cada ativo para calcular a rentabilidade.</p>
                                 <div className="overflow-y-auto space-y-4 flex-1 custom-scrollbar">
-                                    {data.investData.portfolio.filter(a => a.qty > 0 || (['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(a.category) && a.pureBalance > 0)).map((asset) => {
-                                        const isFixed = ['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(asset.category);
+                                    {data.investData.portfolio.filter(a => a.qty > 0 || (FIXED_INCOME_CATEGORIES.includes(a.category) && a.pureBalance > 0)).map((asset) => {
+                                        const isFixed = FIXED_INCOME_CATEGORIES.includes(asset.category);
                                         // CORREÇÃO: Chave Escopada para Renda Fixa
                                         const priceKey = isFixed ? `${asset.name}@@${viewMode}` : asset.name;
 
@@ -4987,7 +4987,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                                             </div>
                                         );
                                     })}
-                                    {data.investData.portfolio.filter(a => a.qty > 0 || (['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(a.category) && a.pureBalance > 0)).length === 0 && <p className="text-center text-xs text-slate-500">Nenhum ativo disponível para atualização.</p>}
+                                    {data.investData.portfolio.filter(a => a.qty > 0 || (FIXED_INCOME_CATEGORIES.includes(a.category) && a.pureBalance > 0)).length === 0 && <p className="text-center text-xs text-slate-500">Nenhum ativo disponível para atualização.</p>}
                                 </div>
                                 <button onClick={() => {
                                     db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('assetPrices').set(currentPrices);
