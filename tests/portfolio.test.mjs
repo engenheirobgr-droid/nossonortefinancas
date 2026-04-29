@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {
+  buildAssetHistoryTimeline,
   buildDetailedPortfolio,
   calculatePortfolioTotal,
   getScopedPrice,
@@ -103,6 +104,28 @@ import {
   assert.equal(Number(detailed.investBankFlow.Nubank.toFixed(2)), 600);
   assert.equal(detailed.investCatMap['Ações BR'], 1440);
   assert.equal(detailed.investCatMap['Renda Fixa (CDB/Tesouro)'], 950);
+}
+
+{
+  const timeline = buildAssetHistoryTimeline([
+    { id: 'shared', date: '2026-01-01', type: 'investment', market: 'ABCD4', category: 'AÃ§Ãµes BR', amount: 999, quantity: 9, isShared: true, ownerId: 'bruno' },
+    { id: 'buy-1', date: '2026-01-10', type: 'investment', market: 'ABCD4', category: 'AÃ§Ãµes BR', amount: 1000, quantity: 10, bank: 'XP', isShared: false, ownerId: 'bruno' },
+    { id: 'dividend', date: '2026-01-12', type: 'income', market: 'ABCD4', category: 'Rendimentos/Dividendos', amount: 50, isShared: false, ownerId: 'bruno' },
+    { id: 'buy-2', date: '2026-01-15', type: 'investment', market: 'ABCD4', category: 'AÃ§Ãµes BR', amount: 600, quantity: 5, bank: 'Nubank', isShared: false, ownerId: 'bruno' },
+    { id: 'sell', date: '2026-01-20', type: 'investment', market: 'ABCD4', category: 'AÃ§Ãµes BR', amount: 330, quantity: -3, bank: 'XP', isShared: false, ownerId: 'bruno' },
+    { id: 'other-asset', date: '2026-01-21', type: 'investment', market: 'EFGH3', category: 'AÃ§Ãµes BR', amount: 100, quantity: 1, isShared: false, ownerId: 'bruno' }
+  ], {
+    assetName: 'ABCD4',
+    viewMode: 'personal',
+    profile: 'bruno'
+  });
+
+  assert.deepEqual(timeline.map(transaction => transaction.id), ['sell', 'buy-2', 'dividend', 'buy-1']);
+  assert.equal(Number(timeline[0].historicalPM.toFixed(2)), 106.67);
+  assert.equal(Number(timeline[0].transactionCost.toFixed(2)), 320);
+  assert.equal(timeline[1].historicalPM, 106.66666666666667);
+  assert.equal(timeline[2].historicalPM, 0);
+  assert.equal(timeline[3].historicalPM, 100);
 }
 
 console.log('Portfolio unit tests passed.');

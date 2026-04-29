@@ -9,7 +9,11 @@ import {
     filterTransactionByUniverse,
     normalizeSettlementsForCurrentMonth
 } from './domain/finance/cashflow.js';
-import { buildDetailedPortfolio, calculatePortfolioTotal } from './domain/finance/portfolio.js';
+import {
+    buildAssetHistoryTimeline,
+    buildDetailedPortfolio,
+    calculatePortfolioTotal
+} from './domain/finance/portfolio.js';
 import './styles.css';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -1400,149 +1404,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                 calculatePortfolioTotal(investmentList, { currentPrices, viewMode });
 
             // Calcula Totais
-            // Calcula Totais (PRELIMINAR - Será sobrescrito pelo loop abaixo para garantir consistência)
-            // portfolioCurrentTotal = calculateScopedPortfolioTotal(historicalInvestments); <--- REMOVIDO pois usa lógica sem escopo
-            portfolioCurrentTotal = 0; // Reinicia para somar corretamente no loop
             portfolioPreviousTotal = calculateScopedPortfolioTotal(prevInvestments);
-
-            // Reconstrói Portfolio Detalhado para Exibição (Baseado no Mês Atual)
-            // (Mantém lógica original para popular a lista detalhada)
-            [...historicalInvestments].sort((a, b) => {
-                const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
-                if (dateDiff !== 0) return dateDiff;
-                const qtyA = a.quantity ? Number(a.quantity) : 0;
-                const qtyB = b.quantity ? Number(b.quantity) : 0;
-                return qtyB - qtyA;
-            }).forEach(t => {
-                const assetName = t.market || t.category || 'Outros';
-
-                // CORREÇÃO: Chave de Preço Escopada (Para evitar vazamento entre Personal/Joint em Renda Fixa)
-                const isFixed = ['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(t.category);
-                const priceKey = isFixed ? `${assetName}@@${viewMode}` : assetName;
-                const currentPrice = currentPrices[priceKey] !== undefined ? currentPrices[priceKey] : (currentPrices[assetName] || 0);
-
-                if (!portfolio[assetName]) portfolio[assetName] = {
-                    name: assetName,
-                    category: t.category,
-                    bank: t.bank, // Armazena a instituição original
-                    bankShares: {}, // M2
-                    bankCost: {},   // M2
-                    qty: 0,
-                    totalCost: 0,
-                    pureBalance: 0,
-                    avgPrice: 0,
-                    currentPrice: currentPrice,
-                    currentTotal: 0,
-                    realizedProfit: 0, // AUTO-CURA
-                    dividends: dividendsByAsset[assetName] || 0 // <--- Injeta dividendos acumulados
-                };
-                // WAC Logic Principal (Mesma do helper)
-                const txQty = Number(t.quantity);
-                const txAmt = Number(t.amount);
-
-                if (txQty >= 0) {
-                    portfolio[assetName].qty += txQty;
-                    portfolio[assetName].totalCost += txAmt;
-                    portfolio[assetName].pureBalance += txAmt;
-                } else {
-                    const sellQty = Math.abs(txQty);
-                    const isFixed = ['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(t.category);
-                    if (isFixed) {
-                        portfolio[assetName].qty -= sellQty;
-                        // CUSTO BLINDADO + AUTO-CURA
-                        const rfExcess = Math.max(0, txAmt - portfolio[assetName].pureBalance); // AUTO-CURA
-                        portfolio[assetName].realizedProfit += rfExcess; // AUTO-CURA
-                        portfolio[assetName].pureBalance = Math.max(0, portfolio[assetName].pureBalance - txAmt); // AUTO-CURA
-                    } else {
-                        const qtyToDeductOuter = Math.min(sellQty, portfolio[assetName].qty);
-                        if (portfolio[assetName].qty > 0) {
-                            const currentPM = portfolio[assetName].totalCost / portfolio[assetName].qty;
-                            portfolio[assetName].qty -= qtyToDeductOuter;
-                            portfolio[assetName].totalCost -= (qtyToDeductOuter * currentPM);
-                            portfolio[assetName].pureBalance -= (qtyToDeductOuter * currentPM);
-                        } else {
-                            portfolio[assetName].totalCost -= txAmt;
-                            portfolio[assetName].pureBalance -= txAmt;
-                            if (portfolio[assetName].totalCost < 0) portfolio[assetName].totalCost = 0;
-                        }
-                    }
-                }
-
-                if (t.bank) { // M2
-                    const txQty = Number(t.quantity);
-                    const txAmt = Number(t.amount);
-                    portfolio[assetName].bankShares[t.bank] = (portfolio[assetName].bankShares[t.bank] || 0) + txQty;
-                    portfolio[assetName].bankCost[t.bank]   = (portfolio[assetName].bankCost[t.bank]   || 0) + (txQty < 0 ? -txAmt : txAmt);
-                } // M2
-
-                // Safety: Evitar resíduos negativos e furos apenas PÓS-Cálculos Variáveis
-                // Para Renda Fixa as cotas não importam para o totalCost nem pureBalance
-                if (portfolio[assetName].qty <= 0.000001) {
-                    portfolio[assetName].qty = 0;
-                    const isFixed = ['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(t.category);
-                    if (!isFixed) {
-                        portfolio[assetName].totalCost = 0;
-                        portfolio[assetName].pureBalance = 0;
-                    }
-                }
-
-
-                // REMOVIDO: Cálculo de mapas (investBankFlow/investCatMap) aqui usava CUSTO (flow).
-                // Agora faremos isso no loop do Portfolio abaixo, usando o VALOR ATUAL.
-                // if (t.bank) investBankFlow[t.bank] = ...
-                // investCatMap[cName] = ...
-            });
-
-            Object.values(portfolio).forEach(asset => {
-                // CORREÇÃO: Lógica Híbrida (Renda Fixa vs Variável)
-                const isFixed = ['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(asset.category);
-
-                if (isFixed) {
-                    // Renda Fixa: Preço é o Saldo Total
-                    // Se currentPrice (Input Manual) > 0, usa ele. Se não, usa o pureBalance.
-                    asset.currentTotal = asset.currentPrice > 0 ? Number(asset.currentPrice) : asset.pureBalance;
-
-                    // AvgPrice vira irrelevante, mas podemos manter como 1 ou o próprio custo
-                    asset.avgPrice = asset.totalCost;
-                } else if (asset.qty > 0) {
-                    asset.avgPrice = asset.totalCost / asset.qty;
-                    const price = asset.currentPrice > 0 ? Number(asset.currentPrice) : asset.avgPrice;
-                    asset.currentTotal = asset.qty * price;
-                } else {
-                    // Fallback se a qty for zero (ex: Aporte direto feito sem quantidade usando o fluxo de dinheiro/aporte rápido)
-                    asset.currentTotal = asset.totalCost;
-                }
-
-                // Garante que o Resgate diminua o valor exibido na aba de Renda Fixa
-                totalInvested += isFixed ? asset.pureBalance : asset.totalCost;
-                totalRealizedProfit += asset.realizedProfit || 0; // AUTO-CURA
-
-                // NOVO (Regra UX 4): Aggregate based on Market Value (currentTotal) instead of Historical Cost
-                // Uso a lógica do fallback para currentTotal caso algo vaze (pureBalance para precaver zeroing)
-                const assetMarketValue = asset.currentTotal || asset.pureBalance || asset.totalCost;
-
-                // 1. Por Classe de Ativo (Market Value)
-                const cName = asset.category || 'Outros';
-                investCatMap[cName] = (investCatMap[cName] || 0) + assetMarketValue;
-
-                // 2. Por Instituição (Market Value)
-                // M2 — Distribuição proporcional do valor de mercado por corretora
-                const totalBankCost = Object.values(asset.bankCost || {}).reduce((acc, curr) => acc + curr, 0);
-                Object.keys(asset.bankShares || {}).forEach(b => {
-                  let proportion = 0;
-                  if (asset.qty > 0) {
-                    proportion = (asset.bankShares[b] || 0) / asset.qty;        // RV: por cotas
-                  } else if (totalBankCost > 0) {
-                    proportion = (asset.bankCost[b] || 0) / totalBankCost;      // RF: por custo
-                  }
-                  if (proportion > 0) {
-                    investBankFlow[b] = (investBankFlow[b] || 0) + (proportion * assetMarketValue);
-                  }
-                }); // M2
-
-                // ACUMULA O TOTAL DA CARTEIRA (Valor Atual)
-                portfolioCurrentTotal += asset.currentTotal;
-            });
 
             const detailedPortfolio = buildDetailedPortfolio(historicalInvestments, {
                 currentPrices,
@@ -5336,59 +5198,15 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                                     <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-white/5 rounded-full z-0"></div>
 
                                     {(() => {
-                                        let currentQty = 0;
-                                        let totalCost = 0;
-                                        
-                                        // Processamento cronológico (mais antigo para mais recente)
-                                        const enrichedTxs = txs
-                                            .filter(t => {
-                                                if (t.market !== selectedAssetHistory) return false;
-                                                // Filtro de escopo: idêntico ao usado em investData (linha ~1779)
-                                                const belongsToScope = viewMode === 'joint'
-                                                    ? t.isShared
-                                                    : (!t.isShared && t.ownerId === profile);
-                                                return belongsToScope;
-                                            })
-                                            .sort((a, b) => {
-                                                const dateDiff = new Date(a.date) - new Date(b.date);
-                                                if (dateDiff !== 0) return dateDiff;
-                                                
-                                                // Mesma data: Aportes vêm antes de Resgates, para gerar base de PM
-                                                const qtyA = a.quantity ? Number(a.quantity) : 0;
-                                                const qtyB = b.quantity ? Number(b.quantity) : 0;
-                                                return qtyB - qtyA; // Sort decrescente (positivos antes de negativos)
-                                            })
-                                            .map(t => {
-                                                let historicalPM = 0;
-                                                let transactionCost = 0;
-                                                const isRendimento = t.category === 'Rendimentos/Dividendos';
-                                                
-                                                if (!isRendimento && t.quantity) {
-                                                    const qtyNum = Number(t.quantity);
-                                                    const isResgate = qtyNum < 0 || (t.type === 'investment' && t.category === 'Resgate de Investimento');
-                                                    
-                                                    if (!isResgate) {
-                                                        currentQty += qtyNum;
-                                                        totalCost += Number(t.amount);
-                                                        historicalPM = currentQty > 0 ? totalCost / currentQty : 0;
-                                                    } else {
-                                                        historicalPM = currentQty > 0 ? totalCost / currentQty : 0;
-                                                        transactionCost = historicalPM * Math.abs(qtyNum);
-                                                        currentQty += qtyNum;
-                                                        totalCost -= Math.min(transactionCost, totalCost); // Prevent negatives
-                                                        
-                                                        if (currentQty <= 0) {
-                                                            currentQty = 0;
-                                                            totalCost = 0;
-                                                        }
-                                                    }
-                                                }
-                                                return { ...t, historicalPM, transactionCost };
-                                            });
+                                        const assetHistoryTxs = buildAssetHistoryTimeline(txs, {
+                                            assetName: selectedAssetHistory,
+                                            viewMode,
+                                            profile
+                                        });
 
-                                        return enrichedTxs
-                                            .sort((a, b) => new Date(b.date) - new Date(a.date)) // Mais recentes primeiro para display
-                                            .map(t => {
+                                        return (
+                                            <>
+                                                {assetHistoryTxs.map(t => {
                                                 const isResgate = Number(t.quantity) < 0 && t.type === 'investment'; // M3
                                                 const isRendimento = t.category === 'Rendimentos/Dividendos' || t.type === 'income'; // M3
                                                 const isAporte = t.type === 'investment' && !isResgate && !isRendimento; // M3
@@ -5424,7 +5242,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                                                                     </p>
                                                                     {t.quantity && !isRendimento && (
                                                                         <div className="mt-1 flex flex-col items-end opacity-90">
-                                                                            <p className="text-[10px] text-slate-300 font-medium tracking-wide">Preço Cota: {formatCurrency(Math.abs(t.amount / t.quantity))}</p>
+                                                                            <p className="text-[10px] text-slate-300 font-medium tracking-wide">Pre??o Cota: {formatCurrency(Math.abs(t.amount / t.quantity))}</p>
                                                                             <p className="text-[10px] text-indigo-300 font-medium tracking-wide mt-0.5">PM: {formatCurrency(t.historicalPM)}</p>
                                                                             {isResgate && (
                                                                                 <p className="text-[10px] text-amber-300 font-medium tracking-wide mt-0.5">Custo: {formatCurrency(t.transactionCost)}</p>
@@ -5456,16 +5274,14 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                                                         </div>
                                                     </div>
                                                 );
-                                            });
+                                            })}
+
+                                                {assetHistoryTxs.length === 0 && (
+                                                    <p className="text-center text-slate-500 text-sm mt-8">Nenhuma movimenta????o encontrada para este ativo.</p>
+                                                )}
+                                            </>
+                                        );
                                     })()}
-                                    
-                                    {txs.filter(t => {
-                                        if (t.market !== selectedAssetHistory) return false;
-                                        const belongs = viewMode === 'joint' ? t.isShared : (!t.isShared && t.ownerId === profile);
-                                        return belongs;
-                                    }).length === 0 && (
-                                        <p className="text-center text-slate-500 text-sm mt-8">Nenhuma movimentação encontrada para este ativo.</p>
-                                    )}
                                 </div>
                             </div>
                         </div>

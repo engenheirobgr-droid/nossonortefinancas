@@ -230,3 +230,55 @@ export function buildDetailedPortfolio(
     investCatMap
   };
 }
+
+export function buildAssetHistoryTimeline(
+  transactions,
+  { assetName, viewMode, profile }
+) {
+  let currentQty = 0;
+  let totalCost = 0;
+
+  const enrichedTransactions = sortInvestmentsChronologically(
+    transactions.filter(transaction => {
+      if (transaction.market !== assetName) return false;
+
+      return viewMode === 'joint'
+        ? transaction.isShared
+        : (!transaction.isShared && transaction.ownerId === profile);
+    })
+  ).map(transaction => {
+    let historicalPM = 0;
+    let transactionCost = 0;
+    const isIncome = transaction.category === 'Rendimentos/Dividendos';
+
+    if (!isIncome && transaction.quantity) {
+      const quantity = Number(transaction.quantity);
+      const isWithdrawal = quantity < 0 || (
+        transaction.type === 'investment' &&
+        transaction.category === 'Resgate de Investimento'
+      );
+
+      if (!isWithdrawal) {
+        currentQty += quantity;
+        totalCost += Number(transaction.amount);
+        historicalPM = currentQty > 0 ? totalCost / currentQty : 0;
+      } else {
+        historicalPM = currentQty > 0 ? totalCost / currentQty : 0;
+        transactionCost = historicalPM * Math.abs(quantity);
+        currentQty += quantity;
+        totalCost -= Math.min(transactionCost, totalCost);
+
+        if (currentQty <= 0) {
+          currentQty = 0;
+          totalCost = 0;
+        }
+      }
+    }
+
+    return { ...transaction, historicalPM, transactionCost };
+  });
+
+  return enrichedTransactions.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+}
