@@ -100,3 +100,133 @@ export function calculatePortfolioTotal(investments, { currentPrices = {}, viewM
 
   return total;
 }
+
+export function buildDetailedPortfolio(
+  investments,
+  { currentPrices = {}, viewMode, dividendsByAsset = {} }
+) {
+  const portfolioMap = {};
+  let portfolioCurrentTotal = 0;
+  let totalInvested = 0;
+  let totalRealizedProfit = 0;
+  const investBankFlow = {};
+  const investCatMap = {};
+
+  sortInvestmentsChronologically(investments).forEach(transaction => {
+    const assetName = getAssetName(transaction);
+    const currentPrice = getScopedPrice(currentPrices, assetName, transaction.category, viewMode);
+
+    if (!portfolioMap[assetName]) {
+      portfolioMap[assetName] = {
+        name: assetName,
+        category: transaction.category,
+        bank: transaction.bank,
+        bankShares: {},
+        bankCost: {},
+        qty: 0,
+        totalCost: 0,
+        pureBalance: 0,
+        avgPrice: 0,
+        currentPrice,
+        currentTotal: 0,
+        realizedProfit: 0,
+        dividends: dividendsByAsset[assetName] || 0
+      };
+    }
+
+    const asset = portfolioMap[assetName];
+    const transactionQuantity = Number(transaction.quantity);
+    const transactionAmount = Number(transaction.amount);
+    const isFixed = isFixedIncomeAsset(transaction.category);
+
+    if (transactionQuantity >= 0) {
+      asset.qty += transactionQuantity;
+      asset.totalCost += transactionAmount;
+      asset.pureBalance += transactionAmount;
+    } else if (isFixed) {
+      const sellQuantity = Math.abs(transactionQuantity);
+      asset.qty -= sellQuantity;
+      const fixedIncomeExcess = Math.max(0, transactionAmount - asset.pureBalance);
+      asset.realizedProfit += fixedIncomeExcess;
+      asset.pureBalance = Math.max(0, asset.pureBalance - transactionAmount);
+    } else {
+      const sellQuantity = Math.abs(transactionQuantity);
+      const quantityToDeduct = Math.min(sellQuantity, asset.qty);
+
+      if (asset.qty > 0) {
+        const currentAveragePrice = asset.totalCost / asset.qty;
+        asset.qty -= quantityToDeduct;
+        asset.totalCost -= quantityToDeduct * currentAveragePrice;
+        asset.pureBalance -= quantityToDeduct * currentAveragePrice;
+      } else {
+        asset.totalCost -= transactionAmount;
+        asset.pureBalance -= transactionAmount;
+        if (asset.totalCost < 0) asset.totalCost = 0;
+      }
+    }
+
+    if (transaction.bank) {
+      asset.bankShares[transaction.bank] = (asset.bankShares[transaction.bank] || 0) + transactionQuantity;
+      asset.bankCost[transaction.bank] = (asset.bankCost[transaction.bank] || 0) + (transactionQuantity < 0 ? -transactionAmount : transactionAmount);
+    }
+
+    if (asset.qty <= 0.000001) {
+      asset.qty = 0;
+      if (!isFixed) {
+        asset.totalCost = 0;
+        asset.pureBalance = 0;
+      }
+    }
+  });
+
+  const portfolio = Object.values(portfolioMap);
+
+  portfolio.forEach(asset => {
+    const isFixed = isFixedIncomeAsset(asset.category);
+
+    if (isFixed) {
+      asset.currentTotal = asset.currentPrice > 0 ? Number(asset.currentPrice) : asset.pureBalance;
+      asset.avgPrice = asset.totalCost;
+    } else if (asset.qty > 0) {
+      asset.avgPrice = asset.totalCost / asset.qty;
+      const price = asset.currentPrice > 0 ? Number(asset.currentPrice) : asset.avgPrice;
+      asset.currentTotal = asset.qty * price;
+    } else {
+      asset.currentTotal = asset.totalCost;
+    }
+
+    totalInvested += isFixed ? asset.pureBalance : asset.totalCost;
+    totalRealizedProfit += asset.realizedProfit || 0;
+
+    const assetMarketValue = asset.currentTotal || asset.pureBalance || asset.totalCost;
+    const categoryName = asset.category || 'Outros';
+    investCatMap[categoryName] = (investCatMap[categoryName] || 0) + assetMarketValue;
+
+    const totalBankCost = Object.values(asset.bankCost || {}).reduce((accumulator, current) => accumulator + current, 0);
+    Object.keys(asset.bankShares || {}).forEach(bank => {
+      let proportion = 0;
+
+      if (asset.qty > 0) {
+        proportion = (asset.bankShares[bank] || 0) / asset.qty;
+      } else if (totalBankCost > 0) {
+        proportion = (asset.bankCost[bank] || 0) / totalBankCost;
+      }
+
+      if (proportion > 0) {
+        investBankFlow[bank] = (investBankFlow[bank] || 0) + (proportion * assetMarketValue);
+      }
+    });
+
+    portfolioCurrentTotal += asset.currentTotal;
+  });
+
+  return {
+    portfolioMap,
+    portfolio,
+    portfolioCurrentTotal,
+    totalInvested,
+    totalRealizedProfit,
+    investBankFlow,
+    investCatMap
+  };
+}

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {
+  buildDetailedPortfolio,
   calculatePortfolioTotal,
   getScopedPrice,
   sortInvestmentsChronologically
@@ -64,6 +65,44 @@ import {
     'Renda Fixa (CDB/Tesouro)',
     'joint'
   ), 900);
+}
+
+{
+  const investments = [
+    { date: '2026-01-01', type: 'investment', market: 'ABCD4', category: 'Ações BR', amount: 1000, quantity: 10, bank: 'XP' },
+    { date: '2026-01-02', type: 'investment', market: 'ABCD4', category: 'Ações BR', amount: 600, quantity: 5, bank: 'Nubank' },
+    { date: '2026-01-03', type: 'investment', market: 'ABCD4', category: 'Ações BR', amount: 330, quantity: -3, bank: 'XP' },
+    { date: '2026-01-04', type: 'investment', market: 'CDB XP', category: 'Renda Fixa (CDB/Tesouro)', amount: 1000, quantity: 1, bank: 'XP' },
+    { date: '2026-01-05', type: 'investment', market: 'CDB XP', category: 'Renda Fixa (CDB/Tesouro)', amount: 1200, quantity: -1, bank: 'XP' }
+  ];
+
+  const detailed = buildDetailedPortfolio(investments, {
+    currentPrices: { ABCD4: 120, 'CDB XP@@personal': 950 },
+    viewMode: 'personal',
+    dividendsByAsset: { ABCD4: 42 }
+  });
+
+  assert.equal(detailed.portfolioCurrentTotal, 2390);
+  assert.equal(detailed.totalInvested, 1280);
+  assert.equal(detailed.totalRealizedProfit, 200);
+
+  const stock = detailed.portfolioMap.ABCD4;
+  assert.equal(stock.qty, 12);
+  assert.equal(Number(stock.avgPrice.toFixed(2)), 106.67);
+  assert.equal(stock.currentTotal, 1440);
+  assert.equal(stock.dividends, 42);
+  assert.equal(stock.bankShares.XP, 7);
+  assert.equal(stock.bankShares.Nubank, 5);
+
+  const fixedIncome = detailed.portfolioMap['CDB XP'];
+  assert.equal(fixedIncome.currentTotal, 950);
+  assert.equal(fixedIncome.realizedProfit, 200);
+  assert.equal(fixedIncome.pureBalance, 0);
+
+  assert.equal(Number(detailed.investBankFlow.XP.toFixed(2)), 840);
+  assert.equal(Number(detailed.investBankFlow.Nubank.toFixed(2)), 600);
+  assert.equal(detailed.investCatMap['Ações BR'], 1440);
+  assert.equal(detailed.investCatMap['Renda Fixa (CDB/Tesouro)'], 950);
 }
 
 console.log('Portfolio unit tests passed.');

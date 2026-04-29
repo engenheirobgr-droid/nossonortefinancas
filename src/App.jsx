@@ -9,7 +9,7 @@ import {
     filterTransactionByUniverse,
     normalizeSettlementsForCurrentMonth
 } from './domain/finance/cashflow.js';
-import { calculatePortfolioTotal } from './domain/finance/portfolio.js';
+import { buildDetailedPortfolio, calculatePortfolioTotal } from './domain/finance/portfolio.js';
 import './styles.css';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -1543,6 +1543,18 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                 // ACUMULA O TOTAL DA CARTEIRA (Valor Atual)
                 portfolioCurrentTotal += asset.currentTotal;
             });
+
+            const detailedPortfolio = buildDetailedPortfolio(historicalInvestments, {
+                currentPrices,
+                viewMode,
+                dividendsByAsset
+            });
+            portfolio = detailedPortfolio.portfolioMap;
+            portfolioCurrentTotal = detailedPortfolio.portfolioCurrentTotal;
+            totalInvested = detailedPortfolio.totalInvested;
+            totalRealizedProfit = detailedPortfolio.totalRealizedProfit;
+            investBankFlow = detailedPortfolio.investBankFlow;
+            investCatMap = detailedPortfolio.investCatMap;
 
             const profit = portfolioCurrentTotal - totalInvested + totalRealizedProfit; // AUTO-CURA
             const yieldPct = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
