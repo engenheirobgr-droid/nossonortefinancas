@@ -9,6 +9,7 @@ import {
     filterTransactionByUniverse,
     normalizeSettlementsForCurrentMonth
 } from './domain/finance/cashflow.js';
+import { calculatePortfolioTotal } from './domain/finance/portfolio.js';
 import './styles.css';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -1395,98 +1396,14 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
             let investBankFlow = {};
             let investCatMap = {};
 
-            // Função helper para calcular total de carteira em data específica (usado no Histórico e Mês Anterior)
-            const calculatePortfolioTotal = (investmentList) => {
-                let tempPortfolio = {};
-                let total = 0;
-                // Copia da array e reverte para calcular cronologicamente (Mais antigo primeiro)
-                [...investmentList].sort((a, b) => {
-                    const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
-                    if (dateDiff !== 0) return dateDiff;
-                    // Se for no mesmo dia, processa Aportes (qty > 0) antes de Resgates (qty < 0)
-                    const qtyA = a.quantity ? Number(a.quantity) : 0;
-                    const qtyB = b.quantity ? Number(b.quantity) : 0;
-                    return qtyB - qtyA;
-                }).forEach(t => {
-                    const assetName = t.market || t.category || 'Outros';
-                    // CORREÇÃO: Respeita o priceKey correto para não zerar Renda Fixa no Histórico
-                    const isFixed = ['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(t.category);
-                    const priceKey = isFixed ? `${assetName}@@${viewMode}` : assetName;
-                    const cPrice = currentPrices[priceKey] !== undefined ? currentPrices[priceKey] : (currentPrices[assetName] || 0);
-
-                    if (!tempPortfolio[assetName]) tempPortfolio[assetName] = {
-                        qty: 0,
-                        totalCost: 0,
-                        pureBalance: 0,
-                        currentPrice: cPrice,
-                        category: t.category,
-                        name: assetName
-                    };
-
-                    // WAC Logic (Weighted Average Cost) com Vendas
-                    const txQty = Number(t.quantity);
-                    const txAmt = Number(t.amount); // Sempre positivo (cash flow)
-
-                    if (txQty >= 0) {
-                        // COMPRA: Aumenta Qty e Custo
-                        tempPortfolio[assetName].qty += txQty;
-                        tempPortfolio[assetName].totalCost += txAmt;
-                        tempPortfolio[assetName].pureBalance += txAmt;
-                    } else {
-                        // VENDA: Reduz Qty e Custo Proporcional (Mantém PM)
-                        const sellQty = Math.abs(txQty);
-                        if (isFixed) {
-                            tempPortfolio[assetName].qty -= sellQty;
-                            // CUSTO BLINDADO: Não subtrai txAmt do totalCost para manter histórico bruto
-                            tempPortfolio[assetName].pureBalance -= txAmt;
-                            if (tempPortfolio[assetName].pureBalance < 0) tempPortfolio[assetName].pureBalance = 0;
-                        } else {
-                            const qtyToDeductOuter = Math.min(sellQty, tempPortfolio[assetName].qty);
-                            if (tempPortfolio[assetName].qty > 0) {
-                                const currentPM = tempPortfolio[assetName].totalCost / tempPortfolio[assetName].qty;
-                                tempPortfolio[assetName].qty -= qtyToDeductOuter;
-                                tempPortfolio[assetName].totalCost -= (qtyToDeductOuter * currentPM);
-                                tempPortfolio[assetName].pureBalance -= (qtyToDeductOuter * currentPM);
-                            } else {
-                                // Aporte original foi sem cotas, deduz direto do valor financeiro
-                                tempPortfolio[assetName].totalCost -= txAmt;
-                                tempPortfolio[assetName].pureBalance -= txAmt;
-                                if (tempPortfolio[assetName].totalCost < 0) tempPortfolio[assetName].totalCost = 0;
-                            }
-                        }
-                        // Safety: Evitar resíduos negativos
-                        if (tempPortfolio[assetName].qty <= 0.000001) {
-                            tempPortfolio[assetName].qty = 0;
-                            tempPortfolio[assetName].pureBalance = 0;
-                        }
-                    }
-                });
-
-                Object.values(tempPortfolio).forEach(asset => {
-                    const isFixed = ['Renda Fixa (CDB/Tesouro)', 'Reserva Emergência'].includes(asset.category || asset.name);
-
-                    if (isFixed) {
-                        // Se for Renda Fixa, o "currentPrice" é o SALDO TOTAL ATUAL informado pelo usuário
-                        // Se não informou, usa o pureBalance (Custo abatido de resgates)
-                        total += asset.currentPrice > 0 ? Number(asset.currentPrice) : asset.pureBalance;
-                    } else if (asset.qty > 0) {
-                        const avgPrice = asset.totalCost / asset.qty;
-                        const price = asset.currentPrice > 0 ? Number(asset.currentPrice) : avgPrice;
-                        total += asset.qty * price;
-                    } else {
-                        // Se a quantidade for <= 0 mas existir totalCost (Aporte rápido sem preencher cotas)
-                        // ou for resíduo, usamos o Custo Diretamente se houver, ou 0 se foi zerado de fato.
-                        total += asset.totalCost;
-                    }
-                });
-                return total;
-            };
+            const calculateScopedPortfolioTotal = (investmentList) =>
+                calculatePortfolioTotal(investmentList, { currentPrices, viewMode });
 
             // Calcula Totais
             // Calcula Totais (PRELIMINAR - Será sobrescrito pelo loop abaixo para garantir consistência)
-            // portfolioCurrentTotal = calculatePortfolioTotal(historicalInvestments); <--- REMOVIDO pois usa lógica sem escopo
+            // portfolioCurrentTotal = calculateScopedPortfolioTotal(historicalInvestments); <--- REMOVIDO pois usa lógica sem escopo
             portfolioCurrentTotal = 0; // Reinicia para somar corretamente no loop
-            portfolioPreviousTotal = calculatePortfolioTotal(prevInvestments);
+            portfolioPreviousTotal = calculateScopedPortfolioTotal(prevInvestments);
 
             // Reconstrói Portfolio Detalhado para Exibição (Baseado no Mês Atual)
             // (Mantém lógica original para popular a lista detalhada)
@@ -1950,7 +1867,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                 });
 
                 // Usando a função oficial do Dashboard para avaliar os ativos que tínhamos na época
-                const truePatrimony = calculatePortfolioTotal(investmentsToDate);
+                const truePatrimony = calculateScopedPortfolioTotal(investmentsToDate);
 
                 return {
                     ...h,

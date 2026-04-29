@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "test": "npm run test:unit && npm run test:smoke",
-    "test:unit": "node tests/cashflow.test.mjs",
+    "test:unit": "node tests/cashflow.test.mjs && node tests/portfolio.test.mjs",
     "test:smoke": "node tests/smoke.mjs"
   },
   "dependencies": {
