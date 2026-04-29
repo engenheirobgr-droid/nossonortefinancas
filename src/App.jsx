@@ -5242,7 +5242,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                                                                     </p>
                                                                     {t.quantity && !isRendimento && (
                                                                         <div className="mt-1 flex flex-col items-end opacity-90">
-                                                                            <p className="text-[10px] text-slate-300 font-medium tracking-wide">Pre??o Cota: {formatCurrency(Math.abs(t.amount / t.quantity))}</p>
+                                                                            <p className="text-[10px] text-slate-300 font-medium tracking-wide">Preço Cota: {formatCurrency(Math.abs(t.amount / t.quantity))}</p>
                                                                             <p className="text-[10px] text-indigo-300 font-medium tracking-wide mt-0.5">PM: {formatCurrency(t.historicalPM)}</p>
                                                                             {isResgate && (
                                                                                 <p className="text-[10px] text-amber-300 font-medium tracking-wide mt-0.5">Custo: {formatCurrency(t.transactionCost)}</p>
@@ -5277,7 +5277,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                                             })}
 
                                                 {assetHistoryTxs.length === 0 && (
-                                                    <p className="text-center text-slate-500 text-sm mt-8">Nenhuma movimenta????o encontrada para este ativo.</p>
+                                                    <p className="text-center text-slate-500 text-sm mt-8">Nenhuma movimentação encontrada para este ativo.</p>
                                                 )}
                                             </>
                                         );
