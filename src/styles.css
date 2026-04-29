@@ -1,0 +1,239 @@
+/* --- TEMA NÁUTICO DARK (FUNDO + VIDRO) --- */
+        body {
+            margin: 0;
+            padding: 0;
+            /* Imagem fixada no topo para mostrar o azul e a silhueta */
+            background-image: url('../fundo.jpg');
+            background-size: cover;
+            background-position: top center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+
+            /* Removemos a cor sólida para não escurecer a imagem */
+            background-color: transparent !important;
+            color: #e2e8f0;
+
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            position: fixed;
+        }
+
+        /* Overlay transparente para permitir a visibilidade do fundo */
+        #root {
+            background: transparent;
+            min-height: 100vh;
+        }
+
+        .bg-subtle-filter {
+            backdrop-filter: contrast(100%) brightness(150%);
+        }
+
+        /* --- GLASSMORPHISM PREMIUM (Identidade Náutica) --- */
+
+        /* --- ESTILO NOVO (CLEAN) --- */
+        /* Removemos a regra mestra que forçava vidro em tudo.
+           Agora controlaremos manualmente. */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* NOVA CLASSE UNIFICADA PARA CARDS */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.4);
+            /* Slate 900 com 40% opacidade */
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+            /* rounded-3xl */
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Ajuste específico para o Header/Topo para ele ficar mais leve */
+        .pt-4.pb-0.px-5.shrink-0.z-30.relative.text-white {
+            background: transparent !important;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+            /* Sombra mais forte para ler em cima da bússola */
+        }
+
+        /* --- CORREÇÃO DE VISIBILIDADE (MODAIS E FORMULÁRIOS) --- */
+        /* Garante que o modal de lançamento seja SÓLIDO (sem transparência) para leitura */
+        .modal-solid {
+            background: #1e293b !important;
+            /* Slate 800 Sólido (Azul Noturno) */
+            backdrop-filter: none !important;
+            /* Remove o vidro */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Inputs Sólidos: Fundo bem escuro para o texto branco brilhar */
+        .input-solid {
+            background: #020617 !important;
+            /* Slate 950 (Quase preto) */
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            color: #ffffff !important;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .input-solid:focus {
+            border-color: #6366f1 !important;
+            /* Indigo Focus */
+            background: #0f172a !important;
+            /* Clareia levemente no foco */
+        }
+
+        .input-solid::placeholder {
+            color: #64748b !important;
+            /* Slate 500 */
+        }
+
+        /* --- MELHORIAS VISUAIS (BOTÕES E INTERAÇÃO) --- */
+        /* Efeito de clique (escala) */
+        button:active {
+            transform: scale(0.95);
+            transition: transform 0.1s;
+        }
+
+        /* Botões com Gradiente Vivo (Classe utilitária) */
+        .btn-gradient {
+            background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+            /* Indigo Vibrante */
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-gradient:hover {
+            filter: brightness(1.1);
+        }
+
+        /* Botão de Excluir (Sonhos) - Não sobrepor texto */
+        .card-dream {
+            position: relative;
+            padding-right: 40px;
+        }
+
+        /* Garante espaço para o botão X */
+
+        /* Textos secundários: Clareados para evitar que sumam no fundo escuro */
+        .text-slate-800,
+        .text-slate-700,
+        .text-gray-600,
+        .text-gray-500,
+        .text-gray-400 {
+            color: #94a3b8 !important;
+            /* Slate-400 (Mais legível no dark) */
+        }
+
+        /* Títulos e valores principais ficam branco puro */
+        h1,
+        h2,
+        h3,
+        .font-bold.text-lg,
+        .font-extrabold {
+            color: #ffffff !important;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Botões de Ação (Editar/Excluir) e Ícones - Mantém cores originais mas com brilho */
+        button[class*="bg-"] {
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            /* Glow sutil */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Inputs e Selects (Formulários) - Vidro mais escuro para foco */
+        input,
+        select,
+        textarea {
+            background-color: rgba(0, 0, 0, 0.3) !important;
+            color: white !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.3) !important;
+        }
+
+        /* Ajusta textos que eram escuros para ficarem claros */
+        .text-slate-800,
+        .text-slate-700,
+        .text-gray-600,
+        .text-gray-500 {
+            color: #cbd5e1 !important;
+        }
+
+        /* Mantém botões coloridos (ex: verde, vermelho) brilhantes */
+        button[class*="bg-emerald"],
+        button[class*="bg-indigo"],
+        button[class*="bg-rose"] {
+            opacity: 1 !important;
+            color: white !important;
+            background-color: inherit;
+            /* Respeita a cor original do botão */
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        input,
+        textarea,
+        select {
+            user-select: text;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pop {
+            0% {
+                transform: translate(-50%, 20px) scale(0.9);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translate(-50%, 0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .animate-slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .animate-pop {
+            animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .safe-pb {
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+        }
+
