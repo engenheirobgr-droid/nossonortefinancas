@@ -3,6 +3,12 @@ import { APP_ID, auth, db } from './services/firebase.js';
 import * as XLSX from 'xlsx';
 import * as pdfjsLib from 'pdfjs-dist';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import {
+    calculateMonthlyCashFlow,
+    calculatePreviousBalance,
+    filterTransactionByUniverse,
+    normalizeSettlementsForCurrentMonth
+} from './domain/finance/cashflow.js';
 import './styles.css';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -1169,39 +1175,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
             }
 
             // --- 2. FILTROS DE UNIVERSO (Lógica Financeira Blindada v42) ---
-            const filterByUniverse = (t) => {
-                // p2p: nunca aparece no modo conjunto; no pessoal, visível para AMBAS as partes
-                // (a direção saída/entrada é determinada pelo iPaid em cada loop de cálculo)
-                if (t.type === 'p2p') {
-                    if (viewMode === 'joint') return false;
-                    return true; // ambos veem — ownerId viu sair, parceiro viu entrar
-                }
-
-                // Lógica de Acertos (Settlements)
-                if (t.isSettlement) {
-                    if (viewMode === 'joint') return false; // Acerto não é despesa conjunta, é transferência
-
-                    // No pessoal, mostro se EU participei (paguei ou recebi confirmado)
-                    if (t.ownerId === profile) return true;
-                    if (t.ownerId !== profile) return t.status === 'confirmed';
-                    return false;
-                }
-
-                // Modo Conjunto: Mostra tudo que é compartilhado (Centro de Custo da Casa)
-                if (viewMode === 'joint') return t.isShared && !t.isSettlement;
-
-                // Modo Pessoal ("Meu Mundo"):
-                // Regra 1: É meu e privado?
-                const myPrivate = t.ownerId === profile && !t.isShared;
-
-                // Regra 2: É compartilhado, mas saiu do MEU bolso? (Correção do Buraco Contábil)
-                // Cenário A: Eu lancei e paguei "me"
-                const iCreatedAndPaid = t.ownerId === profile && t.payer === 'me' && t.isShared;
-                // Cenário B: O parceiro lançou, mas marcou "partner" (ou seja, EU paguei)
-                const partnerCreatedAndIPaid = t.ownerId !== profile && t.payer === 'partner' && t.isShared;
-
-                return myPrivate || iCreatedAndPaid || partnerCreatedAndIPaid;
-            };
+            const filterByUniverse = (t) => filterTransactionByUniverse(t, { profile, viewMode });
 
             // --- FASE 3: CÁLCULO DE SALDO ACUMULADO ---
             const startOfSelectedMonth = `${selectedMonth}-01`;
@@ -1212,75 +1186,16 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                 .filter(t => t.date < startOfSelectedMonth && (!t.isProjection || (isForecast && t.isCardExpense))) // Em prev, inclui despesas de cartão (fantasmas intencionais)
                 .filter(filterByUniverse); // Aplica a regra: Só soma o que é MEU (se pessoal) ou NOSSO (se conjunto)
 
-            // Calcula o saldo histórico
-            let previousBalance = 0;
-            // --- INÍCIO DA ALTERAÇÃO ---
-            let accumInvest = 0; // Novo rastreador
+            // Calcula o saldo historico
+            const { previousBalance, accumInvest } = calculatePreviousBalance(previousTxs, { profile, viewMode });
 
-            previousTxs.forEach(t => {
-                const val = Number(t.amount);
-
-                // CORREÇÃO: Lógica de Acertos exclusiva (Igual ao loop do mês atual)
-                if (t.isSettlement) {
-                    if (t.status !== 'confirmed') return;
-                    // Inverter tipo para acertos do PARCEIRO
-                    const isMySettlement = t.ownerId === profile;
-                    const effectiveType = isMySettlement ? t.type : (t.type === 'expense' ? 'income' : 'expense');
-                    if (effectiveType === 'expense') previousBalance -= val;
-                    else previousBalance += val;
-                    return;
-                }
-
-                // p2p: afeta o saldo mas NÃO some em inc/exp
-                if (t.type === 'p2p') {
-                    const iPaid = t.payer === 'me'
-                        ? t.ownerId === profile
-                        : t.ownerId !== profile;
-                    if (iPaid) previousBalance -= val; // saí dinheiro do meu bolso
-                    else previousBalance += val;       // recebi dinheiro de volta
-                    return;
-                }
-
-                if (t.type === 'income') previousBalance += val;
-                else if (t.type === 'expense') previousBalance -= val;
-
-                // Investimento sai do caixa se compra, entra no caixa se venda
-                else if (t.type === 'investment') {
-                    // CORREÇÃO: accumInvest deve ser apenas dos investimentos que PERTENCEM AO ESCOPO
-                    // O `previousBalance` (Fluxo de caixa) usa todos da série filtrada.
-                    const belongsToScope = viewMode === 'joint' ? t.isShared : !t.isShared;
-
-                    if (Number(t.quantity) < 0) {
-                        previousBalance += val;
-                        if (belongsToScope) accumInvest -= val;
-                    } else {
-                        previousBalance -= val;
-                        if (belongsToScope) accumInvest += val;
-                    }
-                }
-            });
-            // -----------------------------------------------------------
-
-
-
-            // --- INÍCIO DA ALTERAÇÃO ---
             const todayStr = new Date().toISOString().split('T')[0];
             const monthBaseList = fullList
                 .filter(filterByUniverse)
                 .filter(t => t.date.startsWith(selectedMonth));
 
             // Cenário 1: PREVISTO (Tudo: Realizado + Futuro + Fantasmas)
-            const listForecast = monthBaseList.map(t => {
-                // CORREÇÃO: Inverter tipo para acertos do PARCEIRO
-                // Parceiro criou 'expense' (ele pagou) → pra mim é 'income' (recebi)
-                // Parceiro criou 'income' (ele recebeu) → pra mim é 'expense' (paguei)
-                if (t.isSettlement && t.ownerId !== profile) {
-                    const invertedType = t.type === 'expense' ? 'income' : 'expense';
-                    const invertedTitle = t.type === 'expense' ? 'Acerto Recebido' : 'Pagamento de Acerto';
-                    return { ...t, type: invertedType, title: invertedTitle };
-                }
-                return t;
-            });
+            const listForecast = normalizeSettlementsForCurrentMonth(monthBaseList, { profile });
 
             // Cenário 2: REALIZADO (Apenas passado/hoje e SEM projeções)
             const listReal = listForecast.filter(t => !t.isProjection);
@@ -1291,124 +1206,11 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 
             // --- 3. CÁLCULOS DE CAIXA (Saldos e Relatórios) ---
             // --- 3. CÁLCULOS DE CAIXA (Saldos e Relatórios) ---
-            let inc = 0, exp = 0, inv = 0, resg = 0;
-            let strictScopeInv = 0, strictScopeResg = 0; // Nova métrica para Relatório (Correção 2)
-            let dailyCatMap = {}; let incomeCatMap = {}; let dailyBankFlow = {};
-            let monthlyDividends = 0;
-
-            // NOVO: Acumulador para o Item 7 (Comparativo Ele/Ela)
-            let sharedSpends = { bruno: 0, maiara: 0 };
-
-            currentMonthList.forEach(t => {
-                const val = Number(t.amount);
-                if (t.isSettlement) {
-                    // Tipo já foi invertido no data-level (listForecast map)
-                    // Então t.type aqui já está correto para o usuário atual
-                    if (t.status !== 'confirmed') return;
-                    if (t.type === 'expense') {
-                        exp += val;
-                        const cName = t.category || 'Ajuste/Reembolso';
-                        dailyCatMap[cName] = (dailyCatMap[cName] || 0) + val;
-                    } else {
-                        inc += val;
-                    }
-                    return;
-                }
-
-                // p2p: soma em exp ou inc (e injeta nos mapas de gráfico)
-                if (t.type === 'p2p') {
-                    const iPaid = t.payer === 'me'
-                        ? t.ownerId === profile
-                        : t.ownerId !== profile;
-                    if (iPaid) {
-                        exp += val; // entra como despesa oficial
-                        const cName = t.category || 'Empréstimo/Acerto';
-                        dailyCatMap[cName] = (dailyCatMap[cName] || 0) + val;
-                    } else {
-                        inc += val; // entra como receita oficial
-                        const cName = t.category || 'Empréstimo/Acerto';
-                        incomeCatMap[cName] = (incomeCatMap[cName] || 0) + val;
-                    }
-                    return;
-                }
-
-                if (t.type === 'income') {
-                    inc += val;
-                    const cName = t.category || 'Outros';
-                    incomeCatMap[cName] = (incomeCatMap[cName] || 0) + val;
-                    if (t.title.toLowerCase().includes('dividendo') || t.category === 'Dividendos') {
-                        // CORREÇÃO: Dividendos devem seguir Escopo Estrito de Ativos
-                        // (Igual ao filtro de investments na linha ~1653)
-                        // Joint = Só compartilhados. Personal = Só meus e privados.
-                        const dividendBelongsToScope = viewMode === 'joint' ? t.isShared : (!t.isShared && t.ownerId === profile);
-                        if (dividendBelongsToScope) monthlyDividends += val;
-                    }
-                    if (t.bank) dailyBankFlow[t.bank] = (dailyBankFlow[t.bank] || 0) + val;
-                }
-                else if (t.type === 'expense') {
-                    exp += val;
-                    const cName = t.category || 'Outros';
-                    dailyCatMap[cName] = (dailyCatMap[cName] || 0) + val;
-                    if (t.bank) { if (!dailyBankFlow[t.bank]) dailyBankFlow[t.bank] = 0; dailyBankFlow[t.bank] -= val; }
-
-                    // NOVO (Item 7): Se for compartilhado, soma para o dono respectivo (Quem Pagou de Fato)
-                    if (viewMode === 'joint' && t.ownerId) {
-                        let realPayerId = t.ownerId;
-                        // Se tiver payer definido, respeita a lógica
-                        if (t.payer === 'partner') realPayerId = t.ownerId === profile ? (profile === 'bruno' ? 'maiara' : 'bruno') : profile;
-                        else if (t.payer === 'me') realPayerId = t.ownerId;
-
-                        // Se não tiver payer (undefined), usa lógica antiga:
-                        // Se t.ownerId é meu e paguei (me), ok. Se t.ownerId não sou eu, mas veio pra cá, é shared.
-
-                        if (sharedSpends[realPayerId] !== undefined) {
-                            sharedSpends[realPayerId] += val;
-                        }
-                    }
-                }
-                else if (t.type === 'investment') {
-                    // CÁLCULO GERAL: Resgates (vendas) agora contam como RECEITA.
-                    // Aportes (compras) contam como INVESTIMENTO (Saída).
-                    const txQty = Number(t.quantity);
-                    const isRedemption = txQty < 0;
-
-                    if (isRedemption) {
-                        // É UM RESGATE: Dinheiro volta ao caixa, mas isolado da Receita Operacional
-                        resg += val; // val é a magnitude absoluta (positiva)
-
-                        // Métrica estrita para Relatório (Scope)
-                        const belongsToScope = viewMode === 'joint' ? t.isShared : !t.isShared;
-                        if (belongsToScope) strictScopeResg += val;
-
-                        if (t.bank) dailyBankFlow[t.bank] = (dailyBankFlow[t.bank] || 0) + val;
-
-                        // O 'inv' NÃO é descontado, pois queremos ver o "Aporte Bruto" separadamente no card
-                    } else {
-                        // É UM APORTE: Dinheiro sai do caixa para os investimentos (Despesa/Investimento)
-                        inv += val;
-
-                        // CORREÇÃO 2: Filtra estritamente pelo Mundo atual para o Relatório
-                        const belongsToScope = viewMode === 'joint' ? t.isShared : !t.isShared;
-                        if (belongsToScope) strictScopeInv += val;
-
-                        // NOVO (Item 7): Se for compartilhado (Investimento), soma para o dono respectivo (Quem Aportou)
-                        if (viewMode === 'joint' && t.isShared && t.ownerId) {
-                            let realPayerId = t.ownerId;
-                            if (t.payer === 'partner') realPayerId = t.ownerId === profile ? (profile === 'bruno' ? 'maiara' : 'bruno') : profile;
-                            else if (t.payer === 'me') realPayerId = t.ownerId;
-
-                            if (sharedSpends[realPayerId] !== undefined) {
-                                sharedSpends[realPayerId] += val;
-                            }
-                        }
-                    }
-                }
-            });
-
-            // O Resgate devolve dinheiro para o Saldo Disponível do Caixa
-            const bal = inc - exp - inv + resg;
-            // CORREÇÃO 1: Total de Saídas (Custo Líquido = Despesa + Investimento - Resgates)
-            const totalOutflows = exp + inv - resg;
+            const {
+                inc, exp, inv, resg, strictScopeInv, strictScopeResg,
+                dailyCatMap, incomeCatMap, dailyBankFlow, monthlyDividends,
+                sharedSpends, bal, totalOutflows
+            } = calculateMonthlyCashFlow(currentMonthList, { profile, viewMode });
 
 
             // --- 4. CÁLCULO DO ACERTO CASAL (CORREÇÃO v60: Regime de Caixa Estrito) ---
