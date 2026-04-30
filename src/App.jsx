@@ -16,785 +16,47 @@ import {
     FIXED_INCOME_CATEGORIES
 } from './domain/finance/portfolio.js';
 import './styles.css';
+import ChoresView from './components/ChoresView.jsx';
+import { Icons } from './components/AppIcons.jsx';
+import LoginScreen from './components/LoginScreen.jsx';
+import SimpleHistoryChart from './components/SimpleHistoryChart.jsx';
 import { BANKS, CATEGORIES, DEFAULT_BUDGETS, DEFAULT_CHORES, P2P_CATEGORY, USER_CONFIG } from './config/appData.js';
 import { BRAPI_TOKEN, GEMINI_MODELS_TO_TRY, MONTH_NAMES_EN_SHORT } from './config/appSettings.js';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// --- ÍCONES ---
-    const Icons = {
-        Plus: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 12h14" /><path d="M12 5v14" /></svg>,
-        Wallet: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" /><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" /></svg>,
-        X: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 6 6 18" /><path d="m6 6 18 18" /></svg>,
-        Users: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
-        ArrowRightLeft: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m16 3 4 4-4 4" /><path d="M20 7H4" /><path d="m8 21-4-4 4-4" /><path d="M4 17h16" /></svg>,
-        User: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>,
-        PiggyBank: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2.5V7.4c-1.5-1.5-3.5-2.4-5-2.4z" /><path d="M16 6h1a2 2 0 0 1 0 4h-1" /><line x1="9" x2="9" y1="11" y2="11.01" /></svg>,
-        Target: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>,
-        PieChart: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21.21 15.89A10 10 0 1 1 8 2.83" /><path d="M22 12A10 10 0 0 0 12 2v10z" /></svg>,
-        ListIcon: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><line x1="8" x2="21" y1="6" y2="6" /><line x1="8" x2="21" y1="12" y2="12" /><line x1="8" x2="21" y1="18" y2="18" /><line x1="3" x2="3.01" y1="6" y2="6" /><line x1="3" x2="3.01" y1="12" y2="12" /><line x1="3" x2="3.01" y1="18" y2="18" /></svg>,
-        BarChart3: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></svg>,
-        Home: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>,
-        Settings: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>,
-        LogOut: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" x2="9" y1="12" y2="12" /></svg>,
-        Moon: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>,
-        Sun: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></svg>,
-        Sunrise: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 2v8" /><path d="m4.93 10.93 1.41 1.41" /><path d="M2 18h2" /><path d="M20 18h2" /><path d="m19.07 10.93-1.41 1.41" /><path d="M22 22H2" /><path d="m8 6 4-4 4 4" /><path d="M16 18a4 4 0 0 0-8 0" /></svg>,
-        ChevronLeft: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m15 18-6-6 6-6" /></svg>,
-        Heart: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></svg>,
-        Check: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 6 9 17l-5-5" /></svg>,
-        FileText: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>,
-        Upload: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></svg>,
-        Sparkles: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /><path d="M5 3v4" /><path d="M9 3v4" /><path d="M3 5h4" /><path d="M3 9h4" /></svg>,
-        Key: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="7.5" cy="15.5" r="5.5" /><path d="m21 2-9.6 9.6" /><path d="m15.5 7.5 3 3L22 7l-3-3" /><path d="M21 2h-9.6" /></svg>,
-        CheckSquare: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>,
-        Trash2: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg>,
-        ChevronDown: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m6 9 6 6 6-6" /></svg>,
-        ChevronUp: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m18 15-6-6-6 6" /></svg>,
-        ShoppingCart: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="8" cy="21" r="1" /><circle cx="19" cy="21" r="1" /><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" /></svg>,
-        Search: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>,
-        TrendingDown: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="22 17 13.5 8.5 8.5 13.5 2 7" /><polyline points="16 17 22 17 22 11" /></svg>,
-        CreditCard: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="20" height="14" x="2" y="5" rx="2" /><line x1="2" x2="22" y1="10" y2="10" /></svg>,
-        Calendar: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>,
-        MapPin: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>,
-        Banknote: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="20" height="12" x="2" y="6" rx="2" /><circle cx="12" cy="12" r="2" /><path d="M6 12h.01M18 12h.01" /></svg>,
-        Briefcase: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="20" height="14" x="2" y="7" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>,
-        Download: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>,
-        TrendingUp: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>,
-        // --- NOVOS ÍCONES TAREFAS ---
-        // --- NOVOS ÍCONES TAREFAS ---
-        Broom: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08" /><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2.5 2.24 0 .46.27.8.71.8.44 0 .71-.34.71-.8 0-.72 2.5-.91 2.5-2.24 0-1.67 1.34-3.02 3-3.02S12 13.5 12 15.2c0 1.33 2.5 1.52 2.5 2.24 0 .46-.27.8-.71.8-.44 0-.71-.34-.71-.8 0-.72-2.5-.91-2.5-2.24 0-1.67 1.34-3.02-3-3.02z" /></svg>,
-        RefreshCw: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></svg>,
-        // --- ÍCONES VISIBILIDADE ---
-        Eye: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>,
-        EyeOff: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M2 12c2.7 4.7 6 7 10 7s7.3-2.3 10-7" /><line x1="12" x2="12" y1="19" y2="22" /><line x1="4.9" x2="3.4" y1="15.9" y2="17.9" /><line x1="19.1" x2="20.6" y1="15.9" y2="17.9" /></svg>,
-        Trophy: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>,
-        Compass: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="10" /><path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z" /></svg>,
-        Trash: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>,
-        // --- ÍCONES FALTANTES ADICIONADOS ---
-        Type: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" x2="15" y1="20" y2="20" /><line x1="12" x2="12" y1="4" y2="20" /></svg>,
-        CheckCircle: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>,
-        Minus: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><line x1="5" x2="19" y1="12" y2="12" /></svg>,
-        Tag: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l5 5a2 2 0 0 0 2.828 0l7.172-7.172a2 2 0 0 0 0-2.828l-5-5z" /><circle cx="7.5" cy="7.5" r="1.5" /></svg>,
-    };
-
-    const { useState, useEffect, useMemo, useRef } = React;
-
-    const {
-        Plus, Wallet, X, Users, ArrowRightLeft, User, PiggyBank, Target,
-        PieChart, ListIcon, BarChart3, Home, Settings, LogOut,
-        Moon, Sun, Sunrise, ChevronLeft, Heart, Check, FileText, Upload,
-        Sparkles, Key, CheckSquare, Trash2, ChevronDown, ChevronUp,
-        ShoppingCart, Search, TrendingDown, CreditCard, Calendar, MapPin, Banknote, Briefcase, Download, TrendingUp,
-        Broom, RefreshCw, Trophy, Trash, Eye, EyeOff, Compass,
-        Type, CheckCircle, Minus, Tag // <--- ADICIONAR AQUI
-    } = Icons;
-
-    const formatCurrency = (val) => {
-        const num = Number(val);
-        return isNaN(num) ? 'R$ 0,00' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
-    };
-
-    const formatDate = (dateStr) => {
-        if (typeof dateStr !== 'string' || !dateStr) return '';
-        const parts = dateStr.split('-');
-        return parts.length === 3 ? `${parts[2]}/${parts[1]}` : dateStr;
-    };
-
-    const getGreeting = () => {
-        const h = new Date().getHours();
-        if (h < 5) return { t: 'Boa madrugada', i: <Moon size={16} /> };
-        if (h < 12) return { t: 'Bom dia', i: <Sunrise size={16} /> };
-        if (h < 18) return { t: 'Boa tarde', i: <Sun size={16} /> };
-        return { t: 'Boa noite', i: <Moon size={16} /> };
-    };
-
-    // --- COMPONENTE GRAFICO HISTÓRICO SIMPLES (SVG) ---
-    // --- COMPONENTE GRAFICO HISTÓRICO SIMPLES (REFEITO V2 - EVOLUÇÃO + TOOLTIPS) ---
-    const SimpleHistoryChart = ({ data, mode, viewMode }) => {
-        if (!data || data.length === 0) return <div className="text-center text-slate-400 text-xs py-10">Sem histórico suficiente</div>;
-
-        // Determina qual valor plotar baseado no modo
-        // Modo 'statement' (Dia a Dia): Mostra a evolução do SALDO (runningBalance)
-        // Modo 'investment':
-        // - PERSONAL: Mostra PATRIMÔNIO GLOBAL (Saldo + Inv) = runningNetWorth
-        // - JOINT: Mostra SALDO DE INVESTIMENTOS = runningPatrimony
-        const getBarValue = (d) => {
-            if (mode === 'investment') {
-                return viewMode === 'joint' ? (d.runningPatrimony || 0) : (d.runningNetWorth || 0);
-            }
-            return (d.runningBalance || 0);
-        };
-
-        const values = data.map(getBarValue);
-        // CORREÇÃO: Usa valor absoluto para calcular altura (suporta saldo negativo)
-        const maxVal = Math.max(...values.map(v => Math.abs(v)), 100);
-        const height = 120; // Altura fixa do gráfico
-
-        const [hoveredIndex, setHoveredIndex] = useState(null);
-
-        return (
-            <div className="w-full overflow-visible relative">
-                <div className="flex items-end justify-between min-w-full h-[160px] pt-10 pb-6 px-2 relative font-sans">
-                    {data.map((d, i) => {
-                        const val = getBarValue(d);
-                        const isNegative = val < 0;
-                        // Altura da barra baseada no valor ABSOLUTO
-                        const barHeight = maxVal ? (Math.abs(val) / maxVal) * height : 0;
-                        const isHovered = hoveredIndex === i;
-
-                        // Definição de cores baseada no modo e sinal
-                        // MODO INVESTIMENTOS: Blue (Palette existente) e Indigo (Negativo)
-                        const barColor = isNegative
-                            ? 'bg-indigo-600' // Negativo: Indigo
-                            : (mode === 'statement' ? 'bg-emerald-500' : 'bg-blue-600'); // Positivo Inv: Blue (Palette)
-
-                        const glowColor = isNegative
-                            ? 'shadow-[0_0_15px_rgba(79,70,229,0.4)]'
-                            : (mode === 'statement' ? 'shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'shadow-[0_0_15px_rgba(37,99,235,0.4)]'); // Blue-600
-
-                        // LÓGICA DE POSICIONAMENTO DO TOOLTIP (CORREÇÃO DE BORDAS)
-                        const isFirst = i === 0;
-                        const isLast = i === data.length - 1;
-
-                        // Se for o primeiro, alinha à esquerda (left-0). Se for o último, à direita (right-0). Se não, centraliza.
-                        const tooltipAlignment = isFirst ? 'left-0 translate-x-[-10%]' : isLast ? 'right-0 translate-x-[10%]' : 'left-1/2 -translate-x-1/2';
-                        // Ajuste fino: Se for first/last, a setinha precisa acompanhar a barra, mas o tooltip o container.
-
-                        return (
-                            <div
-                                key={i}
-                                className="flex flex-col items-center gap-2 flex-1 min-w-[40px] relative group cursor-pointer"
-                                onMouseEnter={() => setHoveredIndex(i)}
-                                onMouseLeave={() => setHoveredIndex(null)}
-                                onClick={() => setHoveredIndex(isHovered ? null : i)} // Toggle no mobile
-                            >
-                                {/* ÁREA DA BARRA (Com hit area maior invisível para facilitar toque) */}
-                                <div className="h-[120px] flex items-end relative w-full justify-center">
-
-                                    {/* BARRA VISUAL */}
-                                    <div
-                                        style={{ height: `${Math.max(barHeight, 4)}px` }} // Mínimo 4px pra não sumir
-                                        className={`w-3 rounded-t-md transition-all duration-500 relative
-                                            ${barColor} ${isHovered ? `scale-110 ${glowColor} brightness-110` : 'opacity-80'}
-                                        `}
-                                    >
-                                    </div>
-                                </div>
-
-                                {/* LABEL MÊS */}
-                                <span className={`text-[10px] font-bold uppercase transition-colors ${isHovered ? 'text-white' : 'text-slate-500'}`}>
-                                    {d.month.split('-')[1]}
-                                </span>
-
-                                {/* TOOLTIP DETALHADO (FLUTUANTE) */}
-                                {isHovered && (
-                                    <>
-                                        {/* CONTAINER DO CONTEÚDO (POSICIONADO RELATIVO AO CONTAINER PAI) */}
-                                        <div className={`absolute bottom-[140%] ${tooltipAlignment} bg-slate-900/95 border border-white/10 p-3 rounded-xl shadow-2xl z-50 w-48 backdrop-blur-md animate-fade-in pointer-events-none`}>
-                                            <div className="text-center border-b border-white/10 pb-1 mb-2">
-                                                <p className="text-xs font-bold text-slate-400 uppercase">{d.month}</p>
-                                            </div>
-
-                                            {mode === 'statement' ? (
-                                                <div className="space-y-1">
-                                                    <div className="flex justify-between items-center text-xs">
-                                                        <span className="text-slate-400">Saldo Atual do Mês:</span>
-                                                        <span className={`font-bold ${d.runningBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(d.runningBalance)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center text-[10px]">
-                                                        <span className="text-slate-500">Entradas:</span>
-                                                        <span className="text-emerald-400">+{formatCurrency(d.income)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center text-[10px]">
-                                                        <span className="text-slate-500">Saídas:</span>
-                                                        <span className="text-rose-400">-{formatCurrency(d.expense + (d.invested || 0))}</span>
-                                                    </div>
-                                                    {d.resg > 0 && (
-                                                        <div className="flex justify-between items-center text-[10px]">
-                                                            <span className="text-slate-500">Resgates:</span>
-                                                            <span className="text-emerald-400">+{formatCurrency(d.resg)}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-1">
-                                                    <div className="flex justify-between items-center text-xs">
-                                                        <span className="text-slate-400">{viewMode === 'joint' ? 'Saldo Total de Inv.:' : 'Patrimônio do Mês:'}</span>
-                                                        <span className={`font-bold ${val >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(val)}</span>
-                                                    </div>
-                                                    {viewMode !== 'joint' && (
-                                                        <div className="flex justify-between items-center text-[10px]">
-                                                            <span className="text-slate-500">Saldo de Investimento:</span>
-                                                            <span className="text-slate-300">{formatCurrency(d.runningPatrimony)}</span>
-                                                        </div>
-                                                    )}
-                                                    <div className="flex justify-between items-center text-[10px]">
-                                                        <span className="text-slate-500">Aportes do Mês:</span>
-                                                        <span className="text-indigo-400">+{formatCurrency(d.invested)}</span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* SETINHA (SEMPRE CENTRALIZADA NA BARRA, INDEPENDENTE DO TOOLTIP) */}
-                                        <div className="absolute bottom-[130%] left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-slate-900/95 z-50 pointer-events-none"></div>
-                                    </>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-    };
-
-    // --- LOGIN ISOLADO ---
-    // --- LOGIN ISOLADO (COM BÚSSOLA INTERATIVA) ---
-    // --- LOGIN ISOLADO (VERSÃO FINAL 4 - COMPOSIÇÃO EQUILIBRADA) ---
-    const LoginScreen = ({ onLoginSuccess }) => {
-        const [user, setUser] = useState(null);
-        const [pin, setPin] = useState('');
-        const [error, setError] = useState('');
-
-        // Estados da Bússola
-        const [isSearching, setIsSearching] = useState(true);
-        const needleRef = useRef(null);
-
-        // Efeito: Gira no início -> Segue o mouse depois
-        useEffect(() => {
-            const timer = setTimeout(() => setIsSearching(false), 2500);
-
-            const handleMouseMove = (e) => {
-                if (!needleRef.current) return;
-                if (isSearching) return;
-
-                const rect = needleRef.current.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-
-                const deltaX = e.clientX - centerX;
-                const deltaY = e.clientY - centerY;
-
-                // +90 graus para alinhar o norte da agulha com o mouse
-                const angle = (Math.atan2(deltaY, deltaX) * 180 / Math.PI) + 90;
-
-                needleRef.current.style.transform = `rotate(${angle}deg)`;
-            };
-
-            window.addEventListener('mousemove', handleMouseMove);
-            return () => {
-                clearTimeout(timer);
-                window.removeEventListener('mousemove', handleMouseMove);
-            };
-        }, [isSearching]);
-
-        const handlePin = (val) => {
-            if (val.length > 4) return;
-            setPin(val);
-        };
-
-        const submit = () => {
-            if (user && pin === USER_CONFIG[user].defaultPin) onLoginSuccess(user);
-            else { setError('Senha incorreta'); setPin(''); }
-        };
-
-        // TELA 1: SELEÇÃO DE USUÁRIO
-        if (!user) {
-            return (
-                // AJUSTE: bg-transparent para mostrar a imagem do body
-                <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-6 text-white font-sans overflow-hidden cursor-crosshair">
-
-                    {/* LOGO INTERATIVA - NOSSO NORTE */}
-                    <div className="w-32 h-32 relative mb-8 animate-in select-none flex items-center justify-center">
-
-                        {/* 1. CARTEIRA BIFOLD (BASE) */}
-                        <div className="absolute inset-0 flex items-center justify-center text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.25)]">
-                            <svg width="65%" height="65%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /> {/* Cartões atrás */}
-                                <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />   {/* Corpo frente */}
-                                <path d="M18 12a2 2 0 0 0 0 4h4v-4h-4z" /> {/* Fecho */}
-                            </svg>
-                        </div>
-
-                        {/* 2. BÚSSOLA (SUPERIOR DIREITO - ACIMA DO CORAÇÃO) */}
-                        {/* Posição: top-5 right-5 | Tamanho: ~42px (para igualar ao coração) */}
-                        <div className="absolute top-2 right-1.5 w-[35px] h-[35px] flex items-center justify-center z-20">
-                            {/* Aro da Bússola (Estático) */}
-                            <div className="absolute inset-0 border-2 border-slate-600 rounded-full bg-slate-900/80 backdrop-blur-sm"></div>
-
-                            {/* Agulha (Animada) */}
-                            <div
-                                ref={needleRef}
-                                className={`relative w-full h-full flex items-center justify-center transition-transform duration-75 ease-out ${isSearching ? 'animate-[spin_2s_ease-in-out_infinite]' : ''}`}
-                                style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
-                            >
-                                <svg width="20" height="42" viewBox="0 0 20 42">
-                                    <path d="M10 2 L16 21 H4 Z" fill="#ef4444" /> {/* Norte */}
-                                    <path d="M10 40 L16 21 H4 Z" fill="#e2e8f0" /> {/* Sul */}
-                                    <circle cx="10" cy="21" r="2" fill="#0f172a" />
-                                </svg>
-                            </div>
-                        </div>
-
-                        {/* 3. CORAÇÃO (INFERIOR DIREITO - POSIÇÃO ORIGINAL) */}
-                        {/* Posição: bottom-5 right-5 | Tamanho: 60px */}
-                        <div className="absolute bottom-2 right-1 animate-pulse z-10">
-                            <Heart width={35} height={35} className="text-rose-500 fill-rose-500 drop-shadow-2xl" />
-                        </div>
-                    </div>
-
-                    <h1 className="text-3xl font-bold mb-2">Nosso Norte</h1>
-                    <p className="text-slate-400 mb-10 text-center">Finanças a dois,<br />sem complicações.</p>
-
-                    <div className="w-full max-w-sm grid gap-4 relative z-10">
-                        {Object.entries(USER_CONFIG).map(([key, cfg]) => (
-                            <button key={key} onClick={() => setUser(key)} className="bg-slate-800/50 border border-white/10 p-4 rounded-2xl flex items-center gap-4 active:scale-95 transition-all hover:bg-slate-800 hover:border-emerald-500/30 group">
-                                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${cfg.color} group-hover:scale-110 transition-transform`}>
-                                    {cfg.avatar}
-                                </div>
-                                <span className="text-lg font-bold">Sou {cfg.name}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            );
-        }
-
-        // TELA 2: SENHA
-        return (
-            <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-6 text-white font-sans animate-in">
-                <button onClick={() => setUser(null)} className="absolute top-8 left-6 p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"><ChevronLeft /></button>
-                <div className={`w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-4 border-4 border-slate-700 ${USER_CONFIG[user].color}`}>
-                    {USER_CONFIG[user].avatar}
-                </div>
-                <h2 className="text-xl font-bold mb-8">Olá, {USER_CONFIG[user].name}</h2>
-                <div className="flex gap-4 mb-8">
-                    {[0, 1, 2, 3].map((i) => (
-                        <div key={i} className={`w-3 h-3 rounded-full transition-colors duration-300 ${pin.length > i ? 'bg-emerald-400' : 'bg-slate-600'}`} />
-                    ))}
-                </div>
-                {error && <p className="text-red-400 text-sm mb-4 bg-red-400/10 px-3 py-1 rounded-lg">{error}</p>}
-                <div className="grid grid-cols-3 gap-4 w-64">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-                        <button key={n} onClick={() => handlePin(pin + n)} className="h-16 rounded-2xl bg-white/5 text-xl font-bold active:scale-95 hover:bg-white/10 transition-colors">{n}</button>
-                    ))}
-                    <div />
-                    <button onClick={() => handlePin(pin + '0')} className="h-16 rounded-2xl bg-white/5 text-xl font-bold active:scale-95 hover:bg-white/10 transition-colors">0</button>
-                    <button onClick={() => setPin(pin.slice(0, -1))} className="h-16 rounded-2xl flex items-center justify-center active:scale-95 hover:bg-white/10 transition-colors"><X /></button>
-                </div>
-                <button onClick={submit} disabled={pin.length !== 4} className={`w-64 mt-6 py-4 rounded-2xl font-bold transition-all duration-300 ${pin.length === 4 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-800 text-slate-500'}`}>Entrar</button>
-            </div>
-        );
-    };
-
-    // --- COMPONENTE MARKET (V11 - COM BANCO DE DADOS) ---
-    const MarketView = ({ data, shoppingList }) => { // Recebe shoppingList via props
-        const [searchTerm, setSearchTerm] = useState('');
-        // REMOVIDO: const [shoppingList, setShoppingList] = useState([]); <--- AGORA VEM DO FIREBASE
-
-        // INTELIGÊNCIA DE PREÇOS (Refinada para Média Unitária)
-        const productIntelligence = useMemo(() => {
-            const map = {};
-            data.fullList.forEach(tx => {
-                if (tx.items && tx.items.length > 0) {
-                    tx.items.forEach(item => {
-                        const normalizedName = item.name.toLowerCase().trim();
-                        if (!map[normalizedName]) map[normalizedName] = { name: item.name, history: [] };
-
-                        // Se a IA pegou o unitPrice, usa ele. Se não, tenta deduzir pelo total (assumindo 1un se não tiver qty)
-                        // Isso evita misturar "Preço de 1kg" com "Preço de 0.5kg" na média
-                        const qty = item.qty || 1;
-                        const effectiveUnitPrice = item.unitPrice > 0 ? item.unitPrice : (item.value / qty);
-
-                        map[normalizedName].history.push({
-                            unitPrice: effectiveUnitPrice, // Preço de 1 UNIDADE/KG
-                            market: tx.market || tx.title,
-                            unit: item.unit || 'un'
-                        });
-                    });
-                }
-            });
-            return Object.values(map).map(p => {
-                // Ordena pelo preço unitário para achar o "Melhor Lugar"
-                p.history.sort((a, b) => a.unitPrice - b.unitPrice);
-
-                const best = p.history[0];
-                p.bestPrice = best.unitPrice; // Melhor preço do KG encontrado
-                p.bestMarket = best.market;
-                p.unit = best.unit;
-
-                // Média: Soma de todos os preços unitários / qtd de compras
-                p.avgPrice = p.history.reduce((a, b) => a + b.unitPrice, 0) / p.history.length;
-
-                return p;
-            }).sort((a, b) => a.name.localeCompare(b.name));
-        }, [data.fullList]);
-
-        const filteredProducts = productIntelligence.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
-
-        // --- AÇÕES COM BANCO DE DADOS ---
-        const addToCart = async (product) => {
-            // Pergunta a quantidade desejada
-            const defaultQty = "1";
-            const userQtyStr = prompt(
-                `Quantos ${product.unit || 'un'} de "${product.name}" deseja comprar?\n\n` +
-                `Preço Médio: ${formatCurrency(product.avgPrice)} /${product.unit || 'un'}\n` +
-                `Melhor local: ${product.bestMarket} (${formatCurrency(product.bestPrice)})`,
-                defaultQty
-            );
-
-            if (userQtyStr === null) return; // Cancelou
-
-            const finalQty = parseFloat(userQtyStr.replace(',', '.')) || 1;
-
-            // Cálculo da Estimativa: Quantidade * Preço Médio (conforme seu pedido)
-            const estimatedTotal = finalQty * product.avgPrice;
-
-            const newItem = {
-                name: product.name,
-                plannedQty: finalQty, // Salvamos quanto queremos comprar
-                unit: product.unit || 'un',
-                price: estimatedTotal, // Valor estimado total
-                avgUnitTest: product.avgPrice, // Guardamos a média usada para referência
-                market: product.bestMarket || '?', // Sugestão de onde ir
-                checked: false,
-                createdAt: new Date().toISOString()
-            };
-
-            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('shopping_list').add(newItem);
-            setSearchTerm('');
-        };
-
-        const addManualItem = async () => {
-            if (!searchTerm) return;
-            let priceInput = prompt(`Qual o preço para "${searchTerm}"?`, "0.00");
-            if (priceInput === null) return;
-            priceInput = priceInput.replace(',', '.');
-            const finalPrice = parseFloat(priceInput);
-            if (isNaN(finalPrice)) { alert("Valor inválido"); return; }
-
-            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('shopping_list').add({
-                name: searchTerm,
-                price: finalPrice,
-                market: 'Manual 📝',
-                checked: false,
-                createdAt: new Date().toISOString()
-            });
-            setSearchTerm('');
-        };
-
-        const toggleCartItem = async (item) => {
-            // Atualiza status no Firestore
-            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('shopping_list').doc(item.id).update({ checked: !item.checked });
-        };
-
-        const removeCartItem = async (id) => {
-            // Deleta do Firestore (sem confirmação para ser rápido, ou com se preferir)
-            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('shopping_list').doc(id).delete();
-        };
-
-        // Cálculo do total usando a lista que vem do banco
-        const totalCart = (shoppingList || []).reduce((acc, item) => acc + (item.checked ? 0 : item.price), 0);
-
-        return (
-            <div className="space-y-6 pb-24">
-                {/* LISTA DE COMPRAS ATIVA */}
-                <div className="glass-card p-5">
-                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-white uppercase tracking-wider"><ShoppingCart className="text-indigo-400" /> Lista de Compras</h3>
-
-                    {(!shoppingList || shoppingList.length === 0) ? (
-                        <p className="text-sm text-slate-400 text-center py-4">Sua lista está vazia.</p>
-                    ) : (
-                        <div className="space-y-3">
-                            {shoppingList.map(item => (
-                                <div key={item.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${item.checked ? 'bg-slate-800/30 border-white/5 opacity-50' : 'bg-slate-800/30 border-slate-600'}`}>
-                                    <button onClick={() => toggleCartItem(item)} className={`w-5 h-5 rounded border-2 flex items-center justify-center ${item.checked ? 'bg-indigo-500 border-indigo-500' : 'border-slate-500'}`}>
-                                        {item.checked && <Check size={12} className="text-white" />}
-                                    </button>
-                                    <div className="flex-1">
-                                        <p className={`font-bold text-sm text-white ${item.checked ? 'line-through text-slate-500' : ''}`}>{item.name}</p>
-
-                                        {/* LINHA DE DETALHE NOVA */}
-                                        <div className="flex justify-between items-center pr-2 mt-0.5">
-                                            <p className="text-xs text-indigo-300 font-bold">
-                                                {item.plannedQty || 1} {item.unit} <span className="text-slate-400 font-normal">x {formatCurrency(item.price / (item.plannedQty || 1))} (méd)</span>
-                                            </p>
-                                            <p className="text-xs text-slate-400 flex items-center gap-1">
-                                                <TrendingDown size={10} className="text-emerald-400" /> {item.market}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="font-bold text-sm text-indigo-300">{item.price > 0 ? formatCurrency(item.price) : '-'}</p>
-                                        <button onClick={() => removeCartItem(item.id)}><X size={14} className="text-slate-500 hover:text-rose-400" /></button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center">
-                        <span className="text-xs font-bold uppercase text-slate-400">Estimativa</span>
-                        <span className="text-xl font-bold text-white">{formatCurrency(totalCart)}</span>
-                    </div>
-                </div>
-
-                {/* BUSCA UNIFICADA */}
-                <div className="glass-card p-5">
-                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-white uppercase tracking-wider"><Target className="text-emerald-400" /> Adicionar Item</h3>
-                    <div className="relative mb-4">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Digite o nome do produto..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-slate-800/50 pl-10 pr-4 py-3 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-slate-500 border border-white/5"
-                        />
-                    </div>
-
-                    <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-hide">
-                        {searchTerm && (
-                            <div onClick={addManualItem} className="flex items-center gap-3 p-3 bg-indigo-900/30 hover:bg-indigo-900/50 rounded-xl cursor-pointer border border-indigo-500/30 mb-2">
-                                <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-300">
-                                    <Plus size={16} />
-                                </div>
-                                <div>
-                                    <p className="font-bold text-sm text-indigo-200">Adicionar "{searchTerm}"</p>
-                                    <p className="text-xs text-indigo-400">Novo item na lista</p>
-                                </div>
-                            </div>
-                        )}
-
-                        {filteredProducts.slice(0, 10).map((prod, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 hover:bg-white/5 rounded-xl cursor-pointer group border border-transparent hover:border-white/5" onClick={() => addToCart(prod)}>
-                                <div className="flex-1 pr-3 overflow-hidden">
-                                    <p className="font-bold text-sm text-slate-200 truncate">{prod.name}</p>
-                                    <p className="text-xs text-slate-400">
-                                        Média: {formatCurrency(prod.avgPrice)} {prod.unit && prod.unit !== 'un' ? `/${prod.unit}` : ''}
-                                    </p>
-                                </div>
-                                <div className="text-right flex-shrink-0 min-w-[100px]">
-                                    <p className="font-bold text-sm text-emerald-400 leading-tight">
-                                        {formatCurrency(prod.bestPrice)}
-                                        <span className="text-xs text-emerald-600 font-normal ml-0.5">
-                                            {prod.unit && prod.unit !== 'un' ? `/${prod.unit}` : ''}
-                                        </span>
-                                    </p>
-                                    <p className="text-xs text-slate-500 truncate max-w-[120px] ml-auto block">{prod.bestMarket || 'Sem local'}</p>
-                                </div>
-                                <div className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity bg-emerald-500/20 p-1.5 rounded-lg">
-                                    <Plus size={14} className="text-emerald-400" />
-                                </div>
-                            </div>
-                        ))}
-                        {!searchTerm && filteredProducts.length === 0 && <p className="text-center text-xs text-slate-500 py-4">Comece a digitar para ver sugestões.</p>}
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    // --- COMPONENTE DE TAREFAS (V6 - COM MERCADO INTEGRADO) ---
-    const ChoresView = ({ chores, onToggle, onAdd, onDelete, onRotateCycle, onResetDaily, userConfig, weekCycle, data, shoppingList }) => { // <--- ADICIONAR shoppingList AQUI
-        const [mode, setMode] = useState('market'); // 'tasks' | 'market'
-
-        const [newChore, setNewChore] = useState('');
-        const [newAssignee, setNewAssignee] = useState('bruno');
-        const [newFreq, setNewFreq] = useState('weekly');
-        const [isRotating, setIsRotating] = useState(true);
-
-        const [newEffort, setNewEffort] = useState('medium');
-        const [customPoints, setCustomPoints] = useState(20);
-        const [points, setPoints] = useState({ bruno: 0, maiara: 0 });
-
-        const EFFORT_LEVELS = {
-            easy: { label: '😌 Sussa', points: 5, color: 'text-emerald-400' },
-            medium: { label: '😐 Normal', points: 15, color: 'text-sky-400' },
-            hard: { label: '😅 Cansativo', points: 30, color: 'text-amber-400' },
-            heavy: { label: '🥵 Dói as Costas', points: 50, color: 'text-rose-400 font-bold' }
-        };
-
-        // Calcula Placar
-        useMemo(() => {
-            let p = { bruno: 0, maiara: 0 };
-            if (chores) {
-                chores.forEach(c => {
-                    if (c.done && p[c.assignee] !== undefined) p[c.assignee] += Number(c.points || 0);
-                });
-            }
-            setPoints(p);
-        }, [chores]);
-
-        useEffect(() => {
-            if (EFFORT_LEVELS[newEffort]) setCustomPoints(EFFORT_LEVELS[newEffort].points);
-        }, [newEffort]);
-
-        const handleAdd = () => {
-            if (!newChore) return;
-            onAdd({
-                title: newChore,
-                assignee: newAssignee,
-                isRotating: isRotating,
-                frequency: newFreq,
-                effort: newEffort,
-                points: Number(customPoints),
-                done: false
-            });
-            setNewChore('');
-        };
-
-        const visibleChores = chores.filter(c => {
-            if (c.frequency === 'biweekly') return (weekCycle || 0) % 2 === 0;
-            return true;
-        });
-
-        const groups = {
-            daily: visibleChores.filter(c => c.frequency === 'daily'),
-            weekly: visibleChores.filter(c => c.frequency !== 'daily')
-        };
-
-        const renderChoreItem = (chore) => {
-            const effortKey = chore.effort || (chore.points >= 50 ? 'heavy' : chore.points >= 30 ? 'hard' : chore.points >= 15 ? 'medium' : 'easy');
-            const effortStyle = EFFORT_LEVELS[effortKey] || EFFORT_LEVELS['medium'];
-
-            return (
-                <div key={chore.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${chore.done ? 'bg-slate-800/30 border-white/5 opacity-60' : 'bg-slate-800/40 border-slate-600'}`}>
-                    <button onClick={() => onToggle(chore.id)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${chore.done ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500'}`}>
-                        {chore.done && <Check size={14} className="text-white" />}
-                    </button>
-
-                    <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start">
-                            <p className={`font-bold text-sm text-white truncate pr-2 ${chore.done ? 'line-through text-slate-500' : ''}`}>{chore.title}</p>
-                            <div className="flex gap-1 items-center">
-                                <span className={`text-xs px-1.5 py-0.5 rounded bg-white/5 border border-white/10 ${effortStyle.color} whitespace-nowrap`}>
-                                    {effortStyle.label}
-                                </span>
-                                {chore.frequency === 'biweekly' && <span className="text-xs bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded font-bold uppercase border border-purple-500/30">Quinzenal</span>}
-                            </div>
-                        </div>
-                        <div className="flex gap-2 items-center mt-1">
-                            <div className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded font-bold text-white ${userConfig[chore.assignee]?.color || 'bg-gray-400'}`}>
-                                {userConfig[chore.assignee]?.avatar} {userConfig[chore.assignee]?.name}
-                            </div>
-                            {chore.isRotating && <span className="text-xs text-indigo-400 flex items-center gap-0.5"><RefreshCw size={10} /></span>}
-                            <span className="text-xs text-amber-500 font-bold">+{chore.points}pts</span>
-                        </div>
-                    </div>
-
-                    <button onClick={() => onDelete(chore.id)} className="text-slate-500 hover:text-rose-500"><Trash size={16} /></button>
-                </div>
-            );
-        };
-
-        return (
-            <div className="space-y-6 pb-24 animate-fade-in">
-
-                {/* SELETOR DE MODO (Tarefas vs Mercado) */}
-                <div className="flex justify-center mb-6">
-                    <div className="bg-slate-900/50 p-1 rounded-2xl border border-white/10 flex">
-
-                        {/* 1º BOTÃO: MERCADO (Esquerda) */}
-                        <button onClick={() => setMode('market')} className={`px-6 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${mode === 'market' ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-white shadow-lg shadow-emerald-500/30 border border-emerald-400/20' : 'text-slate-400 hover:bg-white/5'}`}>
-                            <ShoppingCart size={16} /> Mercado
-                        </button>
-
-                        {/* 2º BOTÃO: TAREFAS (Direita) - Ícone Checklist */}
-                        <button onClick={() => setMode('tasks')} className={`px-6 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${mode === 'tasks' ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30 border border-indigo-400/20' : 'text-slate-400 hover:bg-white/5'}`}>
-                            <CheckSquare size={16} /> Tarefas
-                        </button>
-
-                    </div>
-                </div>
-
-                {mode === 'market' ? (
-                    <MarketView data={data} shoppingList={shoppingList} /> // <--- ADICIONAR A PROP AQUI
-                ) : (
-                    <>
-                        {/* --- PLACAR REMOVIDO AQUI --- */}
-
-                        {/* GRUPO 1: ROTINA DIÁRIA */}
-                        <div className="glass-card p-5">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-bold text-lg flex items-center gap-2 text-white uppercase tracking-wider"><Sun className="text-amber-500" /> Rotina Diária</h3>
-                                <button onClick={onResetDaily} className="text-xs font-bold text-slate-400 hover:text-indigo-400 flex items-center gap-1 bg-white/5 px-2 py-1 rounded-lg border border-white/5">
-                                    <RefreshCw size={10} /> Resetar Dia
-                                </button>
-                            </div>
-                            <div className="space-y-3">{groups.daily.map(renderChoreItem)}{groups.daily.length === 0 && <p className="text-xs text-slate-500 text-center">Sem tarefas diárias.</p>}</div>
-                        </div>
-
-                        {/* GRUPO 2: MISSÕES DA SEMANA */}
-                        <div className="glass-card p-5 relative overflow-hidden">
-                            {(weekCycle || 0) % 2 === 0 ? (
-                                <div className="absolute top-0 right-0 bg-purple-500/20 text-purple-300 border-l border-b border-purple-500/30 text-xs font-bold px-3 py-1 rounded-bl-xl">
-                                    ✨ Semana da Faxina Pesada
-                                </div>
-                            ) : null}
-
-                            <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-white uppercase tracking-wider"><Broom className="text-indigo-400" /> Missões da Semana</h3>
-                            <div className="space-y-3">{groups.weekly.map(renderChoreItem)}{groups.weekly.length === 0 && <p className="text-xs text-slate-500 text-center">Tudo limpo por aqui!</p>}</div>
-
-                            {/* ÁREA DE CRIAÇÃO */}
-                            <div className="mt-8 pt-6 border-t border-dashed border-white/10">
-                                <div className="flex flex-col gap-3 mb-6 bg-slate-800/50 p-4 rounded-xl border border-white/5">
-                                    <input
-                                        type="text"
-                                        value={newChore}
-                                        onChange={e => setNewChore(e.target.value)}
-                                        placeholder="Nome da tarefa (Ex: Limpar Lajes)"
-                                        className="bg-transparent font-bold text-sm outline-none w-full border-b border-white/10 pb-2 text-white placeholder-slate-500"
-                                    />
-
-                                    <div className="flex gap-2">
-                                        <select value={newAssignee} onChange={e => setNewAssignee(e.target.value)} className="flex-1 text-xs font-bold bg-slate-900/50 text-slate-300 p-2 rounded-lg border border-white/10 outline-none">
-                                            <option value="bruno">Bruno</option>
-                                            <option value="maiara">Maiara</option>
-                                        </select>
-                                        <select value={newFreq} onChange={e => setNewFreq(e.target.value)} className="flex-1 text-xs font-bold bg-slate-900/50 text-slate-300 p-2 rounded-lg border border-white/10 outline-none">
-                                            <option value="daily">Diária</option>
-                                            <option value="weekly">Semanal</option>
-                                            <option value="biweekly">Quinzenal</option>
-                                        </select>
-                                    </div>
-
-                                    <div className="flex gap-2 items-center">
-                                        <select value={newEffort} onChange={e => setNewEffort(e.target.value)} className="flex-1 text-xs font-bold bg-slate-900/50 text-slate-300 p-2 rounded-lg border border-white/10 outline-none">
-                                            {Object.entries(EFFORT_LEVELS).map(([k, v]) => (
-                                                <option key={k} value={k}>{v.label} ({v.points}pts)</option>
-                                            ))}
-                                        </select>
-
-                                        <button onClick={() => setIsRotating(!isRotating)} className={`px-3 py-2 rounded-lg text-xs font-bold border transition-colors ${isRotating ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-white/5 text-slate-400 border-white/10'}`}>
-                                            {isRotating ? '🔄 Revezar' : '🔒 Fixo'}
-                                        </button>
-                                    </div>
-
-                                    <div className="flex justify-between items-center pt-2 border-t border-white/10 mt-1">
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-xs font-bold text-slate-400">Pontos:</span>
-                                            <input type="number" value={customPoints} onChange={e => setCustomPoints(e.target.value)} className="w-10 text-xs font-bold text-white bg-slate-900/50 border border-white/10 rounded px-1 text-center" />
-                                        </div>
-                                        <button onClick={handleAdd} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md active:scale-95 flex items-center gap-1 hover:bg-indigo-500">
-                                            <Plus size={14} /> Criar
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <button onClick={onRotateCycle} className="w-full bg-slate-800 text-slate-300 border border-white/10 py-3 rounded-xl font-bold text-sm shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 hover:bg-slate-700">
-                                    <RefreshCw size={16} /> Encerrar Semana & Girar
-                                </button>
-                            </div>
-                        </div>
-                    </>
-                )}
-            </div>
-        );
-    };
-
-    // --- APP ---
+const { useState, useEffect, useMemo, useRef } = React;
+
+const {
+    Plus, Wallet, X, Users, ArrowRightLeft, User, PiggyBank, Target,
+    PieChart, ListIcon, BarChart3, Home, Settings, LogOut,
+    Moon, Sun, Sunrise, ChevronLeft, Heart, Check, FileText, Upload,
+    Sparkles, Key, CheckSquare, Trash2, ChevronDown, ChevronUp,
+    ShoppingCart, Search, TrendingDown, CreditCard, Calendar, MapPin, Banknote, Briefcase, Download, TrendingUp,
+    Broom, RefreshCw, Trophy, Trash, Eye, EyeOff, Compass,
+    Type, CheckCircle, Minus, Tag
+} = Icons;
+
+const formatCurrency = (val) => {
+    const num = Number(val);
+    return isNaN(num) ? 'R$ 0,00' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
+};
+
+const formatDate = (dateStr) => {
+    if (typeof dateStr !== 'string' || !dateStr) return '';
+    const parts = dateStr.split('-');
+    return parts.length === 3 ? `${parts[2]}/${parts[1]}` : dateStr;
+};
+
+const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 5) return { t: 'Boa madrugada', i: <Moon size={16} /> };
+    if (h < 12) return { t: 'Bom dia', i: <Sunrise size={16} /> };
+    if (h < 18) return { t: 'Boa tarde', i: <Sun size={16} /> };
+    return { t: 'Boa noite', i: <Moon size={16} /> };
+};
+
+// --- APP ---
     function App() {
         const [user, setUser] = useState(null);
         const [profile, setProfile] = useState(null);
@@ -2907,7 +2169,17 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 
         // UI HELPERS
         const userConfig = profile ? USER_CONFIG[profile] : null;
-        if (!profile || !userConfig) return <LoginScreen onLoginSuccess={(p) => { setProfile(p); localStorage.setItem('fincontrol_profile', p); }} />;
+        if (!profile || !userConfig) {
+            return (
+                <LoginScreen
+                    USER_CONFIG={USER_CONFIG}
+                    ChevronLeft={ChevronLeft}
+                    Heart={Heart}
+                    X={X}
+                    onLoginSuccess={(p) => { setProfile(p); localStorage.setItem('fincontrol_profile', p); }}
+                />
+            );
+        }
         if (!data) return <div className="h-full flex items-center justify-center bg-slate-900 text-white">Carregando...</div>;
         const greeting = getGreeting();
 
@@ -4015,16 +3287,28 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                     {/* --- ABA DE TAREFAS UNIFICADA --- */}
                     {tab === 'chores' && (
                         <ChoresView
+                            APP_ID={APP_ID}
+                            Broom={Broom}
+                            Check={Check}
+                            CheckSquare={CheckSquare}
+                            MarketIcons={{ Check, Plus, Search, ShoppingCart, Target, TrendingDown, X }}
+                            Plus={Plus}
+                            RefreshCw={RefreshCw}
+                            ShoppingCart={ShoppingCart}
+                            Sun={Sun}
+                            Trash={Trash}
                             chores={chores}
-                            userConfig={USER_CONFIG}
-                            weekCycle={weekCycle}
                             data={data}
-                            shoppingList={shoppingList}
+                            db={db}
+                            formatCurrency={formatCurrency}
                             onToggle={toggleChore}
                             onAdd={addChore}
                             onDelete={deleteChore}
                             onRotateCycle={rotateChores}
                             onResetDaily={resetDailyChores}
+                            shoppingList={shoppingList}
+                            userConfig={USER_CONFIG}
+                            weekCycle={weekCycle}
                         />
                     )}
 
@@ -4307,7 +3591,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
                             {/* HISTÓRICO MENSAL */}
                             <div className="glass-card p-5">
                                 <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-white uppercase tracking-wider"><BarChart3 className="text-indigo-400" /> Evolução (6 Meses)</h3>
-                                <SimpleHistoryChart data={data.analysis.history} mode={dashboardMode} viewMode={viewMode} />
+                                <SimpleHistoryChart data={data.analysis.history} mode={dashboardMode} viewMode={viewMode} formatCurrency={formatCurrency} />
                             </div>
 
                             {/* FLUXO DE BANCOS */}
