@@ -25,7 +25,7 @@ import ReportsView from './components/ReportsView.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
 import TransactionModal from './components/TransactionModal.jsx';
 import { BANKS, CATEGORIES, DEFAULT_BUDGETS, DEFAULT_CHORES, P2P_CATEGORY, USER_CONFIG } from './config/appData.js';
-import { BRAPI_TOKEN, GEMINI_MODELS_TO_TRY, MONTH_NAMES_EN_SHORT } from './config/appSettings.js';
+import { BRAPI_TOKEN, DEFAULT_GEMINI_API_KEY, GEMINI_MODELS_TO_TRY, MONTH_NAMES_EN_SHORT } from './config/appSettings.js';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -94,7 +94,7 @@ const getGreeting = () => {
         const [isForecast, setIsForecast] = useState(true); // Padrão: Previsão ligada
         // -----------------------------------------------------
 
-        const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+        const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || DEFAULT_GEMINI_API_KEY || '');
         const [menuOpen, setMenuOpen] = useState(false);
         const [modalOpen, setModalOpen] = useState(false);
         const [budgetModal, setBudgetModal] = useState(false);

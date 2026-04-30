@@ -7,4 +7,5 @@ export const MONTH_NAMES_EN_SHORT = [
   'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
 ];
 
-export const BRAPI_TOKEN = 'q8JYwF9vesohbnMd2csLPs';
+export const BRAPI_TOKEN = import.meta.env.VITE_BRAPI_TOKEN || '';
+export const DEFAULT_GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
