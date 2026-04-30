@@ -12,13 +12,18 @@ import {
 import { buildDetailedPortfolio, calculatePortfolioTotal, FIXED_INCOME_CATEGORIES } from './domain/finance/portfolio.js';
 import './styles.css';
 import AssetHistoryModal from './components/AssetHistoryModal.jsx';
+import BottomNavigation from './components/BottomNavigation.jsx';
+import BudgetModal from './components/BudgetModal.jsx';
 import ChoresView from './components/ChoresView.jsx';
 import DreamModal from './components/DreamModal.jsx';
 import { Icons } from './components/AppIcons.jsx';
 import LoginScreen from './components/LoginScreen.jsx';
+import PlanningView from './components/PlanningView.jsx';
 import PricesModal from './components/PricesModal.jsx';
+import ReportsView from './components/ReportsView.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
 import SimpleHistoryChart from './components/SimpleHistoryChart.jsx';
+import TransactionModal from './components/TransactionModal.jsx';
 import { BANKS, CATEGORIES, DEFAULT_BUDGETS, DEFAULT_CHORES, P2P_CATEGORY, USER_CONFIG } from './config/appData.js';
 import { BRAPI_TOKEN, GEMINI_MODELS_TO_TRY, MONTH_NAMES_EN_SHORT } from './config/appSettings.js';
 
@@ -3312,433 +3317,62 @@ const getGreeting = () => {
                     )}
 
                     {tab === 'planning' && (
-                        <div className="space-y-6 animate-fade-in pb-20">
-                            {/* SEÇÃO DE SONHOS */}
-                            <div className="glass-card p-6">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="font-bold flex gap-2 items-center text-lg text-white uppercase tracking-wider">
-                                        <Sparkles size={20} className="text-amber-500" />
-                                        {viewMode === 'joint' ? 'Nossos Sonhos' : 'Meus Sonhos'}
-                                    </h3>
-                                    <button onClick={() => setDreamModal(true)} className="bg-slate-800 border border-white/20 text-white p-2 rounded-full hover:bg-slate-700"><Plus size={16} /></button>
-                                </div>
-
-                                {data.dreamsProgress.length === 0 ? (
-                                    <p className="text-center text-slate-400 text-sm">Nenhum sonho cadastrado. Comece agora!</p>
-                                ) : (
-                                    <div className="space-y-4">
-                                        {data.dreamsProgress.map(d => (
-                                            // ADICIONADO "pr-7" ABAIXO PARA EVITAR SOBREPOSIÇÃO COM O BOTÃO X
-                                            <div key={d.id} className={`relative pr-7 cursor-pointer group transition-colors rounded-xl p-2 ${d.isCompleted ? 'bg-amber-500/10 border border-amber-500/30' : 'hover:bg-white/5'}`} onClick={() => handleEditDream(d)}>
-
-                                              <div className="flex justify-between items-end mb-1">
-                                                <div>
-                                                  <span className={`mr-2 ${d.isCompleted ? 'text-3xl' : 'text-2xl'}`}>{d.emoji}</span>
-                                                  <span className="font-bold text-slate-200">{d.title}</span>
-                                                </div>
-                                                <div className="text-right">
-                                                  {d.isCompleted && (<p className="text-xs font-bold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-full inline-block mb-0.5">✅ Realizado!</p>)}
-                                                  <p className="text-xs text-slate-400">Meta: {formatCurrency(d.targetAmount)}</p>
-                                                  <p className={`font-bold ${d.isCompleted ? 'text-amber-400' : 'text-indigo-400'}`}>{formatCurrency(d.currentAmount)}</p>
-                                                  <p className="text-xs text-slate-400 font-bold mt-0.5">{d.pct.toFixed(0)}% concluído</p>
-                                                </div>
-                                              </div>
-
-                                              <div className="h-4 bg-slate-700/50 rounded-full overflow-hidden relative">
-                                                <div className={`h-full transition-all duration-1000 ${d.isCompleted ? 'bg-gradient-to-r from-amber-400 to-yellow-300' : 'bg-gradient-to-r from-indigo-500 to-purple-500'}`} style={{ width: `${d.pct}%` }} />
-                                              </div>
-                                              {/* Botão de Exclusão (Removido - Agora é Editar ao clicar) */}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="glass-card p-6">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="font-bold flex gap-2 items-center text-lg text-white uppercase tracking-wider">
-                                        <Target size={20} className="text-indigo-400" />
-                                        Orçamento Mensal
-                                    </h3>
-                                    <button onClick={openBudget} className="text-xs bg-indigo-500/10 text-indigo-400 px-3 py-1.5 rounded-lg font-bold flex gap-1 items-center hover:bg-indigo-500/20 transition-colors border border-indigo-500/20">
-                                        <Settings size={14} /> Configurar
-                                    </button>
-                                </div>
-
-                                {data.planning.length === 0 ? (
-                                    <p className="text-center text-slate-400 text-sm py-8">Nenhuma meta configurada.</p>
-                                ) : (
-                                    <div className="space-y-8">
-                                        {/* OBJETIVOS DE ENTRADA */}
-                                        {data.planning.filter(b => b.type === 'in').length > 0 && (
-                                            <div className="space-y-4">
-                                                <h4 className="text-xs font-bold uppercase text-emerald-500 tracking-wider mb-2 border-b border-emerald-500/30 pb-1">Objetivos de Receita</h4>
-                                                {data.planning.filter(b => b.type === 'in').map((b, i) => (
-                                                    <div key={'in-' + i}>
-                                                        <div className="flex justify-between mb-1 text-sm font-bold">
-                                                            <span className="flex gap-2 text-slate-200">{b.icon} {b.category}</span>
-                                                            <span className={b.realized >= b.limit ? 'text-emerald-400' : 'text-slate-400'}>
-                                                                {formatCurrency(b.realized)} / {formatCurrency(b.limit)}
-                                                            </span>
-                                                        </div>
-                                                        <div className="h-3 bg-slate-700/50 rounded-full overflow-hidden relative">
-                                                            <div className={`h-full transition-all duration-500 rounded-full ${b.pct >= 100 ? 'bg-emerald-500' : 'bg-emerald-400/70'}`} style={{ width: `${b.pct}%` }} />
-                                                        </div>
-                                                        <p className="text-xs text-right mt-1 text-slate-400 font-bold">{b.rawPct.toFixed(0)}% atingido</p>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {/* LIMITES DE SAÍDA */}
-                                        {data.planning.filter(b => b.type === 'out').length > 0 && (
-                                            <div className="space-y-4">
-                                                <h4 className="text-xs font-bold uppercase text-rose-500 tracking-wider mb-2 border-b border-rose-500/30 pb-1 mt-6">Limites de {dashboardMode === 'statement' ? 'Gastos' : 'Aportes'}</h4>
-                                                {data.planning.filter(b => b.type === 'out').map((b, i) => (
-                                                    <div key={'out-' + i}>
-                                                        <div className="flex justify-between mb-1 text-sm font-bold">
-                                                            <span className="flex gap-2 text-slate-200">{b.icon} {b.category}</span>
-                                                            <span className={b.realized > b.limit ? 'text-rose-500' : 'text-slate-400'}>
-                                                                {formatCurrency(b.realized)} / {formatCurrency(b.limit)}
-                                                            </span>
-                                                        </div>
-                                                        <div className="h-3 bg-slate-700/50 rounded-full overflow-hidden">
-                                                            <div className={`h-full transition-all duration-500 rounded-full ${b.pct > 100 ? 'bg-rose-500' : b.pct > 80 ? 'bg-amber-400' : 'bg-blue-400'}`} style={{ width: `${b.pct}%` }} />
-                                                        </div>
-                                                        <p className="text-xs text-right mt-1 text-slate-400 font-bold">{b.rawPct.toFixed(0)}% consumido</p>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                        <PlanningView
+                            dashboardMode={dashboardMode}
+                            data={data}
+                            formatCurrency={formatCurrency}
+                            onEditDream={handleEditDream}
+                            onOpenBudget={openBudget}
+                            onOpenDreamModal={() => setDreamModal(true)}
+                            Plus={Plus}
+                            Settings={Settings}
+                            Sparkles={Sparkles}
+                            Target={Target}
+                            viewMode={viewMode}
+                        />
                     )}
 
                     {tab === 'reports' && (
-                        <div className="space-y-6 animate-fade-in pb-20">
-                            {/* DASHBOARD DE SAÚDE FINANCEIRA */}
-                            <div className="glass-card text-white p-5 rounded-3xl shadow-lg relative overflow-hidden mb-6">
-                                <div className="absolute top-0 right-0 p-6 opacity-5"><Heart size={120} /></div>
-                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2 relative z-10 uppercase tracking-wider">
-                                    <Sparkles className="text-yellow-400" />
-                                    {dashboardMode === 'statement' ? 'Saúde do Mês' : 'Raio-X Patrimonial'}
-                                </h3>
-
-                                <div className="grid grid-cols-2 gap-4 relative z-10">
-                                    {dashboardMode === 'statement' ? (
-                                        <>
-                                            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-slate-500">
-                                                <p className="text-xs text-slate-300 font-bold uppercase mb-1">Taxa de Poupança</p>
-                                                <p className={`text-xl font-extrabold ${data.analysis.health.savingsRate > 20 ? 'text-emerald-400' : data.analysis.health.savingsRate > 0 ? 'text-amber-400' : 'text-rose-400'}`}>
-                                                    {data.analysis.health.savingsRate.toFixed(0)}%
-                                                </p>
-                                                <p className="text-xs text-slate-400">Meta ideal: &gt;20%</p>
-                                            </div>
-                                            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-slate-500">
-                                                <p className="text-xs text-slate-300 font-bold uppercase mb-1">Poder de Aporte</p>
-                                                <p className="text-xl font-extrabold text-indigo-400">
-                                                    {data.analysis.health.investRate.toFixed(0)}%
-                                                </p>
-                                                <p className="text-xs text-slate-400">da renda foi investida</p>
-                                            </div>
-                                            <div className="col-span-2 bg-white/5 p-3 rounded-2xl border border-slate-500 flex justify-between items-center mt-1">
-                                                <div>
-                                                    <p className="text-xs text-slate-400 font-bold uppercase">
-                                                        {viewMode === 'joint' ? 'Custo p/ Pessoa' : 'Sobras (Saldo)'}
-                                                    </p>
-                                                    <p className="text-lg font-bold text-white">
-                                                        {viewMode === 'joint'
-                                                            ? formatCurrency(data.exp / 2)
-                                                            : formatCurrency(data.bal)
-                                                        }
-                                                    </p>
-                                                </div>
-                                                <div className="h-8 w-[1px] bg-white/10"></div>
-                                                <div className="text-right">
-                                                    <p className="text-xs text-slate-400 font-bold uppercase">Custo de Vida/Dia</p>
-                                                    <p className="text-lg font-bold text-white">{formatCurrency(data.analysis.health.burnRate / daysInMonth)}</p>
-                                                </div>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="col-span-2 bg-gradient-to-r from-slate-800/60 to-slate-900/60 p-4 rounded-2xl border border-slate-700 shadow-lg mb-2">
-                                                {viewMode === 'joint' ? (
-                                                    <>
-                                                        <p className="text-xs text-slate-400 font-bold uppercase mb-1 flex items-center gap-2">
-                                                            <Trophy size={12} className="text-yellow-400" /> Total Acumulado (Casal)
-                                                        </p>
-                                                        <p className="text-2xl font-extrabold text-white tracking-tight">
-                                                            {formatCurrency(data.investData.totalCurrent)}
-                                                        </p>
-                                                        <p className="text-xs text-slate-400 mt-1">
-                                                            Total bruto em carteira (Sem descontar gastos)
-                                                        </p>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <p className="text-xs text-slate-400 font-bold uppercase mb-1 flex items-center gap-2">
-                                                            <Wallet size={12} /> Patrimônio Global (Pessoal)
-                                                        </p>
-                                                        <p className="text-2xl font-extrabold text-white tracking-tight">
-                                                            {formatCurrency(data.analysis.health.totalNetWorth)}
-                                                        </p>
-                                                        <p className="text-xs text-slate-400 mt-1">
-                                                            Saldo em Conta ({formatCurrency(data.previousBalance + data.bal)}) + Investimentos ({formatCurrency(data.investData.totalCurrent)})
-                                                        </p>
-                                                    </>
-                                                )}
-                                            </div>
-
-                                            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-slate-500">
-                                                <p className="text-xs text-slate-300 font-bold uppercase mb-1">Liberdade Fin.</p>
-                                                <p className="text-xl font-extrabold text-amber-400">
-                                                    {data.analysis.health.freedom.toFixed(2)}%
-                                                </p>
-                                                <p className="text-xs text-slate-400">Pagos por dividendos</p>
-                                            </div>
-                                            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-slate-500">
-                                                <p className="text-xs text-slate-300 font-bold uppercase mb-1">Sobrevivência</p>
-                                                <p className="text-xl font-extrabold text-emerald-400">
-                                                    {data.analysis.health.coverage.toFixed(1)} <span className="text-sm font-normal text-slate-300">meses</span>
-                                                </p>
-                                                <p className="text-xs text-slate-400">Sem renda ativa</p>
-                                            </div>
-
-                                            <div className="col-span-2 mt-2 bg-slate-800/40 rounded-2xl border border-slate-500 overflow-hidden relative">
-                                                {/* Header & Button */}
-                                                <div className="flex justify-between items-center p-3 pb-2 border-b border-slate-500">
-                                                    <p className="text-xs text-slate-400 font-bold uppercase flex items-center gap-1.5 tracking-wider">
-                                                        <TrendingUp size={14} className="text-indigo-400" /> Rentabilidade
-                                                    </p>
-                                                    <button onClick={() => setPricesModal(true)} className="p-1.5 -mr-1 rounded-lg hover:bg-white/10 text-slate-500 hover:text-yellow-400 transition-colors">
-                                                        <Sparkles size={14} />
-                                                    </button>
-                                                </div>
-
-                                                <div className="grid grid-cols-2 relative h-20">
-                                                    {/* Divider */}
-                                                    <div className="absolute left-1/2 top-3 bottom-3 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent"></div>
-
-                                                    {/* 1. Capital Information */}
-                                                    <div className="flex flex-col justify-center items-center hover:bg-white/[0.02] transition-colors relative">
-                                                        <span className="text-[10px] text-slate-500 font-bold uppercase mb-1 tracking-wider">Capital</span>
-                                                        <div className="flex flex-col items-center">
-                                                            <span className={`text-sm font-bold ${data.investData.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                                                {data.investData.profit >= 0 ? '+' : ''}{formatCurrency(data.investData.profit)}
-                                                            </span>
-                                                            <span className="text-[10px] text-slate-500 font-medium">({data.investData.yieldPct.toFixed(1)}%)</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* 2. Total Information (Highlighted) */}
-                                                    <div className="flex flex-col justify-center items-center bg-white/[0.02] relative group cursor-default">
-                                                        {/* Glow Effect */}
-                                                        <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
-                                                        <span className="text-[10px] text-indigo-300/80 font-bold uppercase mb-1 tracking-wider flex items-center gap-1">
-                                                            Total <Sparkles size={8} className="text-amber-400" />
-                                                        </span>
-                                                        <div className="flex flex-col items-center relative z-10">
-                                                            <span className={`text-base font-extrabold ${data.investData.profit + (data.investData.totalDividends || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                                                {data.investData.profit + (data.investData.totalDividends || 0) >= 0 ? '+' : ''}{formatCurrency(data.investData.profit + (data.investData.totalDividends || 0))}
-                                                            </span>
-                                                            <span className="text-[10px] text-slate-400 font-medium">
-                                                                ({data.investData.totalInvested > 0 ? ((data.investData.profit + (data.investData.totalDividends || 0)) / data.investData.totalInvested * 100).toFixed(1) : '0.0'}%)
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-
-
-                            {/* CARD RECEITA/DESPESA CLÁSSICO */}
-                            <div className="grid grid-cols-2 gap-3">
-                                {dashboardMode === 'statement' ? (
-                                    <>
-                                        <div className="bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/20">
-                                            <p className="text-xs text-emerald-400 font-bold uppercase mb-1">Entradas</p>
-                                            <p className="text-lg font-extrabold text-emerald-100">{formatCurrency(data.inc)}</p>
-                                        </div>
-                                        <div className="bg-rose-500/10 p-4 rounded-2xl border border-rose-500/20">
-                                            <p className="text-xs text-rose-400 font-bold uppercase mb-1">Saídas Totais</p>
-                                            <p className="text-lg font-extrabold text-rose-100">{formatCurrency(data.analysis.health.totalOutflows)}</p>
-                                            <p className="text-xs text-rose-300/70 font-bold">(Despesas + Aportes)</p>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="bg-indigo-500/10 p-4 rounded-2xl border border-indigo-500/20">
-                                            <p className="text-xs text-indigo-400 font-bold uppercase mb-1">Aporte Mês</p>
-                                            <p className="text-lg font-extrabold text-indigo-100">{formatCurrency(data.analysis.health.strictScopeInv)}</p>
-                                        </div>
-                                        <div className="bg-amber-500/10 p-4 rounded-2xl border border-amber-500/20">
-                                            <p className="text-xs text-amber-400 font-bold uppercase mb-1">Dividendos</p>
-                                            <p className="text-lg font-extrabold text-amber-100">{formatCurrency(data.investData.dividends || 0)}</p>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
-                            {/* HISTÓRICO MENSAL */}
-                            <div className="glass-card p-5">
-                                <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-white uppercase tracking-wider"><BarChart3 className="text-indigo-400" /> Evolução (6 Meses)</h3>
-                                <SimpleHistoryChart data={data.analysis.history} mode={dashboardMode} viewMode={viewMode} formatCurrency={formatCurrency} />
-                            </div>
-
-                            {/* FLUXO DE BANCOS */}
-                            <div className="glass-card p-5">
-                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-white uppercase tracking-wider">
-                                    <Banknote className="text-indigo-400" />
-                                    {dashboardMode === 'statement' ? 'Fluxo de Contas' : 'Carteira por Corretora (Custo)'}
-                                </h3>
-                                <div>
-                                    {Object.entries(analysisData.bankFlow).sort(([, a], [, b]) => b - a).map(([bName, val], i, arr) => (
-                                        <div key={i} className={`flex justify-between items-center py-3 ${i < arr.length - 1 ? 'border-b border-slate-600' : ''}`}>
-                                            <span className="text-sm text-slate-300 font-bold">{BANKS.find(b => b.id === bName)?.name || bName}</span>
-                                            <span className={`text-sm font-bold ${val >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{val > 0 ? '+' : ''}{formatCurrency(val)}</span>
-                                        </div>
-                                    ))}
-                                    {Object.keys(analysisData.bankFlow).length === 0 && <p className="text-slate-500 text-xs">Sem dados para este período.</p>}
-                                </div>
-                            </div>
-
-                            {/* TOP CATEGORIAS */}
-                            <div className="glass-card p-5">
-                                <h3 className="font-bold flex gap-2 mb-4 text-white uppercase tracking-wider">
-                                    <PieChart size={20} className="text-indigo-400" />
-                                    {dashboardMode === 'statement' ? 'Maiores Despesas' : 'Alocação por Tipo'}
-                                </h3>
-                                {analysisData.charts.length > 0 ? analysisData.charts.map((c, i, arr) => (
-                                    <div key={i} className={`py-3 ${i < arr.length - 1 ? 'border-b border-slate-600' : ''}`}>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <div className="flex gap-2 items-center"><span className="text-lg">{c.icon}</span><span className="text-sm font-bold text-slate-300">{c.name}</span></div>
-                                            <span className="font-bold text-xs text-white">{formatCurrency(c.amount)}</span>
-                                        </div>
-                                        <div className="h-1.5 w-full bg-slate-700/50 rounded-full"><div className={`h-full rounded-full ${c.color}`} style={{ width: `${c.pct}%` }} /></div>
-                                    </div>
-                                )) : <p className="text-slate-500 text-xs">Sem dados para exibir.</p>}
-                            </div>
-
-                            <button onClick={exportData} className="w-full py-3 bg-slate-800 text-white rounded-xl font-bold flex items-center justify-center gap-2"><Download size={18} /> Exportar Relatório Excel</button>
-                        </div>
+                        <ReportsView
+                            analysisData={analysisData}
+                            BANKS={BANKS}
+                            Banknote={Banknote}
+                            BarChart3={BarChart3}
+                            dashboardMode={dashboardMode}
+                            data={data}
+                            daysInMonth={daysInMonth}
+                            Download={Download}
+                            exportData={exportData}
+                            formatCurrency={formatCurrency}
+                            Heart={Heart}
+                            PieChart={PieChart}
+                            setPricesModal={setPricesModal}
+                            Sparkles={Sparkles}
+                            TrendingUp={TrendingUp}
+                            Trophy={Trophy}
+                            viewMode={viewMode}
+                            Wallet={Wallet}
+                        />
                     )}
                 </div>
 
                 {/* Nav */}
-                {/* MENU DE AÇÃO CENTRAL (Botões Sólidos e com Foco) */}
-                {
-                    menuOpen && (
-                        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-3 items-center animate-pop w-64 px-4">
-
-                            {/* 0. SELETOR DE ÂMBITO DE IMPORTAÇÃO */}
-                            <div className="w-full bg-slate-900/80 backdrop-blur-lg p-3 rounded-2xl border border-white/10 flex flex-col gap-2">
-                                <p className="text-[10px] font-bold uppercase text-slate-400 text-center tracking-wider">Âmbito da Importação</p>
-                                <div className="flex gap-2">
-                                    <button type="button" onClick={() => setImportScope('month')}
-                                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border ${importScope === 'month' ? 'bg-indigo-600 text-white border-indigo-500 shadow' : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'}`}>
-                                        📅 Mês atual
-                                    </button>
-                                    <button type="button" onClick={() => setImportScope('all')}
-                                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border ${importScope === 'all' ? 'bg-emerald-600 text-white border-emerald-500 shadow' : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'}`}>
-                                        📚 Histórico
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* 1. Botão Arquivo com IA - Estilo Glassmorphism Premium */}
-                            <button onClick={() => fileInputRef.current.click()}
-                                className="w-full bg-slate-800/95 backdrop-blur-lg text-white p-4 rounded-2xl shadow-2xl border border-white/10 flex items-center justify-center gap-3 font-bold text-sm active:scale-95 transition-all hover:bg-slate-700">
-                                <Sparkles size={20} className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
-                                <span>Arquivo com IA</span>
-                            </button>
-
-                            {/* 2. Botão Lançar Manual - Padronizado com o de cima */}
-                            <button onClick={() => { setMenuOpen(false); setModalOpen(true); }}
-                                className="w-full bg-blue-600/95 backdrop-blur-lg text-white p-4 rounded-2xl shadow-2xl border border-white/10 flex items-center justify-center gap-3 font-bold text-sm active:scale-95 transition-all hover:bg-blue-500">
-                                <FileText size={20} className="text-white" />
-                                <span>Lançar Manual</span>
-                            </button>
-
-                        </div>
-                    )
-                }
-
-                {/* BARRA DE NAVEGAÇÃO HUB - VERSÃO SLIM (Menos espaço) */}
-                <div className="fixed bottom-0 w-full z-40">
-                    {/* Gradiente sutil para transição suave do conteúdo */}
-                    <div className="h-6 bg-gradient-to-t from-[#0f172a] to-transparent pointer-events-none absolute bottom-full w-full"></div>
-
-                    {/* Barra Principal: Altura Reduzida (pb-2) */}
-                    <div className="bg-[#0f172a] border-t border-white/10 pb-2 pt-2 px-6 shadow-2xl">
-                        <div className="grid grid-cols-5 items-end relative">
-
-                            {/* 1. FINANÇAS */}
-                            <button onClick={() => setTab('home')} className={`flex flex-col items-center gap-0.5 group ${tab === 'home' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
-                                <div className={`p-1 rounded-full transition-all ${tab === 'home' ? 'bg-emerald-400/10' : ''}`}>
-                                    <Wallet size={18} strokeWidth={tab === 'home' ? 2.5 : 2} className="group-active:scale-90 transition-transform" />
-                                </div>
-                                {tab === 'home' && <span className="text-[8px] font-medium tracking-wide opacity-90 animate-fade-in">Norte</span>}
-                            </button>
-
-                            {/* 2. CASA */}
-                            <button onClick={() => setTab('chores')} className={`flex flex-col items-center gap-0.5 group ${tab === 'chores' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
-                                <div className={`p-1 rounded-full transition-all ${tab === 'chores' ? 'bg-emerald-400/10' : ''}`}>
-                                    <Home size={18} strokeWidth={tab === 'chores' ? 2.5 : 2} className="group-active:scale-90 transition-transform" />
-                                </div>
-                                {tab === 'chores' && <span className="text-[8px] font-medium tracking-wide opacity-90 animate-fade-in">Casa</span>}
-                            </button>
-
-                            {/* 3. BÚSSOLA CENTRAL (Ícone Aumentado) */}
-                            <div className="relative -top-6 flex justify-center">
-                                <button
-                                    onClick={() => setMenuOpen(!menuOpen)}
-                                    className={`w-14 h-14 rounded-full flex items-center justify-center relative shadow-2xl shadow-black/50 transition-all duration-500 ${menuOpen ? 'scale-105' : 'active:scale-95 hover:-translate-y-0.5'}`}
-                                >
-                                    <div className="absolute inset-0 rounded-full bg-gradient-to-b from-slate-700 to-slate-900 border-[1.5px] border-slate-500"></div>
-
-                                    {/* AJUSTE: Nova Rosa dos Ventos SVG (Substituição completa do svg anterior) */}
-                                    <div className={`relative w-10 h-10 transition-transform duration-700 cubic-bezier(0.4, 0, 0.2, 1) ${menuOpen ? 'rotate-[225deg]' : 'rotate-0'}`}>
-                                        <svg viewBox="0 0 100 100" className={`w-full h-full drop-shadow-[0_0_3px_rgba(16,185,129,0.3)] transition-colors duration-500 ${menuOpen ? 'text-emerald-400' : 'text-slate-300'}`}>
-                                            {/* Pontas Maiores (N-S-L-O) */}
-                                            <path d="M50 10 L58 42 L90 50 L58 58 L50 90 L42 58 L10 50 L42 42 Z" fill="currentColor" opacity="0.9" />
-                                            {/* Destaque do Norte (Seta Vermelha Estilizada) */}
-                                            <path d="M50 10 L58 42 L50 50 Z" fill="#ef4444" />
-                                            <path d="M50 10 L42 42 L50 50 Z" fill="#b91c1c" />
-                                            {/* Pontas Menores (Intermediárias) */}
-                                            <path d="M50 50 L65 35 L50 50 L80 65 L50 50 L35 80 L50 50 L20 35 Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.4" />
-                                            {/* Centro */}
-                                            <circle cx="50" cy="50" r="4" fill="#0f172a" stroke="currentColor" strokeWidth="1.5" />
-                                        </svg>
-                                    </div>
-                                </button>
-                            </div>
-
-                            {/* 4. METAS */}
-                            <button onClick={() => setTab('planning')} className={`flex flex-col items-center gap-0.5 group ${tab === 'planning' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
-                                <div className={`p-1 rounded-full transition-all ${tab === 'planning' ? 'bg-emerald-400/10' : ''}`}>
-                                    <Target size={18} strokeWidth={tab === 'planning' ? 2.5 : 2} className="group-active:scale-90 transition-transform" />
-                                </div>
-                                {tab === 'planning' && <span className="text-[8px] font-medium tracking-wide opacity-90 animate-fade-in">Metas</span>}
-                            </button>
-
-                            {/* 5. ANÁLISE */}
-                            <button onClick={() => setTab('reports')} className={`flex flex-col items-center gap-0.5 group ${tab === 'reports' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}>
-                                <div className={`p-1 rounded-full transition-all ${tab === 'reports' ? 'bg-emerald-400/10' : ''}`}>
-                                    <BarChart3 size={18} strokeWidth={tab === 'reports' ? 2.5 : 2} className="group-active:scale-90 transition-transform" />
-                                </div>
-                                {tab === 'reports' && <span className="text-[8px] font-medium tracking-wide opacity-90 animate-fade-in">Análise</span>}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <BottomNavigation
+                    BarChart3={BarChart3}
+                    FileText={FileText}
+                    Home={Home}
+                    importScope={importScope}
+                    menuOpen={menuOpen}
+                    onFileImport={() => fileInputRef.current.click()}
+                    onOpenManual={() => { setMenuOpen(false); setModalOpen(true); }}
+                    onSetImportScope={setImportScope}
+                    onSetTab={setTab}
+                    onToggleMenu={() => setMenuOpen(!menuOpen)}
+                    Sparkles={Sparkles}
+                    tab={tab}
+                    Target={Target}
+                    Wallet={Wallet}
+                />
 
                 <input type="file" ref={fileInputRef} onChange={handleUniversalUpload} accept="image/*,.pdf,.csv,.xlsx,.xls" className="hidden" />
 
@@ -3767,437 +3401,106 @@ const getGreeting = () => {
                     )
                 }
 
-                {/* Modal Add (Manual) - VERSÃO SÓLIDA PARA LEITURA */}
-                {/* Modal Add (Manual) - REDESIGN PREMIUM */}
-                {/* Modal Add (Manual) - REDESIGN PREMIUM */}
-                {/* Modal Add (Manual) - VERSÃO FINAL (Cálculos e Layout Ajustado) */}
+                {/* Modal Add (Manual) - VERSAO FINAL */}
                 {
                     modalOpen && (
-                        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-end justify-center animate-fade-in">
-                            <div className="w-full bg-[#1e293b] rounded-t-[2.5rem] p-6 pb-12 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] animate-slide-up max-h-[95vh] overflow-y-auto border-t border-white/10">
-
-                                {/* Cabeçalho */}
-                                <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
-                                    <div>
-                                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Nova Movimentação</p>
-                                        <h3 className="font-bold text-xl text-white flex items-center gap-2">
-                                            {fType === 'expense' ? <TrendingDown size={20} className="text-rose-500" /> : fType === 'income' ? <TrendingUp size={20} className="text-emerald-500" /> : <PieChart size={20} className="text-indigo-500" />}
-                                            {fType === 'expense' ? 'Nova Despesa' : fType === 'income' ? 'Nova Receita' : 'Novo Aporte'}
-                                        </h3>
-                                    </div>
-                                    <button onClick={() => setModalOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"><X size={24} /></button>
-                                </div>
-
-                                <form onSubmit={saveTx} className="space-y-5">
-
-                                    {/* 1. SELETOR DE TIPO */}
-                                    <div className="bg-[#0f172a] p-1.5 rounded-2xl flex flex-wrap gap-1 relative border border-white/5">
-                                        {['expense', 'income', 'investment'].map(t => (
-                                            <button type="button" key={t} onClick={() => { setFType(t); setFCat(''); setIsSell(false); }}
-                                                className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2
-                                                ${fType === t ? (t === 'expense' ? 'bg-rose-600 text-white shadow-lg' : t === 'income' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-indigo-600 text-white shadow-lg') : 'text-slate-500 hover:text-slate-300'}`}>
-                                                {t === 'expense' ? 'Despesa' : t === 'income' ? 'Receita' : 'Investir'}
-                                            </button>
-                                        ))}
-                                        <button type="button" onClick={() => { setFType('p2p'); setFCat('Empréstimo/Acerto'); setIsSell(false); }}
-                                            className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase transition-all flex items-center justify-center gap-2
-                                            ${fType === 'p2p' ? 'bg-slate-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>
-                                            💸 Emprestar/Devolver
-                                        </button>
-                                    </div>
-
-                                    {/* 2. VALORES */}
-                                    {fType === 'investment' ? (
-                                        <div className={`p-4 rounded-3xl border space-y-3 transition-colors ${isSell ? 'bg-amber-500/10 border-amber-500/30' : 'bg-[#0f172a] border-white/5'}`}>
-
-                                            {/* TOGGLE COMPRAR / VENDER */}
-                                            <div className="flex bg-slate-900/50 p-1 rounded-xl mb-2">
-                                                <button type="button" onClick={() => setIsSell(false)} className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase transition-all ${!isSell ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}>Comprar (Aporte)</button>
-                                                <button type="button" onClick={() => setIsSell(true)} className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase transition-all ${isSell ? 'bg-amber-500 text-slate-900 shadow' : 'text-slate-500 hover:text-slate-300'}`}>Vender (Resgate)</button>
-                                            </div>
-
-                                            {/* CONDICIONAL: SE FOR RENDA FIXA, SÓ MOSTRA VALOR TOTAL */}
-                                            {FIXED_INCOME_CATEGORIES.includes(fCat) ? (
-                                                <div className="relative py-2">
-                                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 font-bold text-slate-600 text-xl">R$</span>
-                                                    <input
-                                                        type="number"
-                                                        step="0.01"
-                                                        value={fAmount}
-                                                        onChange={e => {
-                                                            setFAmount(e.target.value);
-                                                            // Fallback silencioso para garantir consistência
-                                                            setFQty(1);
-                                                            setFUnitPrice(e.target.value);
-                                                        }}
-                                                        placeholder="0,00"
-                                                        className="w-full bg-[#020617] p-5 pl-14 rounded-3xl text-4xl font-black text-white outline-none border border-white/5 placeholder-slate-700 text-center shadow-inner"
-                                                        required
-                                                    />
-                                                    <p className="text-center text-xs text-slate-400 mt-2 font-bold uppercase">Valor Financeiro (Sem Cotas)</p>
-                                                </div>
-                                            ) : (
-                                                /* MODO PADRÃO (Ações, FIIs) - Com Cotas */
-                                                <>
-                                                    <div className="flex gap-3">
-                                                        <div className="flex-1">
-                                                            <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">Quantidade</label>
-                                                            <input type="number" step="0.000001" value={fQty} onChange={e => {
-                                                                const q = e.target.value;
-                                                                setFQty(q);
-                                                                if (fUnitPrice) setFAmount((Number(q) * Number(fUnitPrice)).toFixed(2));
-                                                            }} placeholder="0" className="w-full bg-[#020617] p-3 rounded-xl text-white font-bold outline-none border border-slate-700 focus:border-indigo-500 shadow-inner" />
-                                                        </div>
-                                                        <div className="flex-1">
-                                                            <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">Preço Unit.</label>
-                                                            <input type="number" step="0.01" value={fUnitPrice} onChange={e => {
-                                                                const p = e.target.value;
-                                                                setFUnitPrice(p);
-                                                                if (fQty) setFAmount((Number(fQty) * Number(p)).toFixed(2));
-                                                            }} placeholder="R$ 0,00" className="w-full bg-[#020617] p-3 rounded-xl text-white font-bold outline-none border border-slate-700 focus:border-indigo-500 shadow-inner" />
-                                                        </div>
-                                                    </div>
-                                                    <div className="pt-2 border-t border-white/5 flex justify-between items-center px-2">
-                                                        <span className="text-xs font-bold text-slate-400 uppercase">Total Estimado</span>
-                                                        <span className="text-xl font-black text-white">R$ {fAmount || '0.00'}</span>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="relative py-2">
-                                            <span className="absolute left-6 top-1/2 -translate-y-1/2 font-bold text-slate-600 text-xl">R$</span>
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                value={fAmount}
-                                                onChange={e => setFAmount(e.target.value)}
-                                                placeholder="0,00"
-                                                className="w-full bg-[#020617] p-5 pl-14 rounded-3xl text-4xl font-black text-white outline-none border border-white/5 placeholder-slate-700 text-center shadow-inner"
-                                                required
-                                            />
-                                        </div>
-                                    )}
-
-                                    {/* 5. LOCAL / MERCADO (ATIVO) - MOVED HERE */}
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            list="marketOptions"
-                                            value={fMarket}
-                                            onChange={e => setFMarket(e.target.value)}
-                                            placeholder={fType === 'investment' ? "Código do Ativo (Ex: PETR4, CDB Nubank)" : "Local / Mercado"}
-                                            className="w-full bg-[#020617] p-3 pl-10 rounded-xl text-white font-bold text-sm outline-none border border-slate-700 shadow-inner"
-                                        />
-                                        {fType === 'investment' ? (
-                                            <Tag size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                                        ) : (
-                                            <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                                        )}
-                                        <datalist id="marketOptions">{uniqueMarkets.map(m => <option key={m} value={m} />)}</datalist>
-                                    </div>
-
-                                    {/* 3. DESCRIÇÃO */}
-                                    <div className="relative">
-                                        <input type="text" list="titleOptions" value={fTitle} onChange={e => setFTitle(e.target.value)} placeholder="Descrição (ex: Almoço, Salário)" className="w-full bg-[#020617] p-4 pl-12 rounded-xl text-white font-bold outline-none border border-slate-700 focus:border-indigo-500 shadow-inner" required />
-                                        <Type size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                                        <datalist id="titleOptions">{uniqueTitles.map(t => <option key={t} value={t} />)}</datalist>
-                                    </div>
-
-                                    {/* 4. DATA E CONTA */}
-                                    <div className="flex gap-3">
-                                        <div className="flex-1 relative">
-                                            <input type="date" value={fDate} onChange={e => setFDate(e.target.value)} className="w-full bg-[#020617] p-3 pl-10 rounded-xl text-white font-bold text-sm outline-none border border-slate-700 shadow-inner" />
-                                            <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                                        </div>
-                                        <div className="flex-1 relative">
-                                            <input list="bankOptions" value={fBank} onChange={e => setFBank(e.target.value)} placeholder="Conta/Banco" className="w-full bg-[#020617] p-3 pl-10 rounded-xl text-white font-bold text-sm outline-none border border-slate-700 shadow-inner" />
-                                            <Banknote size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                                            <datalist id="bankOptions">{BANKS.map(b => <option key={b.id} value={b.name} />)}</datalist>
-                                        </div>
-                                    </div>
-
-
-
-                                    {/* 6. VINCULAR A SONHO (NOVO) */}
-                                    {fType === 'investment' && data.dreamsProgress.length > 0 && (
-                                        <div className="relative mb-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase ml-1 block mb-1">Vincular a um Sonho</label>
-                                            <div className="relative">
-                                                <select value={fDreamId} onChange={e => setFDreamId(e.target.value)} className="w-full bg-[#020617] p-3 pl-10 rounded-xl text-white font-bold text-sm outline-none border border-slate-700 shadow-inner appearance-none">
-                                                    <option value="" className="text-slate-500">Não vincular (Carteira Geral)</option>
-                                                    {data.dreamsProgress.map(d => (
-                                                        <option key={d.id} value={d.id}>{d.emoji} {d.title}</option>
-                                                    ))}
-                                                </select>
-                                                <Sparkles size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-yellow-500" />
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* 7. TOGGLES (LAYOUT OTIMIZADO - GRADE DE 2 COLUNAS) */}
-                                    {/* 7. TOGGLES (LAYOUT FINAL - GRADE DE 3 COLUNAS UNIFICADA) */}
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {/* 1. Recorrência (Agora igual aos outros) */}
-                                        <div onClick={() => { if (!fIsProjection) { setFRecurrent(!fRecurrent); setIsInstallment(false); } }}
-                                            className={`p-3 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all gap-1 ${fIsProjection ? 'opacity-50 cursor-not-allowed bg-slate-800/50 border-slate-700 text-slate-500' : (fRecurrent ? 'bg-amber-500/10 border-amber-500 text-amber-500' : 'bg-[#1e293b] border-slate-700 text-slate-500 hover:bg-slate-800')}`}>
-                                            <div className={`p-2 rounded-full mb-1 ${fRecurrent ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
-                                                <RefreshCw size={18} />
-                                            </div>
-                                            <span className="text-xs font-bold uppercase">{fIsProjection ? "Projeção (única)" : "Recorrência"}</span>
-                                            {fRecurrent && <span className="text-[10px] bg-amber-500 text-slate-900 px-1.5 rounded-full absolute top-2 right-2 font-bold">On</span>}
-                                        </div>
-
-                                        {/* 2. Divisão */}
-                                        <div onClick={() => setFShared(!fShared)}
-                                            className={`p-3 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all gap-1 ${fShared ? 'bg-pink-500/10 border-pink-500 text-pink-500' : 'bg-[#1e293b] border-slate-700 text-slate-500 hover:bg-slate-800'}`}>
-                                            <div className={`p-2 rounded-full mb-1 ${fShared ? 'bg-pink-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
-                                                {fShared ? <Users size={18} /> : <User size={18} />}
-                                            </div>
-                                            <span className="text-xs font-bold uppercase">Divisão</span>
-                                        </div>
-
-                                        {/* 3. Parcelado */}
-                                        <div onClick={() => { setIsInstallment(!isInstallment); setFRecurrent(false); }}
-                                            className={`p-3 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all gap-1 ${isInstallment ? 'bg-blue-500/10 border-blue-500 text-blue-500' : 'bg-[#1e293b] border-slate-700 text-slate-500 hover:bg-slate-800'}`}>
-                                            <div className={`p-2 rounded-full mb-1 ${isInstallment ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
-                                                <Calendar size={18} />
-                                            </div>
-                                            <span className="text-xs font-bold uppercase">Parcelado</span>
-                                            {isInstallment && <span className="text-[10px] bg-blue-500 text-white px-1.5 rounded-full absolute top-2 right-2">{installments}x</span>}
-                                        </div>
-                                    </div>
-                                    {/* CARTÃO DE CRÉDITO (só para despesas) */}
-                                    {fType === 'expense' && (
-                                        <div className="animate-slide-up">
-                                            <div onClick={() => { setFIsCard(!fIsCard); if (!fIsCard && !fInvoiceMonth) { const d = new Date(); d.setMonth(d.getMonth() + 1); setFInvoiceMonth(d.toISOString().slice(0,7)); } }}
-                                                className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${fIsCard ? 'bg-sky-500/10 border-sky-500 text-sky-400' : 'bg-[#1e293b] border-slate-700 text-slate-500 hover:bg-slate-800'}`}>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-lg">💳</span>
-                                                    <span className="text-xs font-bold uppercase">Cartão de Crédito</span>
-                                                </div>
-                                                <div className={`w-8 h-4 rounded-full transition-all relative ${fIsCard ? 'bg-sky-500' : 'bg-slate-700'}`}>
-                                                    <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${fIsCard ? 'left-4' : 'left-0.5'}`}></div>
-                                                </div>
-                                            </div>
-                                            {fIsCard && (
-                                                <div className="mt-2 bg-sky-500/5 border border-sky-500/20 rounded-xl p-3 animate-slide-up">
-                                                    <p className="text-[10px] font-bold uppercase text-sky-400 mb-2">Mês da Fatura</p>
-                                                    <select
-                                                        value={fInvoiceMonth}
-                                                        onChange={e => setFInvoiceMonth(e.target.value)}
-                                                        className="w-full p-2.5 bg-slate-900/80 rounded-xl text-white text-sm border border-sky-500/30 focus:border-sky-500 outline-none [&>option]:bg-slate-800">
-                                                        {(() => {
-                                                            const opts = [];
-                                                            const now = new Date();
-                                                            for (let i = 1; i <= 6; i++) {
-                                                                const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-                                                                const val = d.toISOString().slice(0,7);
-                                                                const label = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-                                                                opts.push(<option key={val} value={val}>{label.charAt(0).toUpperCase()+label.slice(1)}</option>);
-                                                            }
-                                                            return opts;
-                                                        })()}
-                                                    </select>
-                                                    <p className="text-[10px] text-sky-400/60 mt-2">💡 A compra aparece agora, o saldo só cai ao pagar a fatura.</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* OPÇÕES DE RECORRÊNCIA (Detalhado) - MOVIDO PARA FORA DO GRID */}
-                                    {fRecurrent && (
-                                        <div className="bg-amber-500/10 p-4 rounded-xl border border-amber-500/30 animate-slide-up flex flex-col gap-2 mt-2">
-                                            <div className="flex gap-2 bg-slate-900/50 p-1 rounded-lg">
-                                                {['forever', 'date', 'count'].map(mode => (
-                                                    <button
-                                                        key={mode}
-                                                        type="button"
-                                                        onClick={() => setFRecurrenceEndMode(mode)}
-                                                        className={`flex-1 py-1.5 rounded text-[10px] font-bold uppercase transition-colors ${fRecurrenceEndMode === mode ? 'bg-amber-500 text-slate-900' : 'text-slate-400 hover:text-slate-200'}`}
-                                                    >
-                                                        {mode === 'forever' ? 'Sempre' : mode === 'date' ? 'Até Data' : 'X Vezes'}
-                                                    </button>
-                                                ))}
-                                            </div>
-
-                                            {fRecurrenceEndMode === 'date' && (
-                                                <div className="flex items-center gap-2 animate-fade-in">
-                                                    <label className="text-xs font-bold text-amber-500/70 uppercase whitespace-nowrap">Até:</label>
-                                                    <input
-                                                        type="month"
-                                                        value={fRecurrenceEndDate}
-                                                        onChange={e => setFRecurrenceEndDate(e.target.value)}
-                                                        className="w-full bg-slate-900 p-2 rounded-lg text-white font-bold text-xs border border-amber-500/30 outline-none"
-                                                    />
-                                                </div>
-                                            )}
-
-                                            {fRecurrenceEndMode === 'count' && (
-                                                <div className="flex items-center gap-2 animate-fade-in">
-                                                    <label className="text-xs font-bold text-amber-500/70 uppercase whitespace-nowrap">Repetir:</label>
-                                                    <input
-                                                        type="number"
-                                                        min="2"
-                                                        max="60"
-                                                        value={fRecurrenceCount}
-                                                        onChange={e => setFRecurrenceCount(e.target.value)}
-                                                        className="flex-1 bg-slate-900 p-2 rounded-lg text-white font-bold text-xs border border-amber-500/30 outline-none text-center"
-                                                    />
-                                                    <span className="text-xs font-bold text-amber-500/70">meses</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* DETALHES DO PARCELAMENTO (CÁLCULOS ADICIONADOS) */}
-                                    {isInstallment && (
-                                        <div className="bg-blue-900/20 p-4 rounded-xl border border-blue-500/30 animate-slide-up flex flex-col gap-3">
-                                            <div className="flex items-center gap-3">
-                                                <label className="text-xs font-bold text-blue-200 uppercase whitespace-nowrap">Nº Parcelas:</label>
-                                                <input type="number" min="2" max="60" value={installments} onChange={e => setInstallments(e.target.value)} className="w-full bg-[#020617] p-2 rounded-lg text-center font-bold text-white border border-blue-500/30 outline-none focus:border-blue-500 shadow-inner" />
-                                            </div>
-
-                                            {/* CÁLCULO DA PARCELA */}
-                                            {fAmount > 0 && (
-                                                <div className="bg-blue-950/50 p-2 rounded-lg border border-blue-500/20 text-center">
-                                                    <p className="text-sm font-bold text-blue-300">
-                                                        {installments}x de <span className="text-white">{formatCurrency(fAmount / installments)}</span>
-                                                    </p>
-
-                                                    {/* CÁLCULO POR PESSOA (CASAL) */}
-                                                    {fShared && (
-                                                        <p className="text-xs text-pink-300 mt-1 font-bold border-t border-blue-500/20 pt-1">
-                                                            (Casal: {formatCurrency((fAmount / installments) / 2)} para cada)
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* QUEM PAGOU (Só aparece se dividido ou em aba conjunta) */}
-                                    {(fShared || viewMode === 'joint' || fType === 'p2p') && (
-                                        <div className="bg-[#1e293b] p-3 rounded-xl border border-slate-700 flex items-center justify-between animate-slide-up">
-                                            <span className="text-xs font-bold text-slate-400 uppercase ml-1">
-                                                {fType === 'income' ? 'Quem Recebeu?' : 'Quem Pagou?'}
-                                            </span>
-                                            <div className="flex gap-4">
-                                                <button type="button" onClick={() => setFormPayer('me')} className={`relative w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all ${formPayer === 'me' ? 'border-blue-500 scale-110 shadow-[0_0_15px_rgba(59,130,246,0.5)] grayscale-0' : 'border-slate-700 grayscale opacity-50 scale-90'}`}>
-                                                    <div className={`w-full h-full rounded-full flex items-center justify-center text-xl ${USER_CONFIG[profile]?.color || 'bg-gray-500'} border-2 border-[#1e293b]`}>
-                                                        {USER_CONFIG[profile]?.avatar}
-                                                    </div>
-                                                    {formPayer === 'me' && <div className="absolute -bottom-2 text-xs font-bold text-blue-400 bg-slate-900 px-2 rounded-full border border-blue-500/30">Eu</div>}
-                                                </button>
-
-                                                <button type="button" onClick={() => setFormPayer('partner')} className={`relative w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all ${formPayer === 'partner' ? 'border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.4)] grayscale-0' : 'border-slate-700 grayscale opacity-50 scale-90'}`}>
-                                                    <div className={`w-full h-full rounded-full flex items-center justify-center text-xl ${USER_CONFIG[profile === 'bruno' ? 'maiara' : 'bruno']?.color || 'bg-gray-500'} border-2 border-[#1e293b]`}>
-                                                        {USER_CONFIG[profile === 'bruno' ? 'maiara' : 'bruno']?.avatar}
-                                                    </div>
-                                                    {formPayer === 'partner' && <div className="absolute -bottom-2 text-xs font-bold text-white bg-slate-900 px-2 rounded-full border border-white/30">{profile === 'bruno' ? 'Maiara' : 'Bruno'}</div>}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* 7. CATEGORIAS */}
-                                    <div>
-                                        <p className="text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Categoria</p>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {(fType === 'p2p' ? [P2P_CATEGORY] : (CATEGORIES[fType] ?? [])).map(c => (
-                                                <button type="button" key={c.id} onClick={() => { setFCat(c.name); setFSubCat(''); }}
-                                                    className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition-all active:scale-95 ${fCat === c.name ? 'border-indigo-500 bg-indigo-500/20 text-white shadow-[0_0_15px_rgba(99,102,241,0.2)]' : 'border-white/5 bg-[#1e293b] text-slate-400 hover:bg-[#283548]'}`}>
-                                                    <span className="text-xl">{c.icon}</span>
-                                                    <span className="text-[8px] font-bold uppercase text-center leading-tight">{c.name.slice(0, 10)}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* 8. SUBCATEGORIA */}
-                                    {(() => {
-                                        const currentCategories = fType === 'p2p' ? [P2P_CATEGORY] : (CATEGORIES[fType] ?? []);
-                                        return fCat && currentCategories.find(c => c.name === fCat)?.subcategories?.length > 0 && (
-                                            <div className="p-3 rounded-xl bg-[#0f172a] border border-slate-700 animate-slide-up">
-                                                <label className="text-xs font-bold text-slate-400 uppercase ml-1 block mb-1">Detalhe da Categoria</label>
-                                                <select value={fSubCat} onChange={e => setFSubCat(e.target.value)} className="w-full bg-transparent font-bold text-sm outline-none text-white appearance-none">
-                                                    <option value="" className="bg-slate-900 text-slate-500">Selecione uma opção...</option>
-                                                    {currentCategories.find(c => c.name === fCat).subcategories.map(sub => <option key={sub} value={sub} className="bg-slate-900 text-white">{sub}</option>)}
-                                                </select>
-                                            </div>
-                                        );
-                                    })()}
-
-                                    {/* BOTÃO DE SALVAR */}
-                                    <button type="submit" className="w-full btn-gradient text-white py-4 rounded-xl font-bold text-lg shadow-xl shadow-indigo-500/20 active:scale-95 transition-transform mt-2 flex items-center justify-center gap-2 border border-white/10">
-                                        <CheckCircle size={20} /> Confirmar
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
+                        <TransactionModal
+                            BANKS={BANKS}
+                            Banknote={Banknote}
+                            Calendar={Calendar}
+                            CATEGORIES={CATEGORIES}
+                            CheckCircle={CheckCircle}
+                            data={data}
+                            FIXED_INCOME_CATEGORIES={FIXED_INCOME_CATEGORIES}
+                            fAmount={fAmount}
+                            fBank={fBank}
+                            fCat={fCat}
+                            fDate={fDate}
+                            fDreamId={fDreamId}
+                            fInvoiceMonth={fInvoiceMonth}
+                            fIsCard={fIsCard}
+                            fIsProjection={fIsProjection}
+                            fMarket={fMarket}
+                            formPayer={formPayer}
+                            formatCurrency={formatCurrency}
+                            fQty={fQty}
+                            fRecurrent={fRecurrent}
+                            fRecurrenceCount={fRecurrenceCount}
+                            fRecurrenceEndDate={fRecurrenceEndDate}
+                            fRecurrenceEndMode={fRecurrenceEndMode}
+                            fShared={fShared}
+                            fSubCat={fSubCat}
+                            fTitle={fTitle}
+                            fType={fType}
+                            fUnitPrice={fUnitPrice}
+                            installments={installments}
+                            isInstallment={isInstallment}
+                            isSell={isSell}
+                            MapPin={MapPin}
+                            onClose={() => setModalOpen(false)}
+                            onSubmit={saveTx}
+                            P2P_CATEGORY={P2P_CATEGORY}
+                            PieChart={PieChart}
+                            profile={profile}
+                            RefreshCw={RefreshCw}
+                            setFAmount={setFAmount}
+                            setFBank={setFBank}
+                            setFCat={setFCat}
+                            setFDate={setFDate}
+                            setFDreamId={setFDreamId}
+                            setFInvoiceMonth={setFInvoiceMonth}
+                            setFIsCard={setFIsCard}
+                            setFMarket={setFMarket}
+                            setFQty={setFQty}
+                            setFRecurrent={setFRecurrent}
+                            setFRecurrenceCount={setFRecurrenceCount}
+                            setFRecurrenceEndDate={setFRecurrenceEndDate}
+                            setFRecurrenceEndMode={setFRecurrenceEndMode}
+                            setFShared={setFShared}
+                            setFSubCat={setFSubCat}
+                            setFTitle={setFTitle}
+                            setFType={setFType}
+                            setFUnitPrice={setFUnitPrice}
+                            setFormPayer={setFormPayer}
+                            setInstallments={setInstallments}
+                            setIsInstallment={setIsInstallment}
+                            setIsSell={setIsSell}
+                            Sparkles={Sparkles}
+                            Tag={Tag}
+                            TrendingDown={TrendingDown}
+                            TrendingUp={TrendingUp}
+                            Type={Type}
+                            uniqueMarkets={uniqueMarkets}
+                            uniqueTitles={uniqueTitles}
+                            User={User}
+                            USER_CONFIG={USER_CONFIG}
+                            Users={Users}
+                            viewMode={viewMode}
+                            X={X}
+                        />
                     )
                 }
 
-                {/* Modal Budget (Atualizado v23: Soma Automática de Filhos) */}
+                {/* Modal Budget (Atualizado v23: Soma Automatica de Filhos) */}
                 {
                     budgetModal && (
-                        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-                            <div className="glass-card w-full max-w-sm rounded-[2rem] p-6 shadow-2xl max-h-[80vh] flex flex-col">
-                                <div className="flex justify-between mb-2"><h3 className="font-bold text-xl flex gap-2 text-white"><Target className="text-indigo-400" /> Definir metas</h3><button onClick={() => setBudgetModal(false)} className="bg-white/10 p-2 rounded-full text-white hover:bg-white/20 transition-colors"><X size={20} /></button></div>
-
-                                <div className="mb-4 relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-                                    <input type="text" placeholder="Buscar categoria..." value={budgetSearch} onChange={e => setBudgetSearch(e.target.value)} className="w-full bg-slate-800/50 border border-white/10 pl-9 pr-3 py-2 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500/50 text-white placeholder-slate-600" />
-                                </div>
-
-                                <div className="overflow-y-auto space-y-4 flex-1 pr-2 custom-scrollbar">
-                                    {editBudgets
-                                        .filter(b => b.displayName.toLowerCase().includes(budgetSearch.toLowerCase()))
-                                        .map((b, i) => {
-                                            // LÓGICA DE SOMA AUTOMÁTICA (Reforçada)
-                                            const isParent = b.type === 'main'; // Agora 'b.type' existe
-                                            const hasChildren = editBudgets.some(child => child.parent === b.category); // Agora 'child.parent' existe
-
-                                            let displayVal = b.limit;
-
-                                            if (isParent && hasChildren) {
-                                                const childrenSum = editBudgets
-                                                    .filter(child => child.parent === b.category)
-                                                    .reduce((sum, child) => sum + (Number(child.limit) || 0), 0); // Força Number() para evitar erro
-                                                displayVal = childrenSum;
-                                            }
-
-                                            return (
-                                                <div key={b.category} className="flex gap-3 items-center">
-                                                    <span className="text-xl w-8 text-center">{b.icon}</span>
-                                                    <div className="flex-1">
-                                                        <div className="flex justify-between">
-                                                            <p className={`text-xs font-bold uppercase truncate ${isParent ? 'text-indigo-400' : 'text-slate-400'}`}>{b.displayName || b.category}</p>
-                                                            {/* Feedback visual adicionado */}
-                                                            {isParent && hasChildren && <span className="text-xs text-indigo-300 font-bold bg-indigo-500/20 px-1.5 rounded flex items-center gap-1 border border-indigo-500/30">Auto <Sparkles size={8} /></span>}
-                                                        </div>
-                                                        <input
-                                                            type="number"
-                                                            value={displayVal}
-                                                            readOnly={isParent && hasChildren} // Bloqueia edição do Pai
-                                                            onChange={e => {
-                                                                if (isParent && hasChildren) return;
-
-                                                                const realIndex = editBudgets.findIndex(eb => eb.category === b.category);
-                                                                const n = [...editBudgets];
-                                                                n[realIndex].limit = Number(e.target.value); // Salva já como número
-                                                                setEditBudgets(n);
-                                                            }}
-                                                            className={`w-full border-b font-bold py-1 outline-none focus:border-indigo-500 transition-colors bg-transparent ${isParent && hasChildren ? 'border-dashed border-white/10 text-slate-500 cursor-not-allowed pl-2 rounded' : 'border-white/10 text-white'}`}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                </div>
-                                <button onClick={saveBudget} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold mt-4 hover:bg-indigo-500 transition-colors">Salvar Alterações</button>
-                            </div>
-                        </div>
+                        <BudgetModal
+                            budgetSearch={budgetSearch}
+                            editBudgets={editBudgets}
+                            onBudgetSearchChange={setBudgetSearch}
+                            onClose={() => setBudgetModal(false)}
+                            onSave={saveBudget}
+                            onUpdateBudgetLimit={(category, value) => {
+                                const realIndex = editBudgets.findIndex((budget) => budget.category === category);
+                                const nextBudgets = [...editBudgets];
+                                nextBudgets[realIndex].limit = Number(value);
+                                setEditBudgets(nextBudgets);
+                            }}
+                            Search={Search}
+                            Sparkles={Sparkles}
+                            Target={Target}
+                            X={X}
+                        />
                     )
                 }
 
