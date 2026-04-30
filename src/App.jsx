@@ -9,16 +9,15 @@ import {
     filterTransactionByUniverse,
     normalizeSettlementsForCurrentMonth
 } from './domain/finance/cashflow.js';
-import {
-    buildAssetHistoryTimeline,
-    buildDetailedPortfolio,
-    calculatePortfolioTotal,
-    FIXED_INCOME_CATEGORIES
-} from './domain/finance/portfolio.js';
+import { buildDetailedPortfolio, calculatePortfolioTotal, FIXED_INCOME_CATEGORIES } from './domain/finance/portfolio.js';
 import './styles.css';
+import AssetHistoryModal from './components/AssetHistoryModal.jsx';
 import ChoresView from './components/ChoresView.jsx';
+import DreamModal from './components/DreamModal.jsx';
 import { Icons } from './components/AppIcons.jsx';
 import LoginScreen from './components/LoginScreen.jsx';
+import PricesModal from './components/PricesModal.jsx';
+import SettingsModal from './components/SettingsModal.jsx';
 import SimpleHistoryChart from './components/SimpleHistoryChart.jsx';
 import { BANKS, CATEGORIES, DEFAULT_BUDGETS, DEFAULT_CHORES, P2P_CATEGORY, USER_CONFIG } from './config/appData.js';
 import { BRAPI_TOKEN, GEMINI_MODELS_TO_TRY, MONTH_NAMES_EN_SHORT } from './config/appSettings.js';
@@ -3748,30 +3747,23 @@ const getGreeting = () => {
                 {/* Modal Settings */}
                 {
                     settingsModal && (
-                        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-                            <div className="glass-card w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-slide-up relative">
-                                <div className="flex justify-between mb-6"><h3 className="font-bold text-xl flex gap-2 text-white"><Settings className="text-indigo-400" /> Configurações</h3><button onClick={() => setSettingsModal(false)} className="bg-white/10 p-2 rounded-full text-white hover:bg-white/20 transition-colors"><X size={20} /></button></div>
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="text-xs font-bold uppercase text-slate-400 ml-1">Chave API Google (IA)</label>
-                                        <div className="relative mt-1">
-                                            <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Cole a chave..." className="w-full bg-slate-800/50 border border-white/10 p-4 pl-10 rounded-xl font-bold outline-none focus:border-indigo-500 text-white placeholder-slate-600" />
-                                            <Key size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                                        </div>
-                                    </div>
-                                    <button onClick={() => { localStorage.setItem('gemini_api_key', apiKey); alert('Salvo!'); setSettingsModal(false); }} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-500 transition-colors">Salvar Configuração</button>
-                                    <button onClick={exportData} className="w-full border border-white/10 text-slate-300 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-white/5 transition-colors"><Download size={18} /> Exportar Dados (Excel)</button>
-
-                                    {/* --- BOTÃO DE RESET (NOVO) --- */}
-                                    <div className="pt-4 mt-4 border-t border-white/10">
-                                        <button onClick={resetDatabase} className="w-full bg-rose-500/10 text-rose-400 border border-rose-500/20 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-rose-500/20 transition-colors">
-                                            <Trash2 size={18} /> Reiniciar Banco de Dados
-                                        </button>
-                                        <p className="text-xs text-center text-slate-500 mt-2">Apaga tudo e restaura o padrão de fábrica.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <SettingsModal
+                            apiKey={apiKey}
+                            onApiKeyChange={setApiKey}
+                            onClose={() => setSettingsModal(false)}
+                            onExportData={exportData}
+                            onResetDatabase={resetDatabase}
+                            onSave={() => {
+                                localStorage.setItem('gemini_api_key', apiKey);
+                                alert('Salvo!');
+                                setSettingsModal(false);
+                            }}
+                            Download={Download}
+                            Key={Key}
+                            Settings={Settings}
+                            Trash2={Trash2}
+                            X={X}
+                        />
                     )
                 }
 
@@ -4209,235 +4201,69 @@ const getGreeting = () => {
                     )
                 }
 
-                {/* NOVO MODAL: Atualizar Cotações (Por Ativo) */}
+                {/* NOVO MODAL: Atualizar Cota??es (Por Ativo) */}
                 {
                     pricesModal && (
-                        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-                            <div className="glass-card w-full max-w-sm rounded-[2rem] p-6 shadow-2xl max-h-[80vh] flex flex-col">
-                                <div className="flex justify-between mb-6 border-b border-white/10 pb-4">
-                                    <h3 className="font-bold text-xl flex gap-2 text-white"><TrendingUp className="text-indigo-400" /> Cotações Atuais</h3>
-                                    <button onClick={() => setPricesModal(false)} className="bg-white/10 p-2 rounded-full text-white hover:bg-white/20 transition-colors"><X size={20} /></button>
-                                </div>
-
-                                {/* BOTÃO BUSCAR COM IA */}
-                                <button
-                                    onClick={fetchBrapiPrices}
-                                    disabled={isFetchingPrices}
-                                    className={`w-full mb-4 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all border border-indigo-500/20
-                                    ${isFetchingPrices ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 active:scale-95'}
-                                `}
-                                >
-                                    {isFetchingPrices ? <Sparkles className="animate-spin" size={18} /> : <Sparkles size={18} />}
-                                    {isFetchingPrices ? 'Analisando Mercado...' : 'Buscar com IA'}
-                                </button>
-                                <p className="text-xs text-slate-400 mb-4">Informe o preço unitário atual de cada ativo para calcular a rentabilidade.</p>
-                                <div className="overflow-y-auto space-y-4 flex-1 custom-scrollbar">
-                                    {data.investData.portfolio.filter(a => a.qty > 0 || (FIXED_INCOME_CATEGORIES.includes(a.category) && a.pureBalance > 0)).map((asset) => {
-                                        const isFixed = FIXED_INCOME_CATEGORIES.includes(asset.category);
-                                        // CORREÇÃO: Chave Escopada para Renda Fixa
-                                        const priceKey = isFixed ? `${asset.name}@@${viewMode}` : asset.name;
-
-                                        return (
-                                            <div 
-                                                key={asset.name} 
-                                                className="flex gap-3 items-center justify-between cursor-pointer hover:bg-white/5 p-2 -mx-2 rounded-lg transition-colors border-b border-white/5 last:border-0"
-                                                onClick={() => setSelectedAssetHistory(asset.name)}
-                                            >
-                                                <div className="flex-1">
-                                                    <p className="text-sm font-bold text-slate-200">{asset.name}</p>
-                                                    <p className="text-xs text-slate-400">
-                                                        {isFixed ? `Custo Líquido: ${formatCurrency(asset.pureBalance)}` : `PM: ${formatCurrency(asset.avgPrice)}`}
-                                                    </p>
-                                                </div>
-                                                <div className="relative w-36">
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="text-[9px] font-bold uppercase text-slate-500 mb-0.5">
-                                                            {isFixed ? 'Saldo Atual' : 'Preço Cota'}
-                                                        </span>
-                                                        <div className="relative w-full">
-                                                            <span className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">R$</span>
-                                                            <input
-                                                                type="number"
-                                                                step="0.01"
-                                                                value={currentPrices[priceKey] !== undefined ? currentPrices[priceKey] : (currentPrices[asset.name] || '')}
-                                                                onChange={e => setCurrentPrices({ ...currentPrices, [priceKey]: e.target.value })}
-                                                                onClick={(e) => e.stopPropagation()}
-                                                                className="w-full border-b border-white/10 pl-6 font-bold py-1 outline-none focus:border-indigo-500 text-right text-white bg-transparent"
-                                                                placeholder={asset.currentPrice || (isFixed ? asset.totalCost.toFixed(2) : "0.00")}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                    {data.investData.portfolio.filter(a => a.qty > 0 || (FIXED_INCOME_CATEGORIES.includes(a.category) && a.pureBalance > 0)).length === 0 && <p className="text-center text-xs text-slate-500">Nenhum ativo disponível para atualização.</p>}
-                                </div>
-                                <button onClick={() => {
-                                    db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('assetPrices').set(currentPrices);
-                                    setPricesModal(false);
-                                }} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold mt-4 hover:bg-indigo-500 transition-colors">Salvar Cotações</button>
-                            </div>
-                        </div>
+                        <PricesModal
+                            currentPrices={currentPrices}
+                            formatCurrency={formatCurrency}
+                            isFetchingPrices={isFetchingPrices}
+                            onChangePrice={(priceKey, value) => setCurrentPrices({ ...currentPrices, [priceKey]: value })}
+                            onClose={() => setPricesModal(false)}
+                            onFetchPrices={fetchBrapiPrices}
+                            onOpenAssetHistory={setSelectedAssetHistory}
+                            onSave={() => {
+                                db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('settings').doc('assetPrices').set(currentPrices);
+                                setPricesModal(false);
+                            }}
+                            portfolio={data.investData.portfolio}
+                            Sparkles={Sparkles}
+                            TrendingUp={TrendingUp}
+                            X={X}
+                            viewMode={viewMode}
+                        />
                     )
                 }
 
                 {/* MODAL NOVO SONHO (Atualizado) */}
                 {
                     dreamModal && (
-                        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-                            <div className="glass-card w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-slide-up">
-                                <div className="flex justify-between mb-6"><h3 className="font-bold text-xl flex gap-2 text-white"><Sparkles className="text-amber-500" /> {editingDreamId ? 'Editar Sonho' : 'Novo Sonho'}</h3><button onClick={() => { setDreamModal(false); setEditingDreamId(null); }} className="bg-white/10 p-2 rounded-full text-white hover:bg-white/20 transition-colors"><X size={20} /></button></div>
-                                <div className="space-y-4">
-                                    {/* Toggle Tipo de Sonho (Melhoria 4) */}
-                                    <div className="flex bg-slate-800 p-1 rounded-xl border border-white/10">
-                                        <button onClick={() => setDScope('personal')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${dScope === 'personal' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}>Meu Sonho</button>
-                                        <button onClick={() => setDScope('joint')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${dScope === 'joint' ? 'bg-pink-600 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}>Nosso Sonho</button>
-                                    </div>
-
-                                    <div>
-                                        <label className="text-xs font-bold uppercase text-slate-400 ml-1">Nome do Sonho</label>
-                                        <input type="text" value={dTitle} onChange={e => setDTitle(e.target.value)} placeholder={dScope === 'joint' ? "Ex: Nossa Casa" : "Ex: Viagem Solo"} className="w-full bg-slate-800/50 p-3 rounded-xl font-bold outline-none focus:ring-2 focus:ring-indigo-500 mt-1 border border-white/10 text-white placeholder-slate-600" />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold uppercase text-slate-400 ml-1">Valor Alvo (Meta)</label>
-                                        <input type="number" value={dTarget} onChange={e => setDTarget(e.target.value)} placeholder="Ex: 20000" className="w-full bg-slate-800/50 p-3 rounded-xl font-bold outline-none focus:ring-2 focus:ring-indigo-500 mt-1 border border-white/10 text-white placeholder-slate-600" />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold uppercase text-slate-400 ml-1">Ícone</label>
-                                        {/* CORREÇÃO: flex-wrap e largura máxima */}
-                                        <div className="flex flex-wrap gap-3 mt-2 max-w-full">
-                                            {['✈️', '🏠', '🚗', '💍', '👶', '🎓', '🏖️', '💰', '🚀', '💻'].map(e => (
-                                                <button key={e} onClick={() => setDEmoji(e)} className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${dEmoji === e ? 'bg-indigo-600 text-white shadow-lg scale-110' : 'bg-white/5 hover:bg-white/10'}`}>{e}</button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <button onClick={saveDream} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold mt-2 hover:bg-indigo-500 transition-colors">
-                                        {editingDreamId ? 'Salvar Alterações' : 'Criar Sonho'}
-                                    </button>
-
-                                    {editingDreamId && (
-                                        <button onClick={() => deleteDream(editingDreamId)} className="w-full bg-transparent border border-rose-500/30 text-rose-400 py-3 rounded-xl font-bold hover:bg-rose-500/10 transition-colors flex items-center justify-center gap-2">
-                                            <Trash2 size={16} /> Excluir Sonho
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                        <DreamModal
+                            dEmoji={dEmoji}
+                            dScope={dScope}
+                            dTarget={dTarget}
+                            dTitle={dTitle}
+                            editingDreamId={editingDreamId}
+                            onClose={() => { setDreamModal(false); setEditingDreamId(null); }}
+                            onDelete={deleteDream}
+                            onEmojiChange={setDEmoji}
+                            onSave={saveDream}
+                            onScopeChange={setDScope}
+                            onTargetChange={setDTarget}
+                            onTitleChange={setDTitle}
+                            Sparkles={Sparkles}
+                            Trash2={Trash2}
+                            X={X}
+                        />
                     )
                 }
 
-                {/* MODAL HISTÓRICO DE ATIVO (Extrato) */}
+                {/* MODAL HIST?RICO DE ATIVO (Extrato) */}
                 {
                     selectedAssetHistory && (
-                        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-                            <div className="bg-slate-800 w-full max-w-md rounded-[2rem] p-6 shadow-2xl border border-white/10 flex flex-col max-h-[85vh] animate-slide-up">
-                                <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/10 shrink-0">
-                                    <div>
-                                        <h3 className="font-bold text-xl text-white flex items-center gap-2">
-                                            <PieChart className="text-indigo-400" />
-                                            {selectedAssetHistory}
-                                        </h3>
-                                        <p className="text-xs text-slate-400 mt-1">Histórico de Movimentações</p>
-                                    </div>
-                                    <button onClick={() => setSelectedAssetHistory(null)} className="bg-white/5 hover:bg-white/10 p-2 rounded-full text-white transition-colors">
-                                        <X size={20} />
-                                    </button>
-                                </div>
-
-                                <div className="overflow-y-auto pr-2 space-y-4 custom-scrollbar flex-1 relative">
-                                    {/* Linha vertical da Timeline */}
-                                    <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-white/5 rounded-full z-0"></div>
-
-                                    {(() => {
-                                        const assetHistoryTxs = buildAssetHistoryTimeline(txs, {
-                                            assetName: selectedAssetHistory,
-                                            viewMode,
-                                            profile
-                                        });
-
-                                        return (
-                                            <>
-                                                {assetHistoryTxs.map(t => {
-                                                const isResgate = Number(t.quantity) < 0 && t.type === 'investment'; // M3
-                                                const isRendimento = t.category === 'Rendimentos/Dividendos' || t.type === 'income'; // M3
-                                                const isAporte = t.type === 'investment' && !isResgate && !isRendimento; // M3
-
-                                                let icon = <Plus size={14} className="text-indigo-400" />;
-                                                let iconBg = 'bg-indigo-500/10 border-indigo-500/30';
-                                                let title = 'Aporte';
-                                                let valColor = 'text-indigo-400';
-
-                                                if (isResgate) {
-                                                    icon = <Minus size={14} className="text-rose-400" />;
-                                                    iconBg = 'bg-rose-500/10 border-rose-500/30';
-                                                    title = 'Resgate';
-                                                    valColor = 'text-rose-400';
-                                                } else if (isRendimento) {
-                                                    icon = <Banknote size={14} className="text-emerald-400" />;
-                                                    iconBg = 'bg-emerald-500/10 border-emerald-500/30';
-                                                    title = 'Rendimento';
-                                                    valColor = 'text-emerald-400';
-                                                }
-
-                                                return (
-                                                    <div key={t.id} className="relative z-10 flex gap-4 pl-1">
-                                                        <div className={`w-7 h-7 shrink-0 rounded-full border flex items-center justify-center mt-1 ${iconBg}`}>
-                                                            {icon}
-                                                        </div>
-                                                        <div className="flex-1 bg-white/5 rounded-xl p-3 border border-white/5">
-                                                            <div className="flex gap-2 justify-between items-start mb-1">
-                                                                <p className="text-sm font-bold text-slate-200">{title}</p>
-                                                                <div className="text-right flex-col items-end">
-                                                                    <p className={`text-sm font-bold ${valColor}`}>
-                                                                        {isResgate ? '-' : '+'}{formatCurrency(t.amount)}
-                                                                    </p>
-                                                                    {t.quantity && !isRendimento && (
-                                                                        <div className="mt-1 flex flex-col items-end opacity-90">
-                                                                            <p className="text-[10px] text-slate-300 font-medium tracking-wide">Preço Cota: {formatCurrency(Math.abs(t.amount / t.quantity))}</p>
-                                                                            <p className="text-[10px] text-indigo-300 font-medium tracking-wide mt-0.5">PM: {formatCurrency(t.historicalPM)}</p>
-                                                                            {isResgate && (
-                                                                                <p className="text-[10px] text-amber-300 font-medium tracking-wide mt-0.5">Custo: {formatCurrency(t.transactionCost)}</p>
-                                                                            )}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex justify-between items-center mt-2">
-                                                                <p className="text-[11px] font-medium text-slate-500 flex items-center gap-1 flex-wrap"> {/* M2 */}
-                                                                    <span>{new Date(t.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
-                                                                    {t.bank && (
-                                                                        <span className="text-[9px] font-bold bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded-md border border-white/10">
-                                                                            {t.bank}
-                                                                        </span>
-                                                                    )}
-                                                                </p>
-                                                                {isAporte && Number(t.quantity) > 0 && (
-                                                                    <p className="text-[10px] font-bold text-slate-300 px-2 py-0.5 bg-black/20 rounded-md">
-                                                                        {t.quantity} cotas
-                                                                    </p>
-                                                                )}
-                                                                {isResgate && Number(t.quantity) < 0 && (
-                                                                    <p className="text-[10px] font-bold text-slate-300 px-2 py-0.5 bg-black/20 rounded-md">
-                                                                        {Math.abs(Number(t.quantity))} cotas
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-
-                                                {assetHistoryTxs.length === 0 && (
-                                                    <p className="text-center text-slate-500 text-sm mt-8">Nenhuma movimentação encontrada para este ativo.</p>
-                                                )}
-                                            </>
-                                        );
-                                    })()}
-                                </div>
-                            </div>
-                        </div>
+                        <AssetHistoryModal
+                            assetName={selectedAssetHistory}
+                            Banknote={Banknote}
+                            formatCurrency={formatCurrency}
+                            Minus={Minus}
+                            onClose={() => setSelectedAssetHistory(null)}
+                            PieChart={PieChart}
+                            Plus={Plus}
+                            profile={profile}
+                            transactions={txs}
+                            viewMode={viewMode}
+                            X={X}
+                        />
                     )
                 }
 
